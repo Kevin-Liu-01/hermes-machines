@@ -1,0 +1,33 @@
+{
+  "name": "hermes-persistent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Persistent Hermes Agent on Dedalus Machines with preloaded kevin-wiki knowledge",
+  "type": "module",
+  "scripts": {
+    "deploy": "tsx src/cli.ts deploy",
+    "chat": "tsx src/cli.ts chat",
+    "status": "tsx src/cli.ts status",
+    "logs": "tsx src/cli.ts logs",
+    "wake": "tsx src/cli.ts wake",
+    "sleep": "tsx src/cli.ts sleep",
+    "destroy": "tsx src/cli.ts destroy",
+    "shell": "tsx src/cli.ts shell",
+    "reload": "tsx src/cli.ts reload-knowledge",
+    "typecheck": "tsc --noEmit",
+    "web": "cd web && npm run dev"
+  },
+  "dependencies": {
+    "dedalus": "^0.2.0",
+    "dotenv": "^17.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

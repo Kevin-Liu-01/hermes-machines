@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/*
+ * Reticle / Sigil design tokens.
+ *
+ * The aesthetic: structural visibility. Grid lines, margin rails, and cross
+ * marks at intersections. Components consume only `var(--ret-*)` — never raw
+ * hex values — so swapping a theme means swapping these tokens.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--ret-bg: #ffffff;
+	--ret-bg-soft: #f0f0f2;
+	--ret-surface: #f5f5f5;
+	--ret-surface-hover: #ebebeb;
+
+	--ret-text: rgba(0, 0, 0, 0.9);
+	--ret-text-secondary: #52525b;
+	--ret-text-dim: rgba(0, 0, 0, 0.55);
+	--ret-text-muted: rgba(0, 0, 0, 0.35);
+
+	--ret-border: rgba(0, 0, 0, 0.22);
+	--ret-border-hover: rgba(0, 0, 0, 0.36);
+	--ret-border-strong: rgba(0, 0, 0, 0.42);
+
+	--ret-grid: rgba(0, 0, 0, 0.14);
+	--ret-rail: rgba(0, 0, 0, 0.18);
+	--ret-cross: rgba(0, 0, 0, 0.3);
+
+	--ret-purple: #aaa5e6;
+	--ret-purple-muted: rgba(170, 165, 230, 0.14);
+	--ret-purple-glow: rgba(170, 165, 230, 0.1);
+	--ret-green: #22c55e;
+	--ret-amber: #f59e0b;
+	--ret-red: #ef4444;
+
+	--ret-card-radius: 10px;
+
+	--font-sans:
+		"Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+		sans-serif;
+	--font-mono:
+		"Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+		Consolas, monospace;
+}
+
+.dark,
+:root[data-theme="dark"] {
+	--ret-bg: #09090b;
+	--ret-bg-soft: #111113;
+	--ret-surface: #111113;
+	--ret-surface-hover: #1a1a1e;
+
+	--ret-text: rgba(255, 255, 255, 0.9);
+	--ret-text-secondary: #a1a1aa;
+	--ret-text-dim: rgba(255, 255, 255, 0.5);
+	--ret-text-muted: rgba(255, 255, 255, 0.3);
+
+	--ret-border: rgba(255, 255, 255, 0.16);
+	--ret-border-hover: rgba(255, 255, 255, 0.26);
+	--ret-border-strong: rgba(255, 255, 255, 0.32);
+
+	--ret-grid: rgba(255, 255, 255, 0.08);
+	--ret-rail: rgba(255, 255, 255, 0.14);
+	--ret-cross: rgba(255, 255, 255, 0.22);
+
+	--ret-purple: #d2beff;
+	--ret-purple-muted: rgba(210, 190, 255, 0.15);
+	--ret-purple-glow: rgba(210, 190, 255, 0.08);
+	--ret-green: #4ade80;
+	--ret-amber: #fbbf24;
+	--ret-red: #f87171;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--ret-bg: #09090b;
+		--ret-bg-soft: #111113;
+		--ret-surface: #111113;
+		--ret-surface-hover: #1a1a1e;
+
+		--ret-text: rgba(255, 255, 255, 0.9);
+		--ret-text-secondary: #a1a1aa;
+		--ret-text-dim: rgba(255, 255, 255, 0.5);
+		--ret-text-muted: rgba(255, 255, 255, 0.3);
+
+		--ret-border: rgba(255, 255, 255, 0.16);
+		--ret-border-hover: rgba(255, 255, 255, 0.26);
+		--ret-border-strong: rgba(255, 255, 255, 0.32);
+
+		--ret-grid: rgba(255, 255, 255, 0.08);
+		--ret-rail: rgba(255, 255, 255, 0.14);
+		--ret-cross: rgba(255, 255, 255, 0.22);
+
+		--ret-purple: #d2beff;
+		--ret-purple-muted: rgba(210, 190, 255, 0.15);
+		--ret-purple-glow: rgba(210, 190, 255, 0.08);
+		--ret-green: #4ade80;
+		--ret-amber: #fbbf24;
+		--ret-red: #f87171;
+	}
+}
+
+html,
+body {
+	background: var(--ret-bg);
+	color: var(--ret-text);
+	font-family: var(--font-sans);
+	font-feature-settings: "ss01", "cv11", "tnum";
+}
+
+* {
+	border-color: var(--ret-border);
+}
+
+::selection {
+	background: var(--ret-purple);
+	color: #0f0f0f;
+}
+
+/* Markdown body inside chat messages */
+.prose-msg p {
+	margin: 0 0 0.75em;
+	line-height: 1.6;
+}
+.prose-msg p:last-child {
+	margin-bottom: 0;
+}
+.prose-msg pre {
+	background: var(--ret-surface);
+	border: 1px solid var(--ret-border);
+	border-radius: 8px;
+	padding: 12px 14px;
+	margin: 0.75em 0;
+	overflow-x: auto;
+	font-family: var(--font-mono);
+	font-size: 0.85em;
+}
+.prose-msg code {
+	background: var(--ret-surface);
+	border: 1px solid var(--ret-border);
+	border-radius: 4px;
+	padding: 1px 5px;
+	font-family: var(--font-mono);
+	font-size: 0.88em;
+}
+.prose-msg pre code {
+	background: transparent;
+	border: none;
+	padding: 0;
+}
+.prose-msg ul,
+.prose-msg ol {
+	padding-left: 1.5em;
+	margin: 0.5em 0;
+}
+.prose-msg li {
+	margin: 0.25em 0;
+}
+.prose-msg a {
+	color: var(--ret-purple);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+/* Subtle blink for the streaming caret */
+@keyframes ret-caret {
+	0%,
+	49% {
+		opacity: 1;
+	}
+	50%,
+	100% {
+		opacity: 0;
+	}
+}
+.ret-caret {
+	display: inline-block;
+	width: 8px;
+	height: 1em;
+	background: var(--ret-text);
+	margin-left: 2px;
+	vertical-align: text-bottom;
+	animation: ret-caret 1s steps(1) infinite;
+}

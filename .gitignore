@@ -1,0 +1,11 @@
+node_modules
+.env
+.env.local
+.next
+dist
+out
+.DS_Store
+*.log
+.turbo
+.vercel
+.machine-state.json
