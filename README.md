@@ -148,6 +148,19 @@ Hermes is configured with the full toolset. By default the agent can call:
 | `memory` | read/update MEMORY.md and USER.md |
 | `session_search` | FTS5 search over past sessions |
 
+Plus four MCP tools from the bundled `cursor-bridge` (Cursor TypeScript SDK):
+
+| Tool | What it does |
+|------|--------------|
+| `cursor_agent` | Spawn a Cursor coding agent against a working directory. Same model that runs in the Cursor IDE — full file/terminal access, codebase semantic search, lints. Pass `load_skills: ["agent-ethos", "git-workflow", ...]` to inject Hermes skills as `.cursor/rules` for the run. |
+| `cursor_resume` | Continue a previous Cursor agent by ID. Retains full conversation context. |
+| `cursor_list_skills` | List local Hermes skills available for `load_skills` injection. |
+| `cursor_models` | Enumerate models the configured `CURSOR_API_KEY` can use. |
+
+The bridge is a Node MCP server at `mcp/cursor-bridge/`. It speaks stdio MCP to Hermes and the Cursor SDK to upstream. Auth via `CURSOR_API_KEY` in `~/.hermes/.env` ([cursor.com/dashboard/integrations](https://cursor.com/dashboard/integrations)).
+
+When the user asks for actual code changes (refactor, bug fix, new feature), Hermes delegates: it doesn't write the diff itself, it calls `cursor_agent(prompt, working_dir, load_skills)`. The spawned Cursor agent inherits Hermes's conventions via the synthesized rule file and iterates with full tool access until the work is done.
+
 ## Lifecycle
 
 Sleep / wake is the loop. Sleep stops per-second billing while preserving the persistent volume (`/home/machine`). Wake is fast (seconds) and re-runs bootstrap idempotently to repair any transient process drift (gateway, dashboard).
@@ -192,11 +205,16 @@ hermes-persistent/
 ├── src/
 │   ├── cli.ts                command dispatcher
 │   ├── commands/             one file per `npm run` script
-│   └── lib/                  client, exec, machine, upload, bootstrap, api, env, progress, constants
+│   └── lib/                  client, exec, machine, upload, bootstrap, api, env, progress, constants, tunnel
 ├── knowledge/                tarballed into the VM on every deploy
 │   ├── SOUL.md / USER.md / MEMORY.md / AGENTS.md
-│   ├── skills/<name>/SKILL.md
+│   ├── skills/<name>/SKILL.md     (15 skills, including cursor-coding)
 │   └── crons/seed.json
+├── mcp/
+│   └── cursor-bridge/        Node MCP server wrapping @cursor/sdk
+│       ├── src/server.ts     stdio MCP server with cursor_agent + 3 sibling tools
+│       ├── package.json
+│       └── tsconfig.json
 └── web/                      Next.js 15 + Tailwind v4 + Reticle UI
     ├── app/
     ├── components/           Chat + Reticle primitives + page sections

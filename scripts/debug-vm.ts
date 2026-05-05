@@ -41,13 +41,13 @@ const ENV =
 	"export PATH=/home/machine/.local/bin:/home/machine/.venv/bin:$PATH";
 
 async function main() {
-	await exec(`${ENV} && hermes dashboard --help 2>&1 | head -20`);
-	await exec(`tail -30 /home/machine/.hermes/logs/dashboard.log 2>&1 || echo "no log"`);
+	await exec(`ls /home/machine/cursor-bridge/ 2>&1`);
 	await exec(
-		`${ENV} && /home/machine/start-dashboard.sh & sleep 8 && ss -tlnp | grep 9119 || echo "still not bound"`,
-		60_000,
+		`${ENV} && cd /home/machine/cursor-bridge && rm -rf node_modules && npm install --no-audit --no-fund 2>&1 | tail -20`,
+		600_000,
 	);
-	await exec(`tail -30 /home/machine/.hermes/logs/dashboard.log 2>&1`);
+	await exec(`${ENV} && cd /home/machine/cursor-bridge && npm run build 2>&1 | tail -20`);
+	await exec(`ls /home/machine/cursor-bridge/dist/ 2>&1`);
 }
 
 main().catch((e) => {

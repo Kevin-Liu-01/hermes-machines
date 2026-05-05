@@ -15,12 +15,12 @@ const STARTER_PROMPTS: ReadonlyArray<{ label: string; prompt: string }> = [
 	{
 		label: "Introduce yourself",
 		prompt:
-			"Introduce yourself in three sentences. Mention which skills you have loaded, which tools you can call, and which scheduled crons are running.",
+			"Introduce yourself in three sentences. Mention which skills you have loaded, which tools you can call (including any MCP servers), and which scheduled crons are running.",
 	},
 	{
-		label: "Audit my recent commits",
+		label: "Spawn a Cursor agent",
 		prompt:
-			"List my last 5 commits across any repos available in /home/machine. For each, summarize what changed and any concerns from a code-review perspective.",
+			"In /home/machine/work, scaffold a tiny TypeScript project that prints fibonacci(20). Use the cursor_agent tool with load_skills=['agent-ethos','taste-output']. Report what files it created and the final stdout.",
 	},
 	{
 		label: "Show your skills",

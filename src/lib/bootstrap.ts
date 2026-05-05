@@ -18,16 +18,21 @@ import { resolve } from "node:path";
 
 import type Dedalus from "dedalus";
 
+import { resolve as resolvePath } from "node:path";
+
 import {
 	DEPLOY_VERSION,
+	NODE_MAJOR,
 	PORT_API,
 	PORT_DASHBOARD,
 	SHELL_ENV,
+	VM_BRIDGE_DIR,
 	VM_DEPLOY_MARKER,
 	VM_GATEWAY_LOG,
 	VM_HERMES_HOME,
 	VM_HOME,
 	VM_LOCAL_BIN,
+	VM_NODE_DIR,
 	VM_UV_CACHE,
 	VM_VENV,
 } from "./constants.js";
@@ -42,6 +47,7 @@ export type BootstrapInput = {
 	config: Config;
 	apiServerKey: string;
 	repoRoot: string;
+	cursorApiKey: string | null;
 };
 
 async function systemDeps({ client, machineId }: BootstrapInput): Promise<void> {
@@ -85,17 +91,19 @@ async function installUv({ client, machineId }: BootstrapInput): Promise<void> {
 }
 
 async function installHermes({ client, machineId }: BootstrapInput): Promise<void> {
-	// Both the binary AND the [web] extra (fastapi) need to be present.
-	// Old base-only installs from earlier deploy versions need a re-install.
+	// Three things need to be present: the binary, the [web] extra (fastapi
+	// for `hermes dashboard`), and the [mcp] extra (the upstream `mcp` Python
+	// package — Hermes loads `mcp_servers` from config.yaml only when this
+	// import succeeds; without it MCP support is a silent no-op).
 	if (
 		await check(
 			client,
 			machineId,
 			`${SHELL_ENV} && [ -x ${VM_VENV}/bin/hermes ] && hermes --version >/dev/null && ` +
-				`${VM_VENV}/bin/python -c 'import fastapi'`,
+				`${VM_VENV}/bin/python -c 'import fastapi, mcp'`,
 		)
 	) {
-		dim("  hermes + web extra already installed");
+		dim("  hermes + web + mcp already installed");
 		return;
 	}
 	if (
@@ -116,15 +124,16 @@ async function installHermes({ client, machineId }: BootstrapInput): Promise<voi
 	// doesn't poison the install. uv resolves the git ref + clones + installs
 	// in one optimized step.
 	await exec(client, machineId, `rm -rf ${VM_HOME}/hermes-agent-src`);
-	// Install with the [web] extra so `hermes dashboard` works (pulls FastAPI
-	// + uvicorn — about 5 MB). We deliberately avoid [all] which would pull
-	// Playwright/Chromium (~250 MB) and ElevenLabs/Modal/Daytona deps we
-	// don't need for an API + dashboard + cron deployment.
+	// Install with the [web,mcp] extras so `hermes dashboard` works (FastAPI
+	// + uvicorn) and so the gateway can discover/connect to MCP servers (the
+	// upstream `mcp` Python package). We deliberately avoid [all] which would
+	// pull Playwright/Chromium (~250 MB) and ElevenLabs/Modal/Daytona deps we
+	// don't need for an API + dashboard + cron + cursor-bridge deployment.
 	await exec(
 		client,
 		machineId,
 		`${SHELL_ENV} && uv pip install --python ${VM_VENV}/bin/python ` +
-			`'hermes-agent[web] @ git+https://github.com/NousResearch/hermes-agent.git@main' 2>&1 | tail -8`,
+			`'hermes-agent[web,mcp] @ git+https://github.com/NousResearch/hermes-agent.git@main' 2>&1 | tail -8`,
 		{ timeoutMs: 900_000 },
 	);
 	await exec(
@@ -276,7 +285,7 @@ async function startGateway({ client, machineId }: BootstrapInput): Promise<void
 		`export HERMES_HOME=${VM_HERMES_HOME}`,
 		`export VIRTUAL_ENV=${VM_VENV}`,
 		`export UV_CACHE_DIR=${VM_UV_CACHE}`,
-		`export PATH=${VM_LOCAL_BIN}:${VM_VENV}/bin:$PATH`,
+		`export PATH=${VM_NODE_DIR}/bin:${VM_LOCAL_BIN}:${VM_VENV}/bin:$PATH`,
 		`mkdir -p ${VM_HERMES_HOME}/logs`,
 		`exec hermes gateway >> ${VM_GATEWAY_LOG} 2>&1`,
 	].join("\\n");
@@ -337,12 +346,130 @@ async function recordVersion({ client, machineId }: BootstrapInput): Promise<voi
 	);
 }
 
+async function installNode({ client, machineId }: BootstrapInput): Promise<void> {
+	if (
+		await check(
+			client,
+			machineId,
+			`[ -x ${VM_NODE_DIR}/bin/node ] && ${VM_NODE_DIR}/bin/node --version | grep -q '^v${NODE_MAJOR}'`,
+		)
+	) {
+		dim(`  node ${NODE_MAJOR} already installed at ${VM_NODE_DIR}`);
+		return;
+	}
+	// Resolve the latest v22.x.x linux-x64 tarball off nodejs.org and unpack
+	// into /home/machine/node so it survives root-fs resets.
+	const resolveScript =
+		`url=$(curl -fsSL https://nodejs.org/dist/latest-v${NODE_MAJOR}.x/ ` +
+		`| grep -oE 'node-v${NODE_MAJOR}\\.[0-9]+\\.[0-9]+-linux-x64\\.tar\\.xz' | head -1) && ` +
+		`echo "downloading $url" && ` +
+		`curl -fsSL "https://nodejs.org/dist/latest-v${NODE_MAJOR}.x/$url" -o /tmp/node.tar.xz && ` +
+		`mkdir -p ${VM_NODE_DIR} && ` +
+		`tar -xJf /tmp/node.tar.xz -C ${VM_NODE_DIR} --strip-components=1 && ` +
+		`rm /tmp/node.tar.xz && ${VM_NODE_DIR}/bin/node --version`;
+	await exec(client, machineId, resolveScript, { timeoutMs: 300_000 });
+}
+
+async function installCursorBridge(input: BootstrapInput): Promise<void> {
+	const { client, machineId, repoRoot } = input;
+	if (
+		await check(
+			client,
+			machineId,
+			`[ -x ${VM_BRIDGE_DIR}/dist/server.js ] && [ -d ${VM_BRIDGE_DIR}/node_modules ]`,
+		)
+	) {
+		dim("  cursor-bridge already built");
+		return;
+	}
+	await exec(client, machineId, `mkdir -p ${VM_BRIDGE_DIR}`);
+	const bridgeRoot = resolvePath(repoRoot, "mcp", "cursor-bridge");
+	const result = await uploadKnowledge(
+		client,
+		machineId,
+		bridgeRoot,
+		VM_BRIDGE_DIR,
+	);
+	dim(`  uploaded bridge: ${(result.sizeBytes / 1024).toFixed(1)} KB`);
+	await exec(
+		client,
+		machineId,
+		`${SHELL_ENV} && cd ${VM_BRIDGE_DIR} && rm -rf node_modules && ` +
+			`npm install --no-audit --no-fund --silent 2>&1 | tail -5 && ` +
+			`npm run build 2>&1 | tail -3`,
+		{ timeoutMs: 600_000 },
+	);
+	await exec(
+		client,
+		machineId,
+		`${SHELL_ENV} && [ -x ${VM_BRIDGE_DIR}/dist/server.js ] && ` +
+			`node ${VM_BRIDGE_DIR}/dist/server.js --help 2>&1 | head -3 || true`,
+	);
+}
+
+async function registerCursorMcp(input: BootstrapInput): Promise<void> {
+	const { client, machineId, cursorApiKey } = input;
+	if (!cursorApiKey) {
+		dim("  CURSOR_API_KEY not set; cursor_agent tool will refuse calls until set");
+	}
+	// Hermes reads ~/.hermes/config.yaml at startup. We yaml-rewrite the file
+	// in place via a Python helper that we write to disk first — inlining it
+	// via `python3 -c` and `printf '%b'` collides with the bash single-quote
+	// boundary because the Python uses single-quoted literals too.
+	const scriptPath = `${VM_HERMES_HOME}/.register-cursor-mcp.py`;
+	const scriptBody = [
+		"import yaml, os",
+		`p = ${JSON.stringify(`${VM_HERMES_HOME}/config.yaml`)}`,
+		"data = yaml.safe_load(open(p).read()) if os.path.exists(p) else {}",
+		"data.setdefault(\"mcp_servers\", {})",
+		"data[\"mcp_servers\"][\"cursor\"] = {",
+		// Absolute node path — the gateway subprocess inherits a minimal
+		// PATH that doesn't include /home/machine/node/bin, so `command: node`
+		// would 'No such file or directory' even though the binary exists.
+		`    \"command\": ${JSON.stringify(`${VM_NODE_DIR}/bin/node`)},`,
+		`    \"args\": [${JSON.stringify(`${VM_BRIDGE_DIR}/dist/server.js`)}],`,
+		"    \"env\": {",
+		`        \"HERMES_HOME\": ${JSON.stringify(VM_HERMES_HOME)},`,
+		`        \"PATH\": ${JSON.stringify(`${VM_NODE_DIR}/bin:/usr/local/bin:/usr/bin:/bin`)},`,
+		"    },",
+		"    \"timeout\": 600,",
+		"}",
+		"open(p, \"w\").write(yaml.safe_dump(data, sort_keys=False))",
+		"print(\"ok\")",
+	].join("\\n");
+	await exec(
+		client,
+		machineId,
+		`printf '%b' '${scriptBody}' > ${scriptPath}`,
+	);
+	await exec(client, machineId, `${SHELL_ENV} && python3 ${scriptPath}`);
+
+	// Set CURSOR_API_KEY in ~/.hermes/.env so the bridge subprocess inherits
+	// it. We grep+rewrite the file rather than appending to keep the .env
+	// idempotent across re-deploys.
+	if (cursorApiKey) {
+		const line = `CURSOR_API_KEY=${cursorApiKey}`;
+		await exec(
+			client,
+			machineId,
+			`touch ${VM_HERMES_HOME}/.env && ` +
+				`grep -v '^CURSOR_API_KEY=' ${VM_HERMES_HOME}/.env > ${VM_HERMES_HOME}/.env.tmp || true && ` +
+				`echo '${line}' >> ${VM_HERMES_HOME}/.env.tmp && ` +
+				`mv ${VM_HERMES_HOME}/.env.tmp ${VM_HERMES_HOME}/.env && ` +
+				`chmod 600 ${VM_HERMES_HOME}/.env`,
+		);
+	}
+}
+
 export async function runBootstrap(input: BootstrapInput): Promise<void> {
 	await phase("Install system deps (curl, git, build-essential)", () => systemDeps(input));
 	await phase("Install uv (Python package manager)", () => installUv(input));
 	await phase("Install Hermes Agent (this can take a few minutes)", () => installHermes(input));
+	await phase(`Install Node.js ${NODE_MAJOR}.x (for the Cursor SDK bridge)`, () => installNode(input));
 	await phase("Seed knowledge base (skills, persona, memory)", () => seedKnowledge(input));
+	await phase("Build cursor-bridge MCP server (Cursor SDK)", () => installCursorBridge(input));
 	await phase("Configure Hermes (provider, model, API server, memory)", () => configureHermes(input));
+	await phase("Register cursor-bridge in mcp_servers + .env", () => registerCursorMcp(input));
 	await phase("Seed scheduled cron automations", () => seedCronJobs(input));
 	await phase(`Start gateway + API server on :${PORT_API}`, () => startGateway(input));
 	await phase(`Start web dashboard on :${PORT_DASHBOARD}`, () => startDashboard(input));

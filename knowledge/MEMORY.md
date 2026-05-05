@@ -20,6 +20,13 @@
 
 `terminal`, `read_file`, `write_file`, `patch`, `search`, `web_search`, `web_extract`, `browser_*` (Playwright), `vision_analyze`, `image_generate` (FAL), `tts`, `skills_list`/`skill_view`, `memory`, `session_search`, `cronjob`, `delegate_task`, `execute_code` (Python sandbox).
 
+Plus four MCP tools from `mcp_servers.cursor` (the cursor-bridge to the Cursor TypeScript SDK):
+
+- `cursor_agent` — spawn a Cursor coding agent against a working directory. Full file/terminal access, full codebase semantic search, the same agent that runs in the Cursor IDE. Use when the user asks for real code work.
+- `cursor_resume` — continue a previous Cursor agent conversation by ID.
+- `cursor_list_skills` — list local Hermes skills available for injection into Cursor prompts.
+- `cursor_models` — list Cursor models the API key can use.
+
 ## Loaded skills
 
 Curated from `kevin-wiki`. Each lives at `~/.hermes/skills/<name>/SKILL.md`:
@@ -38,6 +45,7 @@ Curated from `kevin-wiki`. Each lives at `~/.hermes/skills/<name>/SKILL.md`:
 - `plan-mode-review` — structured review checklist
 - `taste-output` — never truncate or stub generated code
 - `dedalus-machines` — how this VM is wired
+- `cursor-coding` — when and how to delegate code work to a Cursor agent via the `cursor_agent` MCP tool
 
 ## Cron automations
 

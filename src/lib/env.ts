@@ -15,6 +15,7 @@ export type Config = {
 	vcpu: number;
 	memoryMib: number;
 	storageGib: number;
+	cursorApiKey: string | null;
 };
 
 function readNumber(key: string, fallback: number): number {
@@ -37,6 +38,10 @@ export function loadConfig(): Config {
 		);
 	}
 
+	const cursorRaw = process.env.CURSOR_API_KEY?.trim();
+	const cursorApiKey =
+		cursorRaw && cursorRaw !== "cursor_replace_me" ? cursorRaw : null;
+
 	return {
 		apiKey,
 		machinesBaseUrl: process.env.DEDALUS_BASE_URL ?? DEFAULTS.dedalusBaseUrl,
@@ -45,5 +50,6 @@ export function loadConfig(): Config {
 		vcpu: readNumber("HERMES_VCPU", DEFAULTS.vcpu),
 		memoryMib: readNumber("HERMES_MEMORY_MIB", DEFAULTS.memoryMib),
 		storageGib: readNumber("HERMES_STORAGE_GIB", DEFAULTS.storageGib),
+		cursorApiKey,
 	};
 }

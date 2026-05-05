@@ -18,10 +18,10 @@ export function HeroBlock() {
 					<span className="text-[var(--ret-text-dim)]">and a memory.</span>
 				</h1>
 				<p className="mt-5 max-w-[58ch] text-base leading-relaxed text-[var(--ret-text-dim)] md:text-lg">
-					Hermes Agent, deployed inside a Dedalus microVM. It has a shell, a
-					browser, file access, scheduled crons, and a knowledge base of
-					skills lifted from my personal LLM wiki. Talk to it here. It
-					remembers.
+					Hermes Agent, deployed inside a Dedalus microVM. Shell, browser,
+					file access, scheduled crons, knowledge base from my LLM wiki — and
+					when you ask for real code, it spawns a Cursor agent with my skills
+					wired in as project rules. Talk to it here. It remembers.
 				</p>
 				<div className="mt-7 flex flex-wrap gap-3">
 					<ReticleButton
@@ -52,12 +52,12 @@ export function HeroBlock() {
 			</div>
 
 			<div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-[var(--ret-border)] bg-[var(--ret-border)]">
-				<HeroStat label="vCPU" value="2" />
-				<HeroStat label="memory" value="4 GiB" />
-				<HeroStat label="storage" value="20 GiB" />
+				<HeroStat label="vCPU" value="1" />
+				<HeroStat label="memory" value="2 GiB" />
+				<HeroStat label="storage" value="10 GiB" />
 				<HeroStat label="ports" value="8642 / 9119" />
-				<HeroStat label="skills" value="13" hint="kevin-wiki" />
-				<HeroStat label="crons" value="4" hint="seeded" />
+				<HeroStat label="skills" value="15" hint="kevin-wiki" />
+				<HeroStat label="mcp" value="cursor" hint="@cursor/sdk" />
 			</div>
 		</div>
 	);

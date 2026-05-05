@@ -11,6 +11,9 @@ export const VM_HERMES_HOME = `${VM_HOME}/.hermes`;
 export const VM_VENV = `${VM_HOME}/.venv`;
 export const VM_UV_CACHE = `${VM_HOME}/.uv-cache`;
 export const VM_LOCAL_BIN = `${VM_HOME}/.local/bin`;
+export const VM_NODE_DIR = `${VM_HOME}/node`;
+export const VM_BRIDGE_DIR = `${VM_HOME}/cursor-bridge`;
+export const VM_BRIDGE_DROP = `${VM_HOME}/.cursor-bridge-payload.tar.gz`;
 
 export const VM_KNOWLEDGE_DROP = `${VM_HOME}/.knowledge-payload.tar.gz`;
 export const VM_GATEWAY_LOG = `${VM_HERMES_HOME}/logs/gateway.log`;
@@ -26,7 +29,10 @@ export const PORT_DASHBOARD = 9119;
 export const STATE_FILE = ".machine-state.json";
 
 /** Bumped whenever bootstrap logic changes; triggers re-bootstrap on deploy. */
-export const DEPLOY_VERSION = "1.0.0";
+export const DEPLOY_VERSION = "1.1.0";
+
+/** Pinned Node major for the cursor-bridge MCP server. Cursor SDK needs Node 20+. */
+export const NODE_MAJOR = "22";
 
 export const DEFAULTS = {
 	vcpu: 1,
@@ -43,5 +49,5 @@ export const SHELL_ENV = [
 	`export HERMES_HOME=${VM_HERMES_HOME}`,
 	`export VIRTUAL_ENV=${VM_VENV}`,
 	`export UV_CACHE_DIR=${VM_UV_CACHE}`,
-	`export PATH=${VM_LOCAL_BIN}:${VM_VENV}/bin:$PATH`,
+	`export PATH=${VM_NODE_DIR}/bin:${VM_LOCAL_BIN}:${VM_VENV}/bin:$PATH`,
 ].join(" && ");

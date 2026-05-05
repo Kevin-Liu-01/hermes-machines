@@ -1,0 +1,27 @@
+{
+	"name": "@hermes-persistent/cursor-bridge",
+	"version": "0.1.0",
+	"private": true,
+	"description": "MCP server that exposes Cursor SDK agents as tools to Hermes",
+	"type": "module",
+	"bin": {
+		"cursor-bridge": "./dist/server.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"start": "node dist/server.js",
+		"dev": "tsx src/server.ts"
+	},
+	"dependencies": {
+		"@cursor/sdk": "^1.0.12",
+		"@modelcontextprotocol/sdk": "^1.29.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0",
+		"tsx": "^4.21.0",
+		"typescript": "^5.7.0"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}

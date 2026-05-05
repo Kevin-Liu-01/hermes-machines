@@ -19,6 +19,7 @@ const SKILLS: ReadonlyArray<{
 	{ name: "plan-mode-review", source: ".cursor/rules/plan-mode-review.mdc", purpose: "structured pre-implementation checklist" },
 	{ name: "taste-output", source: "wiki/skills/taste-output", purpose: "no truncation, no skeleton stubs" },
 	{ name: "dedalus-machines", source: "wiki/architecture/dedalus-machines-overview", purpose: "DCS runtime model" },
+	{ name: "cursor-coding", source: "cursor.com/docs/sdk/typescript", purpose: "delegate real code work to a Cursor agent via cursor_agent MCP tool" },
 ];
 
 export function SkillsManifest() {

@@ -8,6 +8,12 @@ const CAPABILITIES: ReadonlyArray<{
 	notes: string[];
 }> = [
 	{
+		kicker: "DELEGATION",
+		title: "Spawns Cursor coding agents",
+		body: "When you ask for real code changes — refactor, bug fix, new feature — Hermes hands off to a Cursor agent via the cursor_agent MCP tool. Same model that runs in the Cursor IDE, full file access, with my skills injected as .cursor/rules.",
+		notes: ["cursor_agent", "@cursor/sdk", "load_skills", ".cursor/rules/from-hermes.mdc"],
+	},
+	{
 		kicker: "TOOLS",
 		title: "40+ tools, one prompt away",
 		body: "Terminal, file ops, web search, browser automation (Playwright), vision, image generation, TTS, MCP servers, code execution, subagent delegation.",
@@ -29,7 +35,7 @@ const CAPABILITIES: ReadonlyArray<{
 		kicker: "SCHEDULE",
 		title: "Cron, in plain English",
 		body: 'Ask: "every weekday at 8am, brief me." It schedules itself. Pre-seeded with health checks, wiki digests, skill audits, and memory consolidation.',
-		notes: ["every 1h", "every 1d at 09:00", "0 4 * * mon"],
+		notes: ["every 1h", "0 9 * * *", "0 4 * * mon"],
 	},
 	{
 		kicker: "RUNTIME",

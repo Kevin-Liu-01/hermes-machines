@@ -137,6 +137,7 @@ export async function deploy(): Promise<void> {
 		config,
 		apiServerKey,
 		repoRoot: repoRoot(),
+		cursorApiKey: config.cursorApiKey,
 	});
 
 	const apiExposure = await phase(

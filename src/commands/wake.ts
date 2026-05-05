@@ -41,6 +41,7 @@ export async function wake(): Promise<void> {
 		config,
 		apiServerKey: state.apiServerKey,
 		repoRoot: repoRoot(),
+		cursorApiKey: config.cursorApiKey,
 	});
 
 	console.log("");

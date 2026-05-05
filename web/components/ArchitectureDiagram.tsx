@@ -26,34 +26,38 @@ export function ArchitectureDiagram() {
 				<pre className="text-[var(--ret-text-dim)]">
 {`                      [ you @ npm run chat ]
                               │
-                              │  /v1/chat/completions
+                              │  POST /v1/chat/completions
                               ▼
             ┌──────────────────────────────────────────┐
-            │  Dedalus preview URL  (public, https)    │
-            │  → 127.0.0.1:8642 inside the microVM     │
+            │  public preview / cloudflared tunnel     │
             └──────────────────────────────────────────┘
                               │
                               ▼
         ╔═════════════════ Dedalus Machine ═══════════════╗
         ║                                                  ║
-        ║   :8642  hermes gateway   ── API server          ║
-        ║   :9119  hermes web       ── dashboard           ║
+        ║   :8642  hermes gateway  ── OpenAI API          ║
+        ║   :9119  hermes dashboard                        ║
         ║                                                  ║
-        ║   /home/machine/ (persistent)                    ║
-        ║     ├─ .venv/             ← uv pip install       ║
-        ║     ├─ .hermes/           ← config + sessions    ║
-        ║     │   ├─ skills/        ← your wiki skills     ║
-        ║     │   ├─ cron/          ← scheduled tasks      ║
-        ║     │   ├─ MEMORY.md      ← agent memory         ║
-        ║     │   ├─ USER.md        ← your profile         ║
-        ║     │   └─ SOUL.md        ← persona              ║
+        ║   ┌──────────────┐         ┌──────────────────┐ ║
+        ║   │ Hermes (Py)  │ ◀─MCP─▶ │ cursor-bridge    │ ║
+        ║   │ tools, cron, │  stdio  │ (Node + @cursor/ │ ║
+        ║   │ skills, mem  │         │  sdk)            │ ║
+        ║   └──────────────┘         └──────────────────┘ ║
+        ║         │                          │            ║
+        ║         │                          ▼            ║
+        ║         │                  ┌──────────────────┐ ║
+        ║         │                  │ Cursor Agent     │ ║
+        ║         │                  │ (composer-2)     │ ║
+        ║         │                  │ files, terminal, │ ║
+        ║         │                  │ semantic search  │ ║
+        ║         │                  └──────────────────┘ ║
+        ║         ▼                                       ║
+        ║   /home/machine/.hermes/{skills,cron,memory}/  ║
         ╚══════════════════════════════════════════════════╝
                               │
-                              │  inference (OpenAI-compatible)
                               ▼
             ┌──────────────────────────────────────────┐
-            │  https://api.dedaluslabs.ai/v1           │
-            │  routes 200+ models with the same key    │
+            │  api.dedaluslabs.ai/v1  ── 200+ models   │
             └──────────────────────────────────────────┘`}
 				</pre>
 			</div>

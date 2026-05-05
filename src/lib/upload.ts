@@ -22,18 +22,19 @@ import { VM_HOME, VM_KNOWLEDGE_DROP } from "./constants.js";
 
 const CHUNK_BYTES = 64 * 1024;
 
+const TAR_EXCLUDES = ["node_modules", "dist", ".git", ".DS_Store"];
+
 function tarballDirectory(sourceDir: string): Buffer {
 	if (!existsSync(sourceDir)) {
-		throw new Error(`Knowledge directory not found: ${sourceDir}`);
+		throw new Error(`Source directory not found: ${sourceDir}`);
 	}
-	const tmp = mkdtempSync(join(tmpdir(), "hermes-knowledge-"));
+	const tmp = mkdtempSync(join(tmpdir(), "hermes-payload-"));
 	const archivePath = join(tmp, "payload.tar.gz");
 	try {
-		const result = spawnSync(
-			"tar",
-			["-czf", archivePath, "-C", sourceDir, "."],
-			{ stdio: "pipe" },
-		);
+		const args = ["-czf", archivePath];
+		for (const exclude of TAR_EXCLUDES) args.push(`--exclude=${exclude}`);
+		args.push("-C", sourceDir, ".");
+		const result = spawnSync("tar", args, { stdio: "pipe" });
 		if (result.status !== 0) {
 			throw new Error(
 				`tar failed: ${result.stderr.toString().trim() || "exit " + result.status}`,
