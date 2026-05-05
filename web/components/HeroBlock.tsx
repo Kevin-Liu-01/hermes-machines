@@ -18,9 +18,9 @@ export function HeroBlock() {
 				</h1>
 				<p className="mt-5 max-w-[58ch] text-base leading-relaxed text-[var(--ret-text-dim)] md:text-lg">
 					Hermes Agent on a Dedalus microVM. Shell, browser, file access,
-					scheduled crons, a knowledge base lifted from my LLM wiki — and when
-					you ask for real code, it spawns a Cursor agent with my skills
-					wired in as <code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">.cursor/rules</code>. Talk to it here. It remembers.
+					scheduled crons, a bundled skill library — and when you ask for
+					real code, it spawns a Cursor agent with the rig's skills wired in
+					as <code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">.cursor/rules</code>. Talk to it here. It remembers.
 				</p>
 				<div className="mt-7 flex flex-wrap gap-3">
 					<ReticleButton
@@ -55,7 +55,7 @@ export function HeroBlock() {
 				<HeroStat label="memory" value="2 GiB" />
 				<HeroStat label="storage" value="10 GiB" />
 				<HeroStat label="ports" value="8642 / 9119" />
-				<HeroStat label="skills" value="15" hint="kevin-wiki" />
+				<HeroStat label="skills" value="13" hint="bundled" />
 				<HeroStat label="mcp" value="cursor" hint="@cursor/sdk" />
 			</div>
 		</div>

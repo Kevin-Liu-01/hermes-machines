@@ -45,7 +45,7 @@ cursor_agent(
 
 ## load_skills is non-negotiable
 
-Always pass `load_skills`. Pick the skills that match the task. The bridge writes the requested skills into `<working_dir>/.cursor/rules/from-hermes.mdc` so the spawned agent inherits the same conventions Hermes itself follows. Without `load_skills`, the Cursor agent reverts to its defaults — which are excellent but generic, not Kevin-specific.
+Always pass `load_skills`. Pick the skills that match the task. The bridge writes the requested skills into `<working_dir>/.cursor/rules/from-hermes.mdc` so the spawned agent inherits the same conventions Hermes itself follows. Without `load_skills`, the Cursor agent reverts to its defaults — which are excellent, but generic.
 
 Default bundle for any code work:
 
@@ -59,7 +59,7 @@ Add as needed:
 - `frontend-design-taste` — UI work
 - `security-audit` — auth, payments, secrets
 - `production-safety` — anything touching prod resources
-- `reticle-design-system` — UI on Kevin's projects
+- `reticle-design-system` — UI work on a Reticle-based project
 
 ## After the agent runs
 

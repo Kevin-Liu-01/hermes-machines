@@ -21,9 +21,9 @@ const CAPABILITIES: ReadonlyArray<{
 	},
 	{
 		kicker: "KNOWLEDGE",
-		title: "Skills from my LLM wiki",
-		body: "Curated SKILL.md docs that load on-demand. Ethos, empirical verification, production safety, design taste, kevin-voice, and more.",
-		notes: ["agent-ethos", "production-safety", "kevin-voice", "reticle-design-system"],
+		title: "Bundled skill library",
+		body: "Curated SKILL.md docs that load on-demand. Ethos, empirical verification, production safety, design taste, security audit, and more. Drop your own folders into knowledge/skills/ to extend.",
+		notes: ["agent-ethos", "production-safety", "security-audit", "reticle-design-system"],
 	},
 	{
 		kicker: "MEMORY",

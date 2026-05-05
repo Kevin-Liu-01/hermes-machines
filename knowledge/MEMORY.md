@@ -3,11 +3,12 @@
 ## Environment
 
 - I run inside a Dedalus Machine. Persistent state lives at `/home/machine`. Root filesystem resets on wake; never put real work there.
-- LLM provider is `openai`-compatible at `https://api.dedaluslabs.ai/v1`, routed by Dedalus to 200+ underlying models. The `DEDALUS_API_KEY` is the only credential needed for inference.
-- API server is exposed on port `8642` and reachable from the public internet via a Dedalus preview URL. The bearer token is in `~/.hermes/.env` as `API_SERVER_KEY`.
-- Web dashboard runs on port `9119` if `hermes web` was started.
+- LLM provider is `openai`-compatible at `https://api.dedaluslabs.ai/v1`, routed by Dedalus to 200+ models. The `DEDALUS_API_KEY` is the only credential needed for inference.
+- API server is exposed on port `8642` and reachable from the public internet via a Dedalus preview URL or a Cloudflare quick tunnel. The bearer token lives in `~/.hermes/.env` as `API_SERVER_KEY`.
+- Web dashboard runs on port `9119` if `hermes dashboard` was started.
+- The `cursor-bridge` MCP server runs as a child process of the gateway and exposes `cursor_*` tools backed by the Cursor TypeScript SDK.
 
-## Conventions Kevin follows (apply to my own outputs)
+## Conventions I follow (apply to my own outputs)
 
 - ASCII over Unicode lookalikes (`->` not `→`, `>=` not `≥`).
 - No emoji in code, comments, docs, commits.
@@ -22,23 +23,21 @@
 
 Plus four MCP tools from `mcp_servers.cursor` (the cursor-bridge to the Cursor TypeScript SDK):
 
-- `cursor_agent` — spawn a Cursor coding agent against a working directory. Full file/terminal access, full codebase semantic search, the same agent that runs in the Cursor IDE. Use when the user asks for real code work.
+- `cursor_agent` — spawn a Cursor coding agent against a working directory. Full file/terminal access, full codebase semantic search, the same agent that runs in the Cursor IDE. Use when the operator asks for real code work.
 - `cursor_resume` — continue a previous Cursor agent conversation by ID.
-- `cursor_list_skills` — list local Hermes skills available for injection into Cursor prompts.
+- `cursor_list_skills` — list local skills available for injection into Cursor prompts.
 - `cursor_models` — list Cursor models the API key can use.
 
 ## Loaded skills
 
-Curated from `kevin-wiki`. Each lives at `~/.hermes/skills/<name>/SKILL.md`:
+Each lives at `~/.hermes/skills/<name>/SKILL.md`:
 
 - `agent-ethos` — minimal-fix philosophy
 - `empirical-verification` — scientific method for code
 - `production-safety` — never patch prod
 - `git-workflow` — switch/restore, worktrees, commits
-- `kevin-voice` — write about Kevin in his own voice
-- `content-strategy` — what to post and when
 - `frontend-design-taste` — anti-slop UI rules
-- `reticle-design-system` — Reticle/Sigil tokens and components
+- `reticle-design-system` — a reference design system, swap for your own
 - `automation-cron` — schedule recurring agent tasks
 - `security-audit` — adversarial code review
 - `computer-use` — browser automation patterns
@@ -49,4 +48,4 @@ Curated from `kevin-wiki`. Each lives at `~/.hermes/skills/<name>/SKILL.md`:
 
 ## Cron automations
 
-Pre-seeded; check `hermes cron list`. Includes daily wiki digest, weekly skill audit, hourly health check.
+Pre-seeded; check `hermes cron list`. Includes hourly health check, daily digest, weekly skill audit, nightly memory consolidation.

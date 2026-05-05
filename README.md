@@ -2,7 +2,7 @@
 
 > An agent with a body that writes its own code.
 
-A fully-loaded [Hermes Agent](https://github.com/NousResearch/hermes-agent) deployed onto a [Dedalus Machine](https://docs.dedaluslabs.ai/dcs) — exposing an OpenAI-compatible chat API, a web dashboard, a knowledge base of skills lifted from the kevin-wiki, scheduled cron automations, a polished Next.js chat UI built on the Reticle / Sigil design system, and the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) wired in as an MCP tool so the agent can spawn real coding agents that inherit my conventions as `.cursor/rules`.
+A fully-loaded [Hermes Agent](https://github.com/NousResearch/hermes-agent) deployed onto a [Dedalus Machine](https://docs.dedaluslabs.ai/dcs) — exposing an OpenAI-compatible chat API, a web dashboard, a bundled skill library, scheduled cron automations, a polished Next.js chat UI built on the Reticle / Sigil design system, and the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) wired in as an MCP tool so the agent can spawn real coding agents that inherit the rig's conventions as `.cursor/rules`. Drop your own skills in to swap any of it for your own opinions.
 
 ```
                           [ you @ npm run chat ]
@@ -17,10 +17,10 @@ A fully-loaded [Hermes Agent](https://github.com/NousResearch/hermes-agent) depl
         ║   :9119  hermes web       ── browser dashboard        ║
         ║                                                        ║
         ║   /home/machine/.hermes/                               ║
-        ║     ├─ skills/   ← 15 skills from kevin-wiki           ║
+        ║     ├─ skills/   ← 13 bundled skills                   ║
         ║     ├─ cron/     ← 4 scheduled automations             ║
         ║     ├─ MEMORY.md ← agent memory                        ║
-        ║     ├─ USER.md   ← Kevin profile                       ║
+        ║     ├─ USER.md   ← operator profile                    ║
         ║     └─ SOUL.md   ← persona                             ║
         ╚════════════════════════════════════════════════════════╝
                                     │  inference (200+ models)
@@ -30,7 +30,7 @@ A fully-loaded [Hermes Agent](https://github.com/NousResearch/hermes-agent) depl
 
 ## Shoutouts
 
-Huge thanks to [`dedalus-labs/openclaw-demo`](https://github.com/dedalus-labs/openclaw-demo) and [`AgentWings/hermes-agent-ddls`](https://github.com/AgentWings/hermes-agent-ddls) for the inspiration — both showed the path: provision a machine, install the agent, point it at Dedalus as the OpenAI provider. `hermes-machines` grows that pattern into a fuller deployment with the Cursor SDK as a delegation surface, kevin-wiki skills as the knowledge base, scheduled cron automations, a Reticle-styled chat UI, and a complete lifecycle CLI.
+Huge thanks to [`dedalus-labs/openclaw-demo`](https://github.com/dedalus-labs/openclaw-demo) and [`AgentWings/hermes-agent-ddls`](https://github.com/AgentWings/hermes-agent-ddls) for the inspiration — both showed the path: provision a machine, install the agent, point it at Dedalus as the OpenAI provider. `hermes-machines` grows that pattern into a fuller deployment with the Cursor SDK as a delegation surface, a bundled skill library as the knowledge base, scheduled cron automations, a Reticle-styled chat UI, and a complete lifecycle CLI.
 
 ## Quick start
 
@@ -94,7 +94,7 @@ Open [http://localhost:3210](http://localhost:3210). Or deploy to Vercel — sam
 ```
 knowledge/
 ├── SOUL.md          # persona — direct, surgeon-not-painter, no emoji
-├── USER.md          # Kevin's profile — preferences, stack, conventions
+├── USER.md          # operator profile — placeholder; the agent fills this in
 ├── MEMORY.md        # what the agent knows about its environment
 ├── AGENTS.md        # operating principles (loaded into system prompt)
 ├── crons/
@@ -104,8 +104,6 @@ knowledge/
     ├── empirical-verification/SKILL.md
     ├── production-safety/SKILL.md
     ├── git-workflow/SKILL.md
-    ├── kevin-voice/SKILL.md
-    ├── content-strategy/SKILL.md
     ├── frontend-design-taste/SKILL.md
     ├── reticle-design-system/SKILL.md
     ├── automation-cron/SKILL.md
@@ -113,8 +111,11 @@ knowledge/
     ├── computer-use/SKILL.md
     ├── plan-mode-review/SKILL.md
     ├── taste-output/SKILL.md
-    └── dedalus-machines/SKILL.md
+    ├── dedalus-machines/SKILL.md
+    └── cursor-coding/SKILL.md
 ```
+
+Replace these with your own opinions to retune the rig — every file in `knowledge/` is just markdown.
 
 Edit any of these and run `npm run reload` to push them onto the live machine without re-bootstrapping.
 

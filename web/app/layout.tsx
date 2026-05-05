@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
 	title: "Hermes Machines — agent on Dedalus Machines",
 	description:
-		"A Hermes Agent deployed to a Dedalus microVM. Tools, scheduled crons, a knowledge base of skills lifted from kevin-wiki, and the Cursor SDK wired in as an MCP tool for real code work.",
+		"A Hermes Agent deployed to a Dedalus microVM. Tools, scheduled crons, a bundled skill library, and the Cursor SDK wired in as an MCP tool for real code work.",
 	openGraph: {
 		title: "Hermes Machines",
 		description:
