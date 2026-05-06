@@ -14,6 +14,7 @@
     "destroy": "tsx src/cli.ts destroy",
     "shell": "tsx src/cli.ts shell",
     "reload": "tsx src/cli.ts reload-knowledge",
+    "reset": "tsx src/cli.ts reset",
     "typecheck": "tsc --noEmit",
     "web": "cd web && npm run dev"
   },

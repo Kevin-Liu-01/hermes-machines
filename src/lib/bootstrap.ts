@@ -391,20 +391,32 @@ async function installCursorBridge(input: BootstrapInput): Promise<void> {
 		VM_BRIDGE_DIR,
 	);
 	dim(`  uploaded bridge: ${(result.sizeBytes / 1024).toFixed(1)} KB`);
+	// `set -o pipefail` is critical here: without it, a broken `npm install`
+	// pipes its error into `tail -30` which exits 0, masking the real failure
+	// and leaving the gateway with no bridge to connect to. We saw this fail
+	// silently in production -- the bridge dir had source but no node_modules
+	// or dist, the gateway failed its 3 MCP connection retries, and the deploy
+	// only noticed because the gateway's port-bind raced with our check.
 	await exec(
 		client,
 		machineId,
-		`${SHELL_ENV} && cd ${VM_BRIDGE_DIR} && rm -rf node_modules && ` +
-			`npm install --no-audit --no-fund --silent 2>&1 | tail -5 && ` +
-			`npm run build 2>&1 | tail -3`,
+		`set -o pipefail; ${SHELL_ENV} && cd ${VM_BRIDGE_DIR} && rm -rf node_modules dist && ` +
+			`npm install --no-audit --no-fund 2>&1 | tail -30 && ` +
+			`npm run build 2>&1 | tail -10`,
 		{ timeoutMs: 600_000 },
 	);
-	await exec(
+	// Hard-fail if the build artifact isn't where we expect it.
+	const built = await check(
 		client,
 		machineId,
-		`${SHELL_ENV} && [ -x ${VM_BRIDGE_DIR}/dist/server.js ] && ` +
-			`node ${VM_BRIDGE_DIR}/dist/server.js --help 2>&1 | head -3 || true`,
+		`[ -x ${VM_BRIDGE_DIR}/dist/server.js ] && [ -d ${VM_BRIDGE_DIR}/node_modules/@cursor/sdk ]`,
 	);
+	if (!built) {
+		throw new Error(
+			`cursor-bridge build artifact missing at ${VM_BRIDGE_DIR}/dist/server.js after install. ` +
+				`Inspect ${VM_BRIDGE_DIR} on the VM to debug.`,
+		);
+	}
 }
 
 async function registerCursorMcp(input: BootstrapInput): Promise<void> {

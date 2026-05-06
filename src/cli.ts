@@ -20,6 +20,7 @@ import { deploy } from "./commands/deploy.js";
 import { destroy } from "./commands/destroy.js";
 import { logs } from "./commands/logs.js";
 import { reloadKnowledge } from "./commands/reload-knowledge.js";
+import { reset } from "./commands/reset.js";
 import { shell } from "./commands/shell.js";
 import { sleep } from "./commands/sleep.js";
 import { status } from "./commands/status.js";
@@ -35,6 +36,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
 	destroy: (args) => destroy(args),
 	shell: () => shell(),
 	"reload-knowledge": () => reloadKnowledge(),
+	reset: () => reset(),
 };
 
 function help(): void {
@@ -50,6 +52,7 @@ function help(): void {
 	console.log("  destroy --yes      Permanently delete the machine");
 	console.log("  shell              Print the dedalus ssh command");
 	console.log("  reload-knowledge   Re-upload local knowledge/ to the machine");
+	console.log("  reset              Wipe sessions/agent-state DB and restart the gateway");
 }
 
 async function main(): Promise<void> {
