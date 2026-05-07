@@ -11,9 +11,11 @@ type Props = {
 	className?: string;
 	style?: CSSProperties;
 	/**
-	 * Pull the corner cross marks slightly outside the border so they sit
-	 * exactly on the corner intersection rather than inside the box.
-	 * Default 5 (half of crossArm) lines up with `RETICLE_SIZES.crossArm = 10`.
+	 * Pull the corner cross marks outside the border so the SVG's center
+	 * pins exactly on the corner intersection. ReticleCross renders a
+	 * 20x20 SVG with the `+` at (10,10), so the offset must equal the
+	 * full crossArm (10px). Override only if you're rendering the cross
+	 * at a non-default size.
 	 */
 	crossOffset?: number;
 	/**
@@ -38,7 +40,7 @@ export function ReticleFrame({
 	children,
 	className,
 	style,
-	crossOffset = 5,
+	crossOffset = 10,
 	corners = true,
 	as: Tag = "div",
 }: Props) {

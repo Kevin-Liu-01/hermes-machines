@@ -6,14 +6,22 @@ import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 export function Footer() {
 	return (
 		<footer className="relative border-t border-[var(--ret-border)] font-mono text-xs text-[var(--ret-text-muted)]">
-			{/* Corner crosses where the rails meet the footer's top border. */}
+			{/* Corner crosses where the rails meet the footer's top border.
+			    Offset by the full crossArm (10px) so the SVG's center is
+			    pinned on the intersection rather than 5px off it. */}
 			<ReticleCross
 				className="absolute z-20"
-				style={{ top: "-5px", left: "calc(var(--ret-rail-offset) - 5px)" }}
+				style={{
+					top: "-10px",
+					left: "calc(var(--ret-rail-offset) - 10px)",
+				}}
 			/>
 			<ReticleCross
 				className="absolute z-20"
-				style={{ top: "-5px", right: "calc(var(--ret-rail-offset) - 5px)" }}
+				style={{
+					top: "-10px",
+					right: "calc(var(--ret-rail-offset) - 10px)",
+				}}
 			/>
 			<ReticleHatch className="h-4 w-full border-b border-[var(--ret-border)]" />
 			<div className="mx-auto max-w-[var(--ret-content-max)]">
