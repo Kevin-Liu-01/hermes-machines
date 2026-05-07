@@ -44,16 +44,16 @@ const NODE_TONE: Record<NonNullable<NodeData["tone"]>, string> = {
 function FlowNode({ data, sourcePosition, targetPosition }: NodeProps<NodeData>) {
 	return (
 		<div
-			className={`min-w-[180px]  border px-4 py-3 font-mono text-[12px] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] ${NODE_TONE[data.tone ?? "default"]}`}
+			className={`min-w-[160px] border px-3 py-2 font-mono text-[11px] ${NODE_TONE[data.tone ?? "default"]}`}
 		>
-			<div className="flex items-center gap-2">
-				{data.mark ? <Logo mark={data.mark} size={16} /> : null}
-				<p className="text-[12px] font-semibold tracking-tight text-[var(--ret-text)]">
+			<div className="flex items-center gap-1.5">
+				{data.mark ? <Logo mark={data.mark} size={12} /> : null}
+				<p className="text-[11px] font-semibold tracking-tight text-[var(--ret-text)]">
 					{data.title}
 				</p>
 			</div>
 			{data.subtitle ? (
-				<p className="mt-1 text-[11px] leading-snug text-[var(--ret-text-dim)]">
+				<p className="mt-0.5 text-[10px] leading-snug text-[var(--ret-text-dim)]">
 					{data.subtitle}
 				</p>
 			) : null}
@@ -194,21 +194,27 @@ export function ArchitectureFlow() {
 
 	return (
 		<>
-			<ReticleLabel>ARCHITECTURE</ReticleLabel>
-			<h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">
-				One key, two endpoints, full agent
-			</h2>
-			<p className="mt-3 max-w-[68ch] text-sm leading-relaxed text-[var(--ret-text-dim)] md:text-base">
+			<div className="flex items-baseline justify-between gap-3">
+				<div>
+					<ReticleLabel>ARCHITECTURE</ReticleLabel>
+					<h2 className="ret-display mt-2 text-xl md:text-2xl">
+						One key, two endpoints, full agent.
+					</h2>
+				</div>
+				<p className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)] md:block">
+					3 partners . 8 nodes
+				</p>
+			</div>
+			<p className="mt-3 max-w-[68ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)]">
 				The same{" "}
 				<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 					DEDALUS_API_KEY
 				</code>{" "}
-				provisions the machine and authenticates inference. Each node is owned by
-				one of three partners: Dedalus runs the runtime, Nous Research ships the
-				agent, Cursor handles the codework.
+				provisions the machine and authenticates inference. Dedalus owns the
+				runtime, Nous ships the agent, Cursor handles codework.
 			</p>
 
-			<div className="relative mt-6 h-[760px] overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)]">
+			<div className="relative mt-4 h-[640px] overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)]">
 				<ReactFlow
 					nodes={NODES}
 					edges={styledEdges}

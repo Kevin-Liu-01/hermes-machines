@@ -29,24 +29,24 @@ export function MetricCard({ label, value, hint, tone = "default", className }: 
 	return (
 		<div
 			className={cn(
-				"border border-[var(--ret-border)] bg-[var(--ret-bg)]",
-				"p-5 transition-colors duration-200 hover:border-[var(--ret-border-hover)]",
+				"bg-[var(--ret-bg)] p-3 transition-colors duration-150",
+				"hover:bg-[var(--ret-surface)]",
 				className,
 			)}
 		>
-			<p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
+			<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 				{label}
 			</p>
 			<p
 				className={cn(
-					"mt-3 font-mono text-2xl tabular-nums leading-none",
+					"mt-2 font-mono text-base tabular-nums leading-none",
 					TONE[tone],
 				)}
 			>
 				{value}
 			</p>
 			{hint ? (
-				<p className="mt-2 font-mono text-[11px] text-[var(--ret-text-dim)]">
+				<p className="mt-1.5 font-mono text-[10px] text-[var(--ret-text-dim)]">
 					{hint}
 				</p>
 			) : null}

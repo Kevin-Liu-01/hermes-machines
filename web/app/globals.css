@@ -122,6 +122,20 @@ body {
 	color: var(--ret-text);
 	font-family: var(--font-sans);
 	font-feature-settings: "ss01", "cv11", "tnum";
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/*
+ * Reticle headlines use `tracking-tight` and a Tailwind-style scale
+ * that tops out at ~3rem rather than 4rem. Hero text dominated the
+ * page in the old scale; this brings everything within a 32-48px
+ * range so the diagram and live data have room to breathe.
+ */
+.ret-display {
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.05;
 }
 
 * {

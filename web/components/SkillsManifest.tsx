@@ -66,40 +66,40 @@ export function SkillsManifest() {
 	const buckets = bucketize();
 	return (
 		<>
-			<div className="flex items-end justify-between gap-4">
+			<div className="flex items-baseline justify-between gap-3">
 				<div>
-					<ReticleLabel>SKILLS -- BUNDLED LIBRARY</ReticleLabel>
-					<h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">
+					<ReticleLabel>SKILLS -- {SKILLS.length} BUNDLED</ReticleLabel>
+					<h2 className="ret-display mt-2 text-xl md:text-2xl">
 						Loaded into{" "}
 						<span className="font-mono text-[var(--ret-purple)]">~/.hermes/skills/</span>
 					</h2>
 				</div>
-				<p className="hidden font-mono text-xs text-[var(--ret-text-muted)] md:block">
-					{SKILLS.length} skills . all on disk . zero RAG roundtrips
+				<p className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)] md:block">
+					all on disk . zero RAG
 				</p>
 			</div>
 
-			<div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+			<div className="mt-4 grid gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-2 lg:grid-cols-4">
 				{buckets.map((bucket) => (
 					<div
 						key={bucket.category}
 						className={cn(
-							"border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5",
-							"transition-colors duration-200 hover:border-[var(--ret-border-hover)]",
+							"flex flex-col bg-[var(--ret-bg)] p-4",
+							"transition-colors duration-150 hover:bg-[var(--ret-surface)]",
 						)}
 					>
 						<div className="flex items-baseline justify-between gap-2">
-							<p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)]">
+							<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 								{bucket.category}
 							</p>
-							<p className="font-mono text-sm tabular-nums text-[var(--ret-purple)]">
+							<p className="font-mono text-xs tabular-nums text-[var(--ret-purple)]">
 								{bucket.count}
 							</p>
 						</div>
-						<p className="mt-2 text-sm leading-relaxed text-[var(--ret-text-dim)]">
+						<p className="mt-2 text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
 							{CATEGORY_BLURB[bucket.category] ?? "(no description)"}
 						</p>
-						<div className="mt-3 flex flex-wrap gap-1.5">
+						<div className="mt-3 flex flex-wrap gap-1">
 							{bucket.samples.map((slug) => (
 								<span
 									key={slug}
@@ -110,23 +110,13 @@ export function SkillsManifest() {
 							))}
 							{bucket.count > bucket.samples.length ? (
 								<span className="px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-muted)]">
-									+{bucket.count - bucket.samples.length} more
+									+{bucket.count - bucket.samples.length}
 								</span>
 							) : null}
 						</div>
 					</div>
 				))}
 			</div>
-
-			<p className="mt-6 max-w-prose text-sm text-[var(--ret-text-dim)]">
-				Each one is a{" "}
-				<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
-					knowledge/skills/&lt;name&gt;/SKILL.md
-				</code>{" "}
-				on this repo. Edit any of them on GitHub, click{" "}
-				<span className="font-mono text-[var(--ret-purple)]">Reload knowledge</span>{" "}
-				on the dashboard, and the agent picks them up on its next session.
-			</p>
 		</>
 	);
 }

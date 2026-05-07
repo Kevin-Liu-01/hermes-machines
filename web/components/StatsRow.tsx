@@ -1,3 +1,4 @@
+import { Logo } from "@/components/Logo";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 
 const STATS: ReadonlyArray<{ label: string; value: string; hint?: string }> = [
@@ -9,31 +10,86 @@ const STATS: ReadonlyArray<{ label: string; value: string; hint?: string }> = [
 	{ label: "mcp", value: "cursor", hint: "@cursor/sdk" },
 ];
 
+const STACK: ReadonlyArray<{
+	mark: "dedalus" | "nous" | "cursor";
+	name: string;
+	role: string;
+	href: string;
+}> = [
+	{
+		mark: "dedalus",
+		name: "Dedalus Machines",
+		role: "runtime",
+		href: "https://docs.dedaluslabs.ai/dcs",
+	},
+	{
+		mark: "nous",
+		name: "Hermes Agent",
+		role: "agent",
+		href: "https://github.com/NousResearch/hermes-agent",
+	},
+	{
+		mark: "cursor",
+		name: "Cursor SDK",
+		role: "codework",
+		href: "https://cursor.com/docs/sdk/typescript",
+	},
+];
+
 /**
- * Compact stat strip rendered below the hero -- six small cells separated by
- * 1px outline-collapsed borders so adjacent edges share a single line, the
- * Reticle table look. Each cell is a single fact about the rig.
+ * Two strips one above the other, both rendered with the chanhdai
+ * dense-table look: hairline cells, mono labels, no margins, no
+ * rounding. Stats first (the runtime shape), then Stack (the three
+ * partners). Together they fit in the same vertical real estate that
+ * the old StatsRow alone took.
  */
 export function StatsRow() {
 	return (
-		<div className="mt-12">
-			<ReticleLabel>SHAPE</ReticleLabel>
-			<div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-3 lg:grid-cols-6">
+		<div className="mt-10">
+			<ReticleLabel>SHAPE -- STACK</ReticleLabel>
+			<div className="mt-3 grid grid-cols-2 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-3 lg:grid-cols-6">
 				{STATS.map((s) => (
 					<div
 						key={s.label}
-						className="flex flex-col gap-1.5 bg-[var(--ret-bg)] px-5 py-4 transition-colors duration-200 hover:bg-[var(--ret-surface)]"
+						className="flex flex-col gap-1 bg-[var(--ret-bg)] px-4 py-3 transition-colors duration-150 hover:bg-[var(--ret-surface)]"
 					>
-						<p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)]">
+						<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 							{s.label}
 						</p>
-						<p className="font-mono text-xl text-[var(--ret-text)]">{s.value}</p>
+						<p className="font-mono text-base tabular-nums text-[var(--ret-text)]">
+							{s.value}
+						</p>
 						{s.hint ? (
 							<p className="font-mono text-[10px] tracking-wide text-[var(--ret-text-dim)]">
 								{s.hint}
 							</p>
 						) : null}
 					</div>
+				))}
+			</div>
+
+			<div className="mt-px grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] border-t-0 bg-[var(--ret-border)] md:grid-cols-3">
+				{STACK.map((s) => (
+					<a
+						key={s.mark}
+						href={s.href}
+						target="_blank"
+						rel="noreferrer"
+						className="group flex items-center gap-3 bg-[var(--ret-bg)] px-4 py-3 transition-colors duration-150 hover:bg-[var(--ret-surface)]"
+					>
+						<Logo mark={s.mark} size={20} />
+						<div className="min-w-0 flex-1">
+							<p className="text-sm font-semibold tracking-tight text-[var(--ret-text)] group-hover:text-[var(--ret-purple)]">
+								{s.name}
+							</p>
+							<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+								{s.role} layer
+							</p>
+						</div>
+						<span className="font-mono text-[11px] text-[var(--ret-text-muted)] group-hover:text-[var(--ret-purple)]">
+							{"->"}
+						</span>
+					</a>
 				))}
 			</div>
 		</div>

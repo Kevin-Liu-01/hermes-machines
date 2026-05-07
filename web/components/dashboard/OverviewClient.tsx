@@ -71,7 +71,7 @@ export function OverviewClient({ counts }: Props) {
 				: "error";
 
 	return (
-		<div className="space-y-8 px-6 py-6">
+		<div className="space-y-6 px-5 py-5">
 			<MachineControlBar
 				phase={phase}
 				pending={machine.pending}
@@ -81,10 +81,10 @@ export function OverviewClient({ counts }: Props) {
 				onSleep={() => void machine.sleep()}
 			/>
 
-			<section className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+			<section className="grid grid-cols-2 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-3 xl:grid-cols-6">
 				<MetricCard
 					label="machine"
-					value={<StatusPill phase={phase} className="text-base px-3 py-1" />}
+					value={<StatusPill phase={phase} className="text-[11px] px-2 py-0.5" />}
 					hint={
 						machine.machine
 							? `desired: ${desired} . id: ${machine.machine.machineId.slice(0, 14)}...`
@@ -136,19 +136,19 @@ export function OverviewClient({ counts }: Props) {
 
 			<ReloadKnowledge machinePhase={phase} />
 
-			<section className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-				<ReticleFrame className="p-6">
-					<p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
+			<section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+				<ReticleFrame className="p-4">
+					<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 						Quick actions
 					</p>
-					<h2 className="mt-2 text-lg font-semibold tracking-tight">
+					<h2 className="ret-display mt-1.5 text-base">
 						Talk to it. Read it. Inspect it.
 					</h2>
-					<p className="mt-2 max-w-[58ch] text-sm text-[var(--ret-text-dim)]">
-						Chat is gated to allowlisted accounts. Skills and MCPs are
-						read-only views of the same files the agent reads on the VM.
+					<p className="mt-1.5 max-w-[60ch] text-[12px] text-[var(--ret-text-dim)]">
+						Chat is gated. Skills and MCPs are read-only views of the same
+						files the agent reads on the VM.
 					</p>
-					<div className="mt-5 flex flex-wrap gap-3">
+					<div className="mt-3 flex flex-wrap gap-2">
 						<ReticleButton as="a" href="/dashboard/chat" variant="primary" size="sm">
 							Open chat
 						</ReticleButton>
@@ -162,15 +162,15 @@ export function OverviewClient({ counts }: Props) {
 				</ReticleFrame>
 
 				<ReticleFrame>
-					<ReticleHatch className="h-3 border-b border-[var(--ret-border)]" pitch={6} />
-					<div className="p-6">
-					<p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
+					<ReticleHatch className="h-2 border-b border-[var(--ret-border)]" pitch={6} />
+					<div className="p-4">
+					<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 						Health probe
 					</p>
-					<h2 className="mt-2 text-lg font-semibold tracking-tight">
+					<h2 className="ret-display mt-1.5 text-base">
 						Polling every 5s
 					</h2>
-					<dl className="mt-4 space-y-2 font-mono text-[12px] text-[var(--ret-text-dim)]">
+					<dl className="mt-3 space-y-1.5 font-mono text-[11px] text-[var(--ret-text-dim)]">
 						<Row label="phase" value={phase} />
 						<Row label="desired" value={desired} />
 						<Row label="reason" value={machine.machine?.reason ?? "--"} />
@@ -184,13 +184,13 @@ export function OverviewClient({ counts }: Props) {
 							}
 						/>
 					</dl>
-					<p className="mt-4 text-[11px] text-[var(--ret-text-muted)]">
-						Live data flows:{" "}
+					<p className="mt-3 font-mono text-[10px] text-[var(--ret-text-muted)]">
+						Live:{" "}
 						<Link href="/dashboard/logs" className="underline">logs</Link>{" "}
 						<span>.</span>{" "}
 						<Link href="/dashboard/sessions" className="underline">sessions</Link>{" "}
 						<span>.</span>{" "}
-						<Link href="/dashboard/cursor" className="underline">cursor runs</Link>
+						<Link href="/dashboard/cursor" className="underline">cursor</Link>
 					</p>
 					</div>
 				</ReticleFrame>
@@ -252,13 +252,13 @@ function MachineControlBar({
 	}
 
 	return (
-		<section className="flex flex-wrap items-center justify-between gap-4 border border-[var(--ret-border)] bg-[var(--ret-bg)] px-5 py-4">
-			<div className="flex items-center gap-3 min-w-0">
-				<StatusPill phase={phase as never} className="text-sm" />
+		<section className="flex flex-wrap items-center justify-between gap-3 border border-[var(--ret-border)] bg-[var(--ret-bg)] px-4 py-3">
+			<div className="flex items-center gap-2 min-w-0">
+				<StatusPill phase={phase as never} className="text-[11px]" />
 				{isTransitioning ? (
 					<ReticleBadge variant="warning">in transition</ReticleBadge>
 				) : null}
-				<p className="font-mono text-[12px] text-[var(--ret-text-dim)] truncate">
+				<p className="font-mono text-[11px] text-[var(--ret-text-dim)] truncate">
 					{message}
 				</p>
 			</div>

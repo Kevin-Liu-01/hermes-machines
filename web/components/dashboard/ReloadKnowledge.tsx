@@ -59,19 +59,19 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 	const canReload = machinePhase === "running";
 
 	return (
-		<div className="border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6">
+		<div className="border border-[var(--ret-border)] bg-[var(--ret-bg)] p-4">
 			<div className="flex flex-wrap items-start justify-between gap-3">
 				<div className="min-w-0">
 					<ReticleLabel>PERSIST -- WITHOUT THE CLI</ReticleLabel>
-					<h2 className="mt-2 text-lg font-semibold tracking-tight">
+					<h2 className="ret-display mt-1.5 text-base">
 						Reload knowledge from GitHub
 					</h2>
-					<p className="mt-2 max-w-[60ch] text-sm text-[var(--ret-text-dim)]">
+					<p className="mt-1.5 max-w-[64ch] text-[12px] text-[var(--ret-text-dim)]">
 						Edit any{" "}
 						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							knowledge/skills/&lt;name&gt;/SKILL.md
 						</code>{" "}
-						on GitHub and click here -- the VM does{" "}
+						on GitHub. Click here. The VM does{" "}
 						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							git fetch + reset + rsync
 						</code>{" "}
@@ -79,7 +79,7 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							main
 						</code>{" "}
-						and the agent picks the changes up on its next session.
+						and the agent picks it up on the next session.
 					</p>
 				</div>
 				<ReticleButton

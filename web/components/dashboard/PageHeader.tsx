@@ -21,22 +21,20 @@ type Props = {
 export function PageHeader({ kicker, title, description, right }: Props) {
 	return (
 		<header className="border-b border-[var(--ret-border)]">
-			<div className="flex flex-wrap items-start justify-between gap-4 px-6 pt-7 pb-6">
+			<div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-5 pb-4">
 				<div className="min-w-0 flex-1">
 					<ReticleLabel>{kicker}</ReticleLabel>
-					<h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-[28px]">
-						{title}
-					</h1>
+					<h1 className="ret-display mt-1.5 text-lg md:text-xl">{title}</h1>
 					{description ? (
-						<p className="mt-2 max-w-[68ch] text-sm text-[var(--ret-text-dim)]">
+						<p className="mt-1.5 max-w-[72ch] text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
 							{description}
 						</p>
 					) : null}
 				</div>
-				<div className="flex shrink-0 items-center gap-3">
+				<div className="flex shrink-0 items-center gap-2">
 					{right ?? (
 						<BrandMark
-							size={18}
+							size={16}
 							gap="tight"
 							withLabel={false}
 							className="opacity-60 hover:opacity-100 transition-opacity"
@@ -44,7 +42,7 @@ export function PageHeader({ kicker, title, description, right }: Props) {
 					)}
 				</div>
 			</div>
-			<ReticleHatch className="h-2 border-t border-[var(--ret-border)]" pitch={6} />
+			<ReticleHatch className="h-1.5 border-t border-[var(--ret-border)]" pitch={6} />
 		</header>
 	);
 }
