@@ -19,6 +19,7 @@ type RawMachine = {
 	desired_state: string;
 	status: {
 		phase: string;
+		revision?: string | number;
 		reason?: string | null;
 		last_error?: string | null;
 	};
@@ -62,7 +63,7 @@ function getEnv() {
 	return { apiKey, baseUrl, machineId };
 }
 
-export async function fetchMachineSummary(): Promise<MachineSummary> {
+async function fetchRawMachine(): Promise<RawMachine> {
 	const { apiKey, baseUrl, machineId } = getEnv();
 	const response = await fetch(`${baseUrl}/v1/machines/${machineId}`, {
 		headers: { "X-API-Key": apiKey },
@@ -73,7 +74,10 @@ export async function fetchMachineSummary(): Promise<MachineSummary> {
 			`dedalus ${response.status}: ${(await response.text()).slice(0, 200)}`,
 		);
 	}
-	const raw = (await response.json()) as RawMachine;
+	return (await response.json()) as RawMachine;
+}
+
+function summarize(raw: RawMachine): MachineSummary {
 	return {
 		machineId: raw.machine_id,
 		phase: asPhase(raw.status.phase),
@@ -85,4 +89,75 @@ export async function fetchMachineSummary(): Promise<MachineSummary> {
 		configuredAt: raw.configured_at ?? null,
 		reason: raw.status.last_error ?? raw.status.reason ?? null,
 	};
+}
+
+export async function fetchMachineSummary(): Promise<MachineSummary> {
+	return summarize(await fetchRawMachine());
+}
+
+/**
+ * Wake a sleeping machine. Idempotent: if already running, returns the
+ * current summary without calling the API; if mid-transition, returns
+ * whatever phase the machine is in so the UI can keep polling.
+ *
+ * Wake is a state-transition request -- Dedalus accepts it asynchronously
+ * and the machine moves through `wake_pending` -> `starting` -> `running`.
+ * We return immediately after submitting; the caller polls
+ * `/api/dashboard/machine` to follow the transition.
+ */
+export async function wakeMachine(): Promise<MachineSummary> {
+	const { apiKey, baseUrl, machineId } = getEnv();
+	const raw = await fetchRawMachine();
+	if (raw.status.phase === "running" || raw.status.phase === "wake_pending" || raw.status.phase === "starting") {
+		return summarize(raw);
+	}
+	if (raw.status.phase !== "sleeping") {
+		throw new Error(
+			`cannot wake machine in phase '${raw.status.phase}'; expected 'sleeping'`,
+		);
+	}
+	const revision = raw.status.revision;
+	if (revision === undefined || revision === null) {
+		throw new Error("machine has no revision token; cannot submit wake");
+	}
+	const response = await fetch(`${baseUrl}/v1/machines/${machineId}/wake`, {
+		method: "POST",
+		headers: {
+			"X-API-Key": apiKey,
+			"If-Match": String(revision),
+		},
+	});
+	if (!response.ok) {
+		throw new Error(
+			`wake ${response.status}: ${(await response.text()).slice(0, 200)}`,
+		);
+	}
+	return summarize(await fetchRawMachine());
+}
+
+/**
+ * Sleep a running machine. Idempotent: returns the current summary
+ * unchanged if the machine is already in any non-running state.
+ */
+export async function sleepMachine(): Promise<MachineSummary> {
+	const { apiKey, baseUrl, machineId } = getEnv();
+	const raw = await fetchRawMachine();
+	if (raw.status.phase !== "running") return summarize(raw);
+	const revision = raw.status.revision;
+	if (revision === undefined || revision === null) {
+		throw new Error("machine has no revision token; cannot submit sleep");
+	}
+	const response = await fetch(`${baseUrl}/v1/machines/${machineId}/sleep`, {
+		method: "POST",
+		headers: {
+			"X-API-Key": apiKey,
+			"If-Match": String(revision),
+		},
+	});
+	if (!response.ok) {
+		throw new Error(
+			`sleep ${response.status}: ${(await response.text()).slice(0, 200)}`,
+		);
+	}
+	return summarize(await fetchRawMachine());
 }

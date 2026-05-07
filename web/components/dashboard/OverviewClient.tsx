@@ -3,16 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
-import type {
-	GatewaySummary,
-	MachineSummary,
-} from "@/lib/dashboard/types";
+import { useMachineControl } from "@/lib/dashboard/use-machine-control";
+import type { GatewaySummary } from "@/lib/dashboard/types";
 
 import { MetricCard } from "./MetricCard";
 import { StatusPill } from "./StatusPill";
 
-const POLL_MS = 5000;
+const GATEWAY_POLL_MS = 5000;
 
 type CountInfo = { skills: number; mcps: number; tools: number; crons: number };
 
@@ -20,60 +19,46 @@ type Props = {
 	counts: CountInfo;
 };
 
-type LiveState = {
-	machine: MachineSummary | null;
-	gateway: GatewaySummary | null;
-};
-
 /**
- * Client-side overview body. Server passes in the static counts (skills,
- * mcps, crons) since those are baked from the repo at build. The two live
- * pieces (machine, gateway) come from the same /api/dashboard/* routes the
- * top-bar polls -- using two callers wastes one request per cycle, which
- * is fine for v1 and keeps the component independent.
+ * Client-side overview body. Owns machine state via `useMachineControl`
+ * (auto-wakes a sleeping machine on first load, exposes wake / sleep
+ * actions) and polls the gateway probe alongside it.
  */
 export function OverviewClient({ counts }: Props) {
-	const [live, setLive] = useState<LiveState>({ machine: null, gateway: null });
+	const machine = useMachineControl();
+	const [gateway, setGateway] = useState<GatewaySummary | null>(null);
 	const [stamp, setStamp] = useState<number | null>(null);
 
 	useEffect(() => {
 		let stopped = false;
-
 		async function tick() {
-			const [m, g] = await Promise.all([
-				fetch("/api/dashboard/machine", { cache: "no-store" })
-					.then((r) => (r.ok ? (r.json() as Promise<MachineSummary>) : null))
-					.catch(() => null),
-				fetch("/api/dashboard/gateway", { cache: "no-store" })
-					.then((r) => (r.ok ? (r.json() as Promise<GatewaySummary>) : null))
-					.catch(() => null),
-			]);
+			const g = await fetch("/api/dashboard/gateway", { cache: "no-store" })
+				.then((r) => (r.ok ? (r.json() as Promise<GatewaySummary>) : null))
+				.catch(() => null);
 			if (stopped) return;
-			setLive({ machine: m, gateway: g });
+			setGateway(g);
 			setStamp(Date.now());
 		}
-
 		tick();
 		const interval = window.setInterval(() => {
 			if (document.visibilityState === "visible") tick();
-		}, POLL_MS);
+		}, GATEWAY_POLL_MS);
 		return () => {
 			stopped = true;
 			window.clearInterval(interval);
 		};
 	}, []);
 
-	const phase = live.machine?.phase ?? "loading";
-	const desired = live.machine?.desired ?? "unknown";
-	const gateway = live.gateway;
+	const phase = machine.machine?.phase ?? "loading";
+	const desired = machine.machine?.desired ?? "unknown";
 	const ageLabel = useMemo(() => {
 		if (!stamp) return null;
 		const seconds = Math.max(0, Math.round((Date.now() - stamp) / 1000));
 		return `${seconds}s ago`;
 	}, [stamp]);
 
-	const memoryGib = live.machine
-		? (live.machine.memoryMib / 1024).toFixed(1)
+	const memoryGib = machine.machine
+		? (machine.machine.memoryMib / 1024).toFixed(1)
 		: "--";
 	const latencyTone =
 		gateway?.ok && gateway.latencyMs < 1500
@@ -84,25 +69,28 @@ export function OverviewClient({ counts }: Props) {
 
 	return (
 		<div className="space-y-8 px-6 py-6">
+			<MachineControlBar
+				phase={phase}
+				pending={machine.pending}
+				autoWokeOnce={machine.autoWokeOnce}
+				error={machine.error}
+				onWake={() => void machine.wake()}
+				onSleep={() => void machine.sleep()}
+			/>
+
 			<section className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
 				<MetricCard
 					label="machine"
 					value={<StatusPill phase={phase} className="text-base px-3 py-1" />}
 					hint={
-						live.machine
-							? `desired: ${desired} . id: ${live.machine.machineId.slice(0, 14)}...`
+						machine.machine
+							? `desired: ${desired} . id: ${machine.machine.machineId.slice(0, 14)}...`
 							: "fetching dedalus state..."
 					}
 				/>
 				<MetricCard
 					label="gateway"
-					value={
-						gateway
-							? gateway.ok
-								? "online"
-								: "down"
-							: "..."
-					}
+					value={gateway ? (gateway.ok ? "online" : "down") : "..."}
 					hint={
 						gateway
 							? gateway.ok
@@ -121,11 +109,13 @@ export function OverviewClient({ counts }: Props) {
 				<MetricCard
 					label="spec"
 					value={
-						live.machine
-							? `${live.machine.vcpu}v . ${memoryGib}G`
+						machine.machine
+							? `${machine.machine.vcpu}v . ${memoryGib}G`
 							: "--"
 					}
-					hint={live.machine ? `${live.machine.storageGib} GiB storage` : "..."}
+					hint={
+						machine.machine ? `${machine.machine.storageGib} GiB storage` : "..."
+					}
 				/>
 				<MetricCard
 					label="skills"
@@ -176,7 +166,7 @@ export function OverviewClient({ counts }: Props) {
 					<dl className="mt-4 space-y-2 font-mono text-[12px] text-[var(--ret-text-dim)]">
 						<Row label="phase" value={phase} />
 						<Row label="desired" value={desired} />
-						<Row label="reason" value={live.machine?.reason ?? "--"} />
+						<Row label="reason" value={machine.machine?.reason ?? "--"} />
 						<Row label="last probe" value={ageLabel ?? "..."} />
 						<Row
 							label="status"
@@ -188,13 +178,105 @@ export function OverviewClient({ counts }: Props) {
 						/>
 					</dl>
 					<p className="mt-4 text-[11px] text-[var(--ret-text-muted)]">
-						Live data flows: <Link href="/dashboard/logs" className="underline">logs</Link> <span>.</span>{" "}
-						<Link href="/dashboard/sessions" className="underline">sessions</Link> <span>.</span>{" "}
+						Live data flows:{" "}
+						<Link href="/dashboard/logs" className="underline">logs</Link>{" "}
+						<span>.</span>{" "}
+						<Link href="/dashboard/sessions" className="underline">sessions</Link>{" "}
+						<span>.</span>{" "}
 						<Link href="/dashboard/cursor" className="underline">cursor runs</Link>
 					</p>
 				</div>
 			</section>
 		</div>
+	);
+}
+
+type ControlBarProps = {
+	phase: string;
+	pending: "wake" | "sleep" | null;
+	autoWokeOnce: boolean;
+	error: string | null;
+	onWake: () => void;
+	onSleep: () => void;
+};
+
+/**
+ * Machine control strip directly under the page header. The dashboard
+ * auto-wakes a sleeping machine on first load; this strip surfaces the
+ * transition so the user sees it happening, plus a manual Sleep button
+ * for cost control.
+ */
+function MachineControlBar({
+	phase,
+	pending,
+	autoWokeOnce,
+	error,
+	onWake,
+	onSleep,
+}: ControlBarProps) {
+	const isRunning = phase === "running";
+	const isSleeping = phase === "sleeping";
+	const isTransitioning =
+		pending !== null ||
+		phase === "wake_pending" ||
+		phase === "starting" ||
+		phase === "sleep_pending" ||
+		phase === "placement_pending" ||
+		phase === "accepted";
+
+	let message: string;
+	if (error) {
+		message = `error: ${error}`;
+	} else if (pending === "wake" || phase === "wake_pending" || phase === "starting") {
+		message = autoWokeOnce
+			? "auto-waking your container..."
+			: "waking your container...";
+	} else if (pending === "sleep" || phase === "sleep_pending") {
+		message = "putting the container back to sleep...";
+	} else if (isRunning) {
+		message = "container is running. you can chat, schedule crons, delegate code work.";
+	} else if (isSleeping) {
+		message = "container is asleep. tap wake to bring it back.";
+	} else if (phase === "loading") {
+		message = "checking container status...";
+	} else {
+		message = `phase: ${phase}`;
+	}
+
+	return (
+		<section className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] px-5 py-4">
+			<div className="flex items-center gap-3 min-w-0">
+				<StatusPill phase={phase as never} className="text-sm" />
+				{isTransitioning ? (
+					<ReticleBadge variant="warning">in transition</ReticleBadge>
+				) : null}
+				<p className="font-mono text-[12px] text-[var(--ret-text-dim)] truncate">
+					{message}
+				</p>
+			</div>
+			<div className="flex items-center gap-2">
+				{isSleeping ? (
+					<ReticleButton
+						variant="primary"
+						size="sm"
+						onClick={onWake}
+						disabled={pending === "wake"}
+					>
+						{pending === "wake" ? "Waking..." : "Wake container"}
+					</ReticleButton>
+				) : null}
+				{isRunning ? (
+					<ReticleButton
+						variant="ghost"
+						size="sm"
+						onClick={onSleep}
+						disabled={pending === "sleep"}
+					>
+						{pending === "sleep" ? "Sleeping..." : "Sleep container"}
+					</ReticleButton>
+				) : null}
+			</div>
+		</section>
 	);
 }
 

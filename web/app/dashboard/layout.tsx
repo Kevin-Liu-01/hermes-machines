@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AutoWake } from "@/components/dashboard/AutoWake";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export const metadata = {
@@ -7,5 +8,10 @@ export const metadata = {
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-	return <DashboardShell>{children}</DashboardShell>;
+	return (
+		<DashboardShell>
+			<AutoWake />
+			{children}
+		</DashboardShell>
+	);
 }
