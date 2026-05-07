@@ -1,9 +1,12 @@
 import { BrandMark } from "@/components/BrandMark";
 import { Logo } from "@/components/Logo";
+import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 
 export function Footer() {
 	return (
-		<footer className="flex flex-col gap-4 border-t border-[var(--ret-border)] px-6 py-8 font-mono text-xs text-[var(--ret-text-muted)] md:flex-row md:items-center md:justify-between">
+		<footer className="border-t border-[var(--ret-border)] font-mono text-xs text-[var(--ret-text-muted)]">
+			<ReticleHatch className="h-4 w-full border-b border-[var(--ret-border)]" />
+			<div className="flex flex-col gap-4 px-6 py-8 md:flex-row md:items-center md:justify-between">
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-5">
 				<BrandMark size={18} gap="tight" withLabel={false} />
 				<span>hermes-machines . MIT . Reticle / Sigil UI</span>
@@ -66,6 +69,7 @@ export function Footer() {
 					dcs
 				</a>
 			</span>
+			</div>
 		</footer>
 	);
 }

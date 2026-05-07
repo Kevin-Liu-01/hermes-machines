@@ -8,7 +8,7 @@ const GRID_STYLE: CSSProperties = {
 	backgroundImage: [
 		"linear-gradient(to right, var(--ret-rail) 1px, transparent 1px)",
 		`linear-gradient(to bottom, transparent ${CELL - 1}px, var(--ret-rail) ${CELL - 1}px)`,
-	].join(", "),
+	].join(","),
 	backgroundSize: `${CELL}px ${CELL}px`,
 };
 

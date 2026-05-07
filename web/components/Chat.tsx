@@ -61,7 +61,7 @@ async function* readSseDeltas(
 		buffer = events.pop() ?? "";
 		for (const evt of events) {
 			for (const line of evt.split("\n")) {
-				if (!line.startsWith("data: ")) continue;
+				if (!line.startsWith("data:")) continue;
 				const payload = line.slice(6).trim();
 				if (payload === "[DONE]") return;
 				try {
@@ -216,7 +216,7 @@ export function Chat() {
 		if (health.ok) {
 			return (
 				<ReticleBadge variant="success">
-					<span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--ret-green)]" />
+					<span className="inline-block h-1.5 w-1.5 bg-[var(--ret-green)]" />
 					online
 				</ReticleBadge>
 			);
@@ -260,7 +260,7 @@ export function Chat() {
 						<MessageRow key={m.id} message={m} streaming={state === "streaming"} />
 					))}
 					{errorMessage ? (
-						<div className="rounded-md border border-[var(--ret-red)]/30 bg-[var(--ret-red)]/10 px-4 py-3 font-mono text-xs text-[var(--ret-red)]">
+						<div className="border border-[var(--ret-red)]/30 bg-[var(--ret-red)]/10 px-4 py-3 font-mono text-xs text-[var(--ret-red)]">
 							error: {errorMessage}
 						</div>
 					) : null}
@@ -272,7 +272,7 @@ export function Chat() {
 				>
 					<textarea
 						className={cn(
-							"min-h-[44px] max-h-[200px] flex-1 resize-none rounded-md",
+							"min-h-[44px] max-h-[200px] flex-1 resize-none",
 							"border border-[var(--ret-border)] bg-[var(--ret-bg)]",
 							"px-3 py-2.5 text-sm text-[var(--ret-text)]",
 							"placeholder:text-[var(--ret-text-muted)]",
@@ -308,7 +308,7 @@ function StarterGrid({ onPick }: { onPick: (prompt: string) => void }) {
 					key={s.label}
 					onClick={() => onPick(s.prompt)}
 					className={cn(
-						"group rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)]",
+						"group border border-[var(--ret-border)] bg-[var(--ret-bg)]",
 						"p-4 text-left transition-colors duration-200",
 						"hover:border-[var(--ret-border-hover)] hover:bg-[var(--ret-surface)]",
 					)}
@@ -346,7 +346,7 @@ function MessageRow({
 			</span>
 			<div
 				className={cn(
-					"prose-msg max-w-[85%] rounded-md px-4 py-3 text-sm leading-relaxed",
+					"prose-msg max-w-[85%] px-4 py-3 text-sm leading-relaxed",
 					isUser
 						? "border border-[var(--ret-border)] bg-[var(--ret-surface)] text-[var(--ret-text)]"
 						: "border border-[var(--ret-purple)]/30 bg-[var(--ret-purple-glow)] text-[var(--ret-text)]",

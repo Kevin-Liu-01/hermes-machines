@@ -18,7 +18,7 @@ export function StatsRow() {
 	return (
 		<div className="mt-12">
 			<ReticleLabel>SHAPE</ReticleLabel>
-			<div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-3 lg:grid-cols-6">
+			<div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-3 lg:grid-cols-6">
 				{STATS.map((s) => (
 					<div
 						key={s.label}

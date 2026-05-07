@@ -59,7 +59,7 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 	const canReload = machinePhase === "running";
 
 	return (
-		<div className="rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6">
+		<div className="border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6">
 			<div className="flex flex-wrap items-start justify-between gap-3">
 				<div className="min-w-0">
 					<ReticleLabel>PERSIST -- WITHOUT THE CLI</ReticleLabel>
@@ -68,15 +68,15 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 					</h2>
 					<p className="mt-2 max-w-[60ch] text-sm text-[var(--ret-text-dim)]">
 						Edit any{" "}
-						<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							knowledge/skills/&lt;name&gt;/SKILL.md
 						</code>{" "}
 						on GitHub and click here -- the VM does{" "}
-						<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							git fetch + reset + rsync
 						</code>{" "}
 						against the latest commit on{" "}
-						<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							main
 						</code>{" "}
 						and the agent picks the changes up on its next session.
@@ -96,9 +96,9 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 				<p className="mt-4 font-mono text-[11px] text-[var(--ret-text-muted)]">
 					machine is{" "}
 					<span className="text-[var(--ret-text-dim)]">{machinePhase ?? "loading"}</span>
-					{" -- wait for it to reach "}
+					{"-- wait for it to reach"}
 					<span className="text-[var(--ret-text-dim)]">running</span>
-					{" before reloading."}
+					{"before reloading."}
 				</p>
 			) : null}
 
@@ -125,7 +125,7 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 						</p>
 					) : null}
 					{result.stdout ? (
-						<pre className="max-h-40 overflow-auto rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--ret-text-dim)]">
+						<pre className="max-h-40 overflow-auto border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--ret-text-dim)]">
 							{result.stdout.trim()}
 						</pre>
 					) : null}

@@ -41,7 +41,7 @@ export function StackRow() {
 	return (
 		<div className="mt-12">
 			<ReticleLabel>STACK</ReticleLabel>
-			<div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-3">
+			<div className="mt-4 grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-3">
 				{STACK.map((s) => (
 					<a
 						key={s.mark}

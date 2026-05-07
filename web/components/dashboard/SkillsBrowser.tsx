@@ -81,7 +81,7 @@ function Chip({
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"rounded-full border px-3 py-1 font-mono text-[11px] transition-colors",
+				"border px-3 py-1 font-mono text-[11px] transition-colors",
 				active
 					? "border-[var(--ret-purple)]/40 bg-[var(--ret-purple-glow)] text-[var(--ret-purple)]"
 					: "border-[var(--ret-border)] text-[var(--ret-text-dim)] hover:border-[var(--ret-border-hover)] hover:text-[var(--ret-text)]",
@@ -97,7 +97,7 @@ function SkillCard({ skill }: { skill: SkillSummary }) {
 	return (
 		<Link
 			href={`/dashboard/skills/${skill.slug}`}
-			className="group flex h-full flex-col rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5 transition-colors duration-200 hover:border-[var(--ret-purple)]/40"
+			className="group flex h-full flex-col border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5 transition-colors duration-200 hover:border-[var(--ret-purple)]/40"
 		>
 			<div className="flex items-start justify-between gap-3">
 				<div className="flex min-w-0 items-center gap-2">
@@ -106,7 +106,7 @@ function SkillCard({ skill }: { skill: SkillSummary }) {
 						{skill.slug}
 					</p>
 				</div>
-				<span className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+				<span className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 					{skill.category}
 				</span>
 			</div>
@@ -117,7 +117,7 @@ function SkillCard({ skill }: { skill: SkillSummary }) {
 				{skill.tags.slice(0, 4).map((t) => (
 					<span
 						key={t}
-						className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
+						className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
 					>
 						{t}
 					</span>

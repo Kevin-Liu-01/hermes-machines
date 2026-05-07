@@ -26,7 +26,7 @@ export function HeroBlock() {
 					Hermes Agent on a Dedalus microVM. Shell, browser, file access,
 					scheduled crons, a bundled skill library -- and when you ask for real
 					code, it spawns a Cursor agent with the rig's skills wired in as{" "}
-					<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+					<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 						.cursor/rules
 					</code>
 					.
@@ -61,7 +61,7 @@ export function HeroBlock() {
 				</div>
 			</div>
 
-			<HermesBustScene className="aspect-square h-full max-h-[520px] min-h-[420px] w-full rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] md:aspect-auto" />
+			<HermesBustScene className="aspect-square h-full max-h-[520px] min-h-[420px] w-full border border-[var(--ret-border)] md:aspect-auto" />
 		</div>
 	);
 }

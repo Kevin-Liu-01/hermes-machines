@@ -65,7 +65,7 @@ export function CapabilityGrid() {
 	return (
 		<>
 			<ReticleLabel>CAPABILITIES</ReticleLabel>
-			<div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-2 lg:grid-cols-3">
+			<div className="mt-5 grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-2 lg:grid-cols-3">
 				{CAPABILITIES.map((c) => (
 					<div
 						key={c.title}
@@ -90,7 +90,7 @@ export function CapabilityGrid() {
 							{c.notes.map((n) => (
 								<span
 									key={n}
-									className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
+									className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
 								>
 									{n}
 								</span>

@@ -31,7 +31,7 @@ export function SessionsList() {
 					</div>
 
 					{data.sessions.length === 0 ? (
-						<div className="rounded-md border border-dashed border-[var(--ret-border)] bg-[var(--ret-bg)] px-6 py-8 text-center text-sm text-[var(--ret-text-dim)]">
+						<div className="border border-dashed border-[var(--ret-border)] bg-[var(--ret-bg)] px-6 py-8 text-center text-sm text-[var(--ret-text-dim)]">
 							No sessions on this machine yet. Open{" "}
 							<a href="/dashboard/chat" className="underline">
 								chat
@@ -39,7 +39,7 @@ export function SessionsList() {
 							and say hi.
 						</div>
 					) : (
-						<div className="overflow-hidden rounded-md border border-[var(--ret-border)]">
+						<div className="overflow-hidden border border-[var(--ret-border)]">
 							<table className="w-full border-collapse text-sm tabular-nums">
 								<thead className="bg-[var(--ret-bg-soft)] font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)]">
 									<tr>

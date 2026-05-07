@@ -23,7 +23,7 @@ export function ReticleCard({
 	return (
 		<Tag
 			className={cn(
-				"rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-surface)]",
+				"border border-[var(--ret-border)] bg-[var(--ret-surface)]",
 				hoverable &&
 					"transition-colors duration-200 hover:border-[var(--ret-border-hover)]",
 				className,

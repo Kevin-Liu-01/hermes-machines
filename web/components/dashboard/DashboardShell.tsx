@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+
 import { SidebarNav } from "./SidebarNav";
 import { StatusHeader } from "./StatusHeader";
 
@@ -23,13 +25,15 @@ type Props = {
 export function DashboardShell({ children }: Props) {
 	return (
 		<div className="grid min-h-[100dvh] bg-[var(--ret-bg-soft)] lg:grid-cols-[220px_1fr]">
-			<aside className="relative hidden border-r border-[var(--ret-border)] bg-[var(--ret-bg)] lg:block">
+			<aside className="relative hidden border-r border-[var(--ret-border)] bg-[var(--ret-bg)] lg:flex lg:flex-col">
 				<SidebarNav />
-				<div
-					aria-hidden="true"
-					className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[length:auto_100%] bg-bottom bg-no-repeat opacity-[0.06] mix-blend-luminosity dark:opacity-[0.08]"
-					style={{ backgroundImage: "url(/brand/bg-nyx-lines.png)" }}
-				/>
+				{/* Reticle filler: diagonal hatch fills the empty bottom of
+				    the sidebar so the rail never reads as accidentally
+				    blank. The brand wing PNG previously here was decorative
+				    noise; hatching is the structural answer. */}
+				<div className="mt-auto border-t border-[var(--ret-border)]">
+					<ReticleHatch className="h-24" pitch={6} />
+				</div>
 			</aside>
 			<div className="flex min-h-[100dvh] min-w-0 flex-col bg-[var(--ret-bg)]">
 				<StatusHeader />

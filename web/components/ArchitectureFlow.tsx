@@ -44,7 +44,7 @@ const NODE_TONE: Record<NonNullable<NodeData["tone"]>, string> = {
 function FlowNode({ data, sourcePosition, targetPosition }: NodeProps<NodeData>) {
 	return (
 		<div
-			className={`min-w-[180px] rounded-[var(--ret-card-radius)] border px-4 py-3 font-mono text-[12px] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] ${NODE_TONE[data.tone ?? "default"]}`}
+			className={`min-w-[180px]  border px-4 py-3 font-mono text-[12px] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] ${NODE_TONE[data.tone ?? "default"]}`}
 		>
 			<div className="flex items-center gap-2">
 				{data.mark ? <Logo mark={data.mark} size={16} /> : null}
@@ -200,7 +200,7 @@ export function ArchitectureFlow() {
 			</h2>
 			<p className="mt-3 max-w-[68ch] text-sm leading-relaxed text-[var(--ret-text-dim)] md:text-base">
 				The same{" "}
-				<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+				<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 					DEDALUS_API_KEY
 				</code>{" "}
 				provisions the machine and authenticates inference. Each node is owned by
@@ -208,7 +208,7 @@ export function ArchitectureFlow() {
 				agent, Cursor handles the codework.
 			</p>
 
-			<div className="relative mt-6 h-[760px] overflow-hidden rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)]">
+			<div className="relative mt-6 h-[760px] overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)]">
 				<ReactFlow
 					nodes={NODES}
 					edges={styledEdges}

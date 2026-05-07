@@ -36,7 +36,7 @@ export default async function SkillDetailPage({
 				}
 			/>
 			<div className="grid gap-6 px-6 py-6 lg:grid-cols-[1fr_220px]">
-				<article className="prose-msg max-w-none rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6 md:p-8">
+				<article className="prose-msg max-w-none border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6 md:p-8">
 					<ReactMarkdown remarkPlugins={[remarkGfm]}>
 						{skill.body}
 					</ReactMarkdown>
@@ -53,7 +53,7 @@ export default async function SkillDetailPage({
 								{skill.tags.map((t) => (
 									<span
 										key={t}
-										className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
+										className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
 									>
 										{t}
 									</span>
@@ -91,7 +91,7 @@ function MetaBlock({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-4">
+		<div className="border border-[var(--ret-border)] bg-[var(--ret-bg)] p-4">
 			<p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
 				{title}
 			</p>

@@ -9,7 +9,7 @@ import { ReticleLabel } from "@/components/reticle/ReticleLabel";
  */
 export function LandingCTA() {
 	return (
-		<div className="relative overflow-hidden rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6 md:p-9">
+		<div className="relative overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6 md:p-9">
 			{/* Subtle nyx-waves pattern from the Dedalus brand kit. Sits at very
 			    low opacity behind the content so the signature Dedalus-feel is
 			    present without competing with the CTAs. */}
@@ -26,7 +26,7 @@ export function LandingCTA() {
 					</h2>
 					<p className="mt-3 max-w-[60ch] text-sm leading-relaxed text-[var(--ret-text-dim)] md:text-base">
 						The chat surface streams from{" "}
-						<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+						<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 							/v1/chat/completions
 						</code>{" "}
 						on the deployed machine. Tools fire on the VM. Memory persists
@@ -57,7 +57,7 @@ export function LandingCTA() {
 					</div>
 				</div>
 
-				<div className="rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] p-5 font-mono text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
+				<div className="border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] p-5 font-mono text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
 					<p className="text-[var(--ret-text-muted)]">{"# what you get"}</p>
 					<p className="mt-2">
 						<span className="text-[var(--ret-purple)]">$</span> 13 bundled skills

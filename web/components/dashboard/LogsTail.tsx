@@ -135,7 +135,7 @@ export function LogsTail() {
 
 			<div
 				ref={tailRef}
-				className="max-h-[68vh] overflow-y-auto rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)] font-mono text-[12px] leading-relaxed"
+				className="max-h-[68vh] overflow-y-auto border border-[var(--ret-border)] bg-[var(--ret-bg)] font-mono text-[12px] leading-relaxed"
 			>
 				{lines.length === 0 ? (
 					<div className="px-5 py-6 text-[var(--ret-text-muted)]">
@@ -175,7 +175,7 @@ export function LogsTail() {
 					<span>files: </span>
 					{files.map((file, idx) => (
 						<span key={file.path}>
-							{idx > 0 ? " . " : null}
+							{idx > 0 ? "." : null}
 							<span className="text-[var(--ret-text-dim)]">{file.path}</span>{" "}
 							<span>({formatBytes(file.bytes)})</span>
 						</span>

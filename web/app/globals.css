@@ -36,7 +36,13 @@
 	--ret-amber: #f59e0b;
 	--ret-red: #ef4444;
 
-	--ret-card-radius: 10px;
+	/*
+	 * Reticle is sharp corners by design. The token survives so older
+	 * components can resolve `rounded-[var(--ret-card-radius)]` without
+	 * blowing up; the value is 0 so they render as flat rectangles.
+	 */
+	--ret-card-radius: 0px;
+	--ret-hairline: 1px;
 
 	/*
 	 * --font-sans points at Nacelle by default. The `var(--font-nacelle)`

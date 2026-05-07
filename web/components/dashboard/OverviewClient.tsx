@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
+import { ReticleFrame } from "@/components/reticle/ReticleFrame";
+import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 import { useMachineControl } from "@/lib/dashboard/use-machine-control";
 import type { GatewaySummary } from "@/lib/dashboard/types";
 
@@ -135,7 +137,7 @@ export function OverviewClient({ counts }: Props) {
 			<ReloadKnowledge machinePhase={phase} />
 
 			<section className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-				<div className="rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6">
+				<ReticleFrame className="p-6">
 					<p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
 						Quick actions
 					</p>
@@ -157,9 +159,11 @@ export function OverviewClient({ counts }: Props) {
 							View MCPs
 						</ReticleButton>
 					</div>
-				</div>
+				</ReticleFrame>
 
-				<div className="rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6">
+				<ReticleFrame>
+					<ReticleHatch className="h-3 border-b border-[var(--ret-border)]" pitch={6} />
+					<div className="p-6">
 					<p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
 						Health probe
 					</p>
@@ -188,7 +192,8 @@ export function OverviewClient({ counts }: Props) {
 						<span>.</span>{" "}
 						<Link href="/dashboard/cursor" className="underline">cursor runs</Link>
 					</p>
-				</div>
+					</div>
+				</ReticleFrame>
 			</section>
 		</div>
 	);
@@ -247,7 +252,7 @@ function MachineControlBar({
 	}
 
 	return (
-		<section className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] px-5 py-4">
+		<section className="flex flex-wrap items-center justify-between gap-4 border border-[var(--ret-border)] bg-[var(--ret-bg)] px-5 py-4">
 			<div className="flex items-center gap-3 min-w-0">
 				<StatusPill phase={phase as never} className="text-sm" />
 				{isTransitioning ? (

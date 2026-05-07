@@ -129,13 +129,13 @@ function GatewayBadge({ data }: { data: GatewaySummary | null }) {
 		<div className="hidden items-center gap-3 font-mono text-[11px] md:flex">
 			<span
 				className={cn(
-					"inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5",
+					"inline-flex items-center gap-1.5 border px-2 py-0.5",
 					ok
 						? "border-[var(--ret-green)]/40 bg-[var(--ret-green)]/10 text-[var(--ret-green)]"
 						: "border-[var(--ret-red)]/40 bg-[var(--ret-red)]/10 text-[var(--ret-red)]",
 				)}
 			>
-				<span className="h-1 w-1 rounded-full bg-current" />
+				<span className="h-1 w-1 bg-current" />
 				gateway {ok ? "ok" : "down"}
 			</span>
 			<span className="text-[var(--ret-text-muted)]">

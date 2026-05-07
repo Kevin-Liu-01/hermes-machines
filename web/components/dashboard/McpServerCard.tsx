@@ -12,11 +12,11 @@ type Props = {
  */
 export function McpServerCard({ server }: Props) {
 	return (
-		<article className="rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)]">
+		<article className="border border-[var(--ret-border)] bg-[var(--ret-bg)]">
 			<header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ret-border)] px-5 py-4">
 				<div className="flex min-w-0 items-center gap-3">
 					{server.brand ? (
-						<span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--ret-border)] bg-[var(--ret-surface)]">
+						<span className="grid h-9 w-9 shrink-0 place-items-center border border-[var(--ret-border)] bg-[var(--ret-surface)]">
 							<Logo mark={server.brand} size={20} />
 						</span>
 					) : null}
@@ -48,10 +48,10 @@ export function McpServerCard({ server }: Props) {
 					</div>
 				</div>
 				<div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em]">
-					<span className="rounded-full border border-[var(--ret-border)] bg-[var(--ret-surface)] px-2 py-0.5 text-[var(--ret-text-dim)]">
+					<span className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-2 py-0.5 text-[var(--ret-text-dim)]">
 						{server.transport}
 					</span>
-					<span className="rounded-full border border-[var(--ret-border)] bg-[var(--ret-surface)] px-2 py-0.5 text-[var(--ret-text-dim)]">
+					<span className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-2 py-0.5 text-[var(--ret-text-dim)]">
 						{server.tools.length} tools
 					</span>
 				</div>

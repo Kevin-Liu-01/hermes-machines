@@ -14,7 +14,7 @@ export function ArchitectureDiagram() {
 			</h2>
 			<p className="mt-3 max-w-[68ch] text-sm leading-relaxed text-[var(--ret-text-dim)] md:text-base">
 				The same{" "}
-				<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+				<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 					DEDALUS_API_KEY
 				</code>{" "}
 				provisions the machine and authenticates inference. The machine routes
@@ -22,7 +22,7 @@ export function ArchitectureDiagram() {
 				preview URL, and runs Hermes as the application layer.
 			</p>
 
-			<div className="mt-6 overflow-hidden rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6 font-mono text-[12px] leading-[1.85] md:text-[13px]">
+			<div className="mt-6 overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6 font-mono text-[12px] leading-[1.85] md:text-[13px]">
 				<pre className="text-[var(--ret-text-dim)]">
 {`                      [ you @ npm run chat ]
                               │

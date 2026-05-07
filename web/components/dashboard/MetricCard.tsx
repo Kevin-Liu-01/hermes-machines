@@ -29,7 +29,7 @@ export function MetricCard({ label, value, hint, tone = "default", className }: 
 	return (
 		<div
 			className={cn(
-				"rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)]",
+				"border border-[var(--ret-border)] bg-[var(--ret-bg)]",
 				"p-5 transition-colors duration-200 hover:border-[var(--ret-border-hover)]",
 				className,
 			)}

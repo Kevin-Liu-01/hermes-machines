@@ -45,14 +45,14 @@ export function StatusPill({ phase, className }: Props) {
 	return (
 		<span
 			className={cn(
-				"inline-flex items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] leading-tight",
+				"inline-flex items-center gap-2 border px-2.5 py-1 font-mono text-[11px] leading-tight",
 				style,
 				className,
 			)}
 		>
 			<span
 				className={cn(
-					"h-1.5 w-1.5 rounded-full bg-current",
+					"h-1.5 w-1.5 bg-current",
 					pulse && "animate-pulse",
 				)}
 				aria-hidden="true"

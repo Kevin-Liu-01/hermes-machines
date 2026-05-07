@@ -58,7 +58,7 @@ function ActiveRow({ item, active }: { item: NavItem; active: boolean }) {
 		<Link
 			href={item.href}
 			className={cn(
-				"group flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
+				"group flex items-center gap-3 px-3 py-2 transition-colors",
 				active
 					? "bg-[var(--ret-purple-glow)] text-[var(--ret-purple)]"
 					: "text-[var(--ret-text-dim)] hover:bg-[var(--ret-surface)] hover:text-[var(--ret-text)]",
@@ -83,14 +83,14 @@ function DisabledRow({ item }: { item: NavItem }) {
 	return (
 		<div
 			className={cn(
-				"flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2",
+				"flex cursor-not-allowed items-center gap-3 px-3 py-2",
 				"text-[var(--ret-text-muted)]",
 			)}
 			title="Shipping in PR2"
 		>
 			<Icon className="h-3.5 w-3.5" />
 			<span className="flex-1">{item.label}</span>
-			<span className="rounded border border-[var(--ret-border)] px-1.5 py-px text-[9px] uppercase tracking-[0.2em]">
+			<span className="border border-[var(--ret-border)] px-1.5 py-px text-[9px] uppercase tracking-[0.2em]">
 				{item.hint}
 			</span>
 		</div>

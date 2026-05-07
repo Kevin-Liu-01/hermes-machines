@@ -40,7 +40,7 @@ export function CursorRunsList() {
 					</div>
 
 					{data.runs.length === 0 ? (
-						<div className="rounded-md border border-dashed border-[var(--ret-border)] bg-[var(--ret-bg)] px-6 py-12 text-center text-sm text-[var(--ret-text-dim)]">
+						<div className="border border-dashed border-[var(--ret-border)] bg-[var(--ret-bg)] px-6 py-12 text-center text-sm text-[var(--ret-text-dim)]">
 							No Cursor agents have been spawned yet. Hand the agent some
 							code work in{" "}
 							<a href="/dashboard/chat" className="underline">
@@ -65,7 +65,7 @@ function RunCard({ run }: { run: CursorRun }) {
 	const [open, setOpen] = useState(false);
 	const statusClass = STATUS_COLOR[run.status] ?? "text-[var(--ret-text-dim)]";
 	return (
-		<article className="overflow-hidden rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)]">
+		<article className="overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)]">
 			<button
 				type="button"
 				onClick={() => setOpen((v) => !v)}
@@ -114,14 +114,14 @@ function RunCard({ run }: { run: CursorRun }) {
 					<RunMeta label="logged_at" value={run.loggedAt} />
 					<RunMeta
 						label="loaded_skills"
-						value={run.loadedSkills.length > 0 ? run.loadedSkills.join(", ") : "(none)"}
+						value={run.loadedSkills.length > 0 ? run.loadedSkills.join(",") : "(none)"}
 					/>
 					<RunMeta label="duration" value={formatDuration(run.durationMs)} />
 					<div className="md:col-span-2">
 						<p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)]">
 							prompt
 						</p>
-						<pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)]">
+						<pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)]">
 							{run.prompt}
 						</pre>
 					</div>
@@ -130,7 +130,7 @@ function RunCard({ run }: { run: CursorRun }) {
 							<p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)]">
 								final_text
 							</p>
-							<pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text-dim)]">
+							<pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text-dim)]">
 								{run.finalText}
 							</pre>
 						</div>

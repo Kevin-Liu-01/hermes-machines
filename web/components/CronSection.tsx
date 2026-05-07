@@ -46,13 +46,13 @@ export function CronSection() {
 				{CRONS.map((c) => (
 					<div
 						key={c.name}
-						className="rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5 transition-colors duration-200 hover:border-[var(--ret-border-hover)]"
+						className="border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5 transition-colors duration-200 hover:border-[var(--ret-border-hover)]"
 					>
 						<div className="flex flex-wrap items-center justify-between gap-2">
 							<p className="font-mono text-sm text-[var(--ret-purple)]">
 								{c.name}
 							</p>
-							<p className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-2 py-0.5 font-mono text-[11px] text-[var(--ret-text-dim)]">
+							<p className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-2 py-0.5 font-mono text-[11px] text-[var(--ret-text-dim)]">
 								{c.schedule}
 							</p>
 						</div>

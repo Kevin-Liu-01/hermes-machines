@@ -71,7 +71,9 @@ export const RETICLE_SIZES = {
   crossStroke: 1.5,
   railGap: 24,
   contentMax: 1280,
-  cardRadius: 10,
+  // Reticle is sharp corners. The token is symbolic; nothing rounds.
+  cardRadius: 0,
+  hairline: 1,
 } as const;
 ```
 
@@ -95,12 +97,13 @@ The margins and gutters render the grid lines that define the aesthetic. The cen
 | `ReticlePageGrid` | Top-level 5-column grid. Wrap the entire app. |
 | `ReticleSection` | A page section with optional border-top + content padding. |
 | `ReticleNavbar` | Sticky nav with backdrop-blur, integrated into the grid. |
-| `ReticleCard` | Bordered surface, `cardRadius=10`, hoverable border. |
-| `ReticleButton` | `primary` (purple), `secondary` (border), `ghost` (no chrome). |
-| `ReticleBadge` | Pill with mono font. Variants: `default`, `accent`, `success`, `warning`. |
+| `ReticleCard` | Bordered surface, sharp corners (cardRadius=0), hoverable border. |
+| `ReticleFrame` | Bordered surface with `+` cross marks at all four corners. The default panel for content. |
+| `ReticleButton` | `primary` (purple), `secondary` (border), `ghost` (no chrome). All sharp. |
+| `ReticleBadge` | Sharp-corner mono tag. Variants: `default`, `accent`, `success`, `warning`. |
 | `ReticleLabel` | UPPERCASE MONO TRACKING-WIDE muted text. Section headings. |
-| `ReticleHRule` | Horizontal divider. Optional center accent shape. |
-| `ReticleGrid` + `ReticleGridCell` | Cell-bordered grid. `columns: 2 \| 3 \| 4`. |
+| `ReticleHRule` | Horizontal divider with `cross` (default), `hatch`, `label`, or `plain` variant. |
+| `ReticleHatch` | Diagonal hairline pattern. Use for spacer cells, dividers, and any "this is decorative empty space" surface. |
 | `ReticleCross` | The `+` mark drawn at structural intersections. |
 
 ## Typography rules
@@ -113,11 +116,15 @@ The margins and gutters render the grid lines that define the aesthetic. The cen
 ## Authoring rules
 
 1. **No raw colors.** Always reference `var(--ret-*)`.
-2. **Borders, not shadows.** Use `border border-[var(--ret-border)]`. Box-shadows only for purple glow on primary buttons.
-3. **Mono for technical, sans for prose.** Mix freely; mono signals "system fact", sans signals "narrative".
-4. **Cross marks are structural.** Place them at the intersections of the page grid and content, never decoratively.
-5. **Border radius is 10px.** Defined by `--ret-card-radius`. Don't deviate.
-6. **One purple, used sparingly.** Primary CTAs only. Never multiple purple regions per page.
+2. **Borders, not shadows.** Use `border border-[var(--ret-border)]`. Box-shadows only for the purple glow on primary buttons.
+3. **No rounded corners.** Sharp edges everywhere -- cards, badges, status pills, code blocks. The `--ret-card-radius` token resolves to `0px`. Never write `rounded-md`, `rounded-full`, etc.
+4. **No margins between sections.** Use a `border-b` on the section above, or a `ReticleHRule`, or a hatch strip. The grid is what separates content; whitespace between bordered cards reads as accidental.
+5. **Hatch the empty.** Spacer cells, dividers, and any "decorative emptiness" gets diagonal hatching from `ReticleHatch`. Never leave a plain blank.
+6. **Cross marks are structural.** Place them at the intersections of the page grid and content (use `ReticleFrame` for automatic corner crosses), never decoratively.
+7. **Mono for technical, sans for prose.** Mono signals "system fact", sans signals "narrative". Mix freely.
+8. **One purple, used sparingly.** Primary CTAs only. Never multiple purple regions per page.
+9. **Hairlines, never thick borders.** Border width is `1px` (`--ret-hairline`). Doubled-up borders happen at grid intersections; that's the look.
+10. **High-taste internal spacing.** Inside any frame: generous vertical padding (`py-6` minimum on cards), tight horizontal alignment to the grid. The frame is the boundary; whitespace lives inside.
 
 ## Page composition pattern
 

@@ -84,7 +84,7 @@ export function SkillsManifest() {
 					<div
 						key={bucket.category}
 						className={cn(
-							"rounded-md border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5",
+							"border border-[var(--ret-border)] bg-[var(--ret-bg)] p-5",
 							"transition-colors duration-200 hover:border-[var(--ret-border-hover)]",
 						)}
 					>
@@ -103,13 +103,13 @@ export function SkillsManifest() {
 							{bucket.samples.map((slug) => (
 								<span
 									key={slug}
-									className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
+									className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-dim)]"
 								>
 									{slug}
 								</span>
 							))}
 							{bucket.count > bucket.samples.length ? (
-								<span className="rounded px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-muted)]">
+								<span className="px-1.5 py-0.5 font-mono text-[10px] text-[var(--ret-text-muted)]">
 									+{bucket.count - bucket.samples.length} more
 								</span>
 							) : null}
@@ -120,7 +120,7 @@ export function SkillsManifest() {
 
 			<p className="mt-6 max-w-prose text-sm text-[var(--ret-text-dim)]">
 				Each one is a{" "}
-				<code className="rounded border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
+				<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 					knowledge/skills/&lt;name&gt;/SKILL.md
 				</code>{" "}
 				on this repo. Edit any of them on GitHub, click{" "}
