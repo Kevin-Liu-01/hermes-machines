@@ -24,35 +24,46 @@ type Props = {
 };
 
 /**
- * Top-level page grid in the tightened Tailwind / chanhdai aesthetic.
+ * Top-level page frame.
  *
- * Three columns: rail | content | rail. The rails are simple vertical
- * hairlines (no 48x48 grid pattern, no horizontal tick marks). Sections
- * provide their own top borders; the rails hold everything together
- * along the side margins. Cross marks at intersections come from
- * `ReticleSection` (top corners) and `Footer` (bottom corners).
+ * Sections render full-width and their borders extend edge-to-edge --
+ * the chanhdai / Tailwind pattern. The vertical rails are absolute
+ * hairlines positioned at the inner content column's left/right edges;
+ * they appear to "break" wherever a section border crosses them, which
+ * is exactly the effect we want. The break points get `+` marks from
+ * `ReticleSection`'s corner crosses.
  *
- * No empty gutter columns -- the previous 5-col `[margin | gutter |
- * content | gutter | margin]` layout was visual noise that fought
- * the content. The new shape is: edge | content | edge, where each
- * edge is just a 1px line.
+ * `--ret-content-max` is set on this element so children (sections,
+ * cross marks) can compute `--ret-rail-offset` without prop drilling.
  */
 export function ReticlePageGrid({
 	children,
 	className,
 	contentMax = RETICLE_SIZES.contentMax,
 }: Props) {
-	const gridCols: CSSProperties = {
-		gridTemplateColumns: `1fr minmax(0,${contentMax}px) 1fr`,
-	};
+	const style = {
+		"--ret-content-max": `${contentMax}px`,
+	} as CSSProperties;
 	return (
 		<PageGridContext.Provider value={true}>
-			<div className={cn("grid min-h-[100dvh] bg-[var(--ret-bg)]", className)} style={gridCols}>
-				<div aria-hidden="true" className="border-r border-[var(--ret-border)]" />
-				<div className="flex min-w-0 flex-col border-x border-[var(--ret-border)]">
-					{children}
-				</div>
-				<div aria-hidden="true" className="border-l border-[var(--ret-border)]" />
+			<div
+				className={cn("relative min-h-[100dvh] bg-[var(--ret-bg)]", className)}
+				style={style}
+			>
+				{/* Vertical rails. Hairline at the inner column edges, full
+				    document height. They appear discontinuous wherever a
+				    section's border-t crosses (Tailwind / chanhdai pattern). */}
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute top-0 bottom-0 z-10 w-px bg-[var(--ret-border)]"
+					style={{ left: "var(--ret-rail-offset)" }}
+				/>
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute top-0 bottom-0 z-10 w-px bg-[var(--ret-border)]"
+					style={{ right: "var(--ret-rail-offset)" }}
+				/>
+				<div className="relative flex flex-col">{children}</div>
 			</div>
 		</PageGridContext.Provider>
 	);

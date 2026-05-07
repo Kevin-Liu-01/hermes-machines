@@ -7,18 +7,22 @@ type Props = {
 	className?: string;
 };
 
-/** Inline navbar -- assumes it's inside a ReticlePageGrid content column. */
+/**
+ * Sticky top navbar. Renders full-width so its bottom border extends
+ * edge-to-edge across the rails (matches the section divider pattern).
+ * Inner content centers within `--ret-content-max`.
+ */
 export function ReticleNavbar({ children, className }: Props) {
 	return (
 		<nav
 			aria-label="Main"
 			className={cn(
-				"sticky top-0 z-50 border-b border-[var(--ret-border)]",
+				"sticky top-0 z-30 border-b border-[var(--ret-border)]",
 				"bg-[var(--ret-bg)]/85 backdrop-blur-md",
 				className,
 			)}
 		>
-			{children}
+			<div className="mx-auto max-w-[var(--ret-content-max)]">{children}</div>
 		</nav>
 	);
 }

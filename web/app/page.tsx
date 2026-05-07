@@ -82,26 +82,26 @@ export default function HomePage() {
 			<main id="top">
 				<ReticleSection
 					borderTop={false}
-					contentClassName="px-6 pt-12 pb-10 md:pt-14"
+					contentClassName="px-6 pt-14 pb-16 md:pt-16 md:pb-20"
 				>
 					<HeroBlock />
 					<StatsRow />
 				</ReticleSection>
 
-				<ReticleSection id="capabilities" contentClassName="px-6 py-10">
+				<ReticleSection id="capabilities">
 					<CapabilityGrid />
 				</ReticleSection>
 
-				<ReticleSection id="components" contentClassName="px-6 py-10">
+				<ReticleSection id="components">
 					<ComponentShowcase />
 					<ShowcaseAttribution />
 				</ReticleSection>
 
-				<ReticleSection id="skills" contentClassName="px-6 py-10">
+				<ReticleSection id="skills">
 					<SkillsManifest />
 				</ReticleSection>
 
-				<ReticleSection id="architecture" contentClassName="px-6 py-10">
+				<ReticleSection id="architecture">
 					<ArchitectureFlow />
 				</ReticleSection>
 			</main>

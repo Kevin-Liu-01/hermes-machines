@@ -43,6 +43,18 @@
 	 */
 	--ret-card-radius: 0px;
 	--ret-hairline: 1px;
+	/*
+	 * The centered content column max-width. Used by ReticlePageGrid
+	 * and ReticleSection so sections can render edge-to-edge borders
+	 * while their inner content stays within `min(viewport, --ret-content-max)`.
+	 */
+	--ret-content-max: 1200px;
+	/*
+	 * Distance from the viewport edge to the inner content column,
+	 * computed once at the page-grid level. Sections use it to position
+	 * corner cross marks exactly where the rails cross the section border.
+	 */
+	--ret-rail-offset: max(0px, calc(50% - var(--ret-content-max) / 2));
 
 	/*
 	 * --font-sans points at Nacelle by default. The `var(--font-nacelle)`

@@ -17,15 +17,19 @@ type Props = {
 };
 
 /**
- * A page section. Tighter default padding than before (`py-10 md:py-12`
- * down from `py-12 md:py-16`) so two sections per fold instead of one.
- * When `corners` is true (default when `borderTop` is on), `+` marks
- * sit precisely at the page-rail intersections.
+ * A page section. Renders full-width so its `border-t` / `border-b`
+ * extend edge-to-edge, breaking the page grid's vertical rails into
+ * discrete segments (Tailwind / chanhdai pattern). The inner content
+ * is constrained to `--ret-content-max` and centered.
+ *
+ * Default vertical padding is generous (`py-14 md:py-16`) so adjacent
+ * sections feel like distinct moments instead of touching each other.
+ * The corner crosses sit exactly where the rails meet the border.
  */
 export function ReticleSection({
 	children,
 	className,
-	contentClassName = "px-6 py-10 md:py-12",
+	contentClassName = "px-6 py-14 md:py-16",
 	borderTop = true,
 	borderBottom = false,
 	corners,
@@ -34,23 +38,36 @@ export function ReticleSection({
 }: Props) {
 	const showCorners = corners ?? borderTop;
 	return (
-		<Tag id={id} className={cn("relative", className)}>
+		<Tag
+			id={id}
+			className={cn(
+				"relative",
+				borderTop && "border-t border-[var(--ret-border)]",
+				borderBottom && "border-b border-[var(--ret-border)]",
+				className,
+			)}
+		>
 			{showCorners ? (
 				<>
 					<ReticleCross
-						className="absolute z-10"
-						style={{ top: "-5px", left: "-5px" }}
+						className="absolute z-20"
+						style={{
+							top: "-5px",
+							left: "calc(var(--ret-rail-offset) - 5px)",
+						}}
 					/>
 					<ReticleCross
-						className="absolute z-10"
-						style={{ top: "-5px", right: "-5px" }}
+						className="absolute z-20"
+						style={{
+							top: "-5px",
+							right: "calc(var(--ret-rail-offset) - 5px)",
+						}}
 					/>
 				</>
 			) : null}
 			<div
 				className={cn(
-					borderTop && "border-t border-[var(--ret-border)]",
-					borderBottom && "border-b border-[var(--ret-border)]",
+					"mx-auto max-w-[var(--ret-content-max)]",
 					contentClassName,
 				)}
 			>
