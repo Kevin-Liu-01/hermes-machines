@@ -5,7 +5,7 @@ const STATS: ReadonlyArray<{ label: string; value: string; hint?: string }> = [
 	{ label: "memory", value: "2 GiB" },
 	{ label: "storage", value: "10 GiB" },
 	{ label: "ports", value: "8642 / 9119", hint: "api / dashboard" },
-	{ label: "skills", value: "13", hint: "bundled" },
+	{ label: "skills", value: "95", hint: "bundled + wiki" },
 	{ label: "mcp", value: "cursor", hint: "@cursor/sdk" },
 ];
 

@@ -9,6 +9,7 @@ import { useMachineControl } from "@/lib/dashboard/use-machine-control";
 import type { GatewaySummary } from "@/lib/dashboard/types";
 
 import { MetricCard } from "./MetricCard";
+import { ReloadKnowledge } from "./ReloadKnowledge";
 import { StatusPill } from "./StatusPill";
 
 const GATEWAY_POLL_MS = 5000;
@@ -130,6 +131,8 @@ export function OverviewClient({ counts }: Props) {
 					tone="purple"
 				/>
 			</section>
+
+			<ReloadKnowledge machinePhase={phase} />
 
 			<section className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
 				<div className="rounded-[var(--ret-card-radius)] border border-[var(--ret-border)] bg-[var(--ret-bg)] p-6">

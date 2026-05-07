@@ -25,6 +25,8 @@ import {
 	NODE_MAJOR,
 	PORT_API,
 	PORT_DASHBOARD,
+	REPO_BRANCH,
+	REPO_CLONE_URL,
 	SHELL_ENV,
 	VM_BRIDGE_DIR,
 	VM_DEPLOY_MARKER,
@@ -33,6 +35,8 @@ import {
 	VM_HOME,
 	VM_LOCAL_BIN,
 	VM_NODE_DIR,
+	VM_RELOAD_SCRIPT,
+	VM_REPO_DIR,
 	VM_UV_CACHE,
 	VM_VENV,
 } from "./constants.js";
@@ -161,6 +165,80 @@ async function seedKnowledge({
 		VM_HERMES_HOME,
 	);
 	dim(`  uploaded ${result.chunks} chunks, ${(result.sizeBytes / 1024).toFixed(1)} KB`);
+}
+
+/**
+ * Clone (or update) the hermes-machines repo on the VM and install a
+ * `reload-from-git.sh` helper that the dashboard's reload route can
+ * exec to pull the latest knowledge without touching the local CLI.
+ *
+ * Idempotent. Re-running deploy refreshes the checkout. The script is
+ * tiny and always overwritten so changes here propagate cleanly.
+ */
+async function installGitReload(input: BootstrapInput): Promise<void> {
+	const { client, machineId } = input;
+	// Clone or fast-forward the repo. We use --depth 1 so the checkout
+	// stays small; reload uses --depth 1 fetches too.
+	await exec(
+		client,
+		machineId,
+		`if [ ! -d ${VM_REPO_DIR}/.git ]; then ` +
+			`  git clone --depth 1 --branch ${REPO_BRANCH} ${REPO_CLONE_URL} ${VM_REPO_DIR}; ` +
+			`else ` +
+			`  cd ${VM_REPO_DIR} && git fetch --depth 1 origin ${REPO_BRANCH} && git reset --hard origin/${REPO_BRANCH}; ` +
+			`fi`,
+	);
+	dim(`  cloned ${REPO_CLONE_URL} -> ${VM_REPO_DIR}`);
+
+	// Drop the reload script. Using rsync makes the copy idempotent and
+	// preserves attributes; --delete keeps removed skills from lingering.
+	const script = [
+		"#!/usr/bin/env bash",
+		"# Refresh ~/.hermes/{skills,crons,SOUL.md,USER.md,MEMORY.md,AGENTS.md}",
+		"# from the latest commit on origin/main of the hermes-machines repo.",
+		"# Invoked by the dashboard's /api/dashboard/admin/reload route.",
+		"set -euo pipefail",
+		`REPO_DIR=${VM_REPO_DIR}`,
+		`HERMES=${VM_HERMES_HOME}`,
+		"if ! command -v rsync >/dev/null 2>&1; then",
+		'  echo "rsync not installed; falling back to cp -r" >&2',
+		"  USE_CP=1",
+		"else",
+		"  USE_CP=0",
+		"fi",
+		'echo "[reload] git fetch + reset"',
+		`cd "$REPO_DIR"`,
+		`git fetch --depth 1 origin ${REPO_BRANCH}`,
+		`git reset --hard origin/${REPO_BRANCH}`,
+		'echo "[reload] sync skills + crons + persona files"',
+		'mkdir -p "$HERMES/skills" "$HERMES/crons"',
+		'if [ "$USE_CP" -eq 0 ]; then',
+		'  rsync -a --delete "$REPO_DIR/knowledge/skills/" "$HERMES/skills/"',
+		'  rsync -a "$REPO_DIR/knowledge/crons/" "$HERMES/crons/" || true',
+		"else",
+		'  rm -rf "$HERMES/skills" && cp -r "$REPO_DIR/knowledge/skills" "$HERMES/skills"',
+		'  cp -r "$REPO_DIR/knowledge/crons/." "$HERMES/crons/" 2>/dev/null || true',
+		"fi",
+		'for f in SOUL.md USER.md MEMORY.md AGENTS.md; do',
+		'  if [ -f "$REPO_DIR/knowledge/$f" ]; then',
+		'    cp "$REPO_DIR/knowledge/$f" "$HERMES/$f"',
+		"  fi",
+		"done",
+		'echo "[reload] done at $(date -Iseconds)"',
+		"echo \"[reload] HEAD: $(git rev-parse --short HEAD)\"",
+		'date -Iseconds > "$HERMES/.last-reload"',
+		"git rev-parse HEAD > \"$HERMES/.last-reload-sha\"",
+	].join("\n");
+
+	const scriptB64 = Buffer.from(script).toString("base64");
+	await exec(
+		client,
+		machineId,
+		`mkdir -p ${VM_HERMES_HOME}/scripts && ` +
+			`echo ${scriptB64} | base64 -d > ${VM_RELOAD_SCRIPT} && ` +
+			`chmod +x ${VM_RELOAD_SCRIPT}`,
+	);
+	dim(`  installed ${VM_RELOAD_SCRIPT}`);
 }
 
 async function configureHermes(input: BootstrapInput): Promise<void> {
@@ -479,6 +557,7 @@ export async function runBootstrap(input: BootstrapInput): Promise<void> {
 	await phase("Install Hermes Agent (this can take a few minutes)", () => installHermes(input));
 	await phase(`Install Node.js ${NODE_MAJOR}.x (for the Cursor SDK bridge)`, () => installNode(input));
 	await phase("Seed knowledge base (skills, persona, memory)", () => seedKnowledge(input));
+	await phase("Install git-backed reload helper (for dashboard)", () => installGitReload(input));
 	await phase("Build cursor-bridge MCP server (Cursor SDK)", () => installCursorBridge(input));
 	await phase("Configure Hermes (provider, model, API server, memory)", () => configureHermes(input));
 	await phase("Register cursor-bridge in mcp_servers + .env", () => registerCursorMcp(input));

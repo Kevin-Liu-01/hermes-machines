@@ -1,57 +1,56 @@
 ---
-name: taste-output
-description: "Output completeness enforcement. Use whenever generating code, configs, docs, or any artifact -- bans placeholder patterns, partial outputs, and skeleton stubs presented as full implementations."
-version: 1.0.0
-author: Kevin Liu
-license: MIT
-metadata:
-  hermes:
-    tags: [output, completeness, anti-slop]
+name: full-output-enforcement
+description: Overrides default LLM truncation behavior. Enforces complete code generation, bans placeholder patterns, and handles token-limit splits cleanly. Apply to any task requiring exhaustive, unabridged output.
 ---
 
-# Taste -- Output Completeness
+# Full-Output Enforcement
 
-Override default LLM truncation behavior. When asked for code, generate complete code. When asked for a config, generate a complete config. Don't abridge.
+## Baseline
 
-## Banned phrases in code/config output
+Treat every task as production-critical. A partial output is a broken output. Do not optimize for brevity — optimize for completeness. If the user asks for a full file, deliver the full file. If the user asks for 5 components, deliver 5 components. No exceptions.
 
-- `// ...` / `# ...` / `<!-- ... -->`
-- `// TODO` (unless the user explicitly requested a TODO)
-- `// implement here` / `// rest of the implementation` / `// fill this in`
-- `// (additional cases omitted for brevity)`
-- `... (truncated)` / `... // more`
-- Skeleton functions with empty bodies presented as the final answer.
-- Type signatures with `any` or `unknown` body that "would" do something.
+## Banned Output Patterns
 
-## Banned phrases in prose
+The following patterns are hard failures. Never produce them:
 
-- "for brevity"
-- "the rest follows the same pattern"
-- "I'll outline the structure" (when full code was requested)
-- "due to length, I've omitted"
+**In code blocks:** `// ...`, `// rest of code`, `// implement here`, `// TODO`, `/* ... */`, `// similar to above`, `// continue pattern`, `// add more as needed`, bare `...` standing in for omitted code
 
-## When the response would actually exceed token limits
+**In prose:** "Let me know if you want me to continue", "I can provide more details if needed", "for brevity", "the rest follows the same pattern", "similarly for the remaining", "and so on" (when replacing actual content), "I'll leave that as an exercise"
 
-Split deterministically across multiple file outputs:
+**Structural shortcuts:** Outputting a skeleton when the request was for a full implementation. Showing the first and last section while skipping the middle. Replacing repeated logic with one example and a description. Describing what code should do instead of writing it.
 
-1. State up front: "This needs to be split across N files because of length."
-2. Output file 1 in full. End with: "→ continuing in next file."
-3. Output file 2 in full. Repeat.
-4. End with: "Done. N files total."
+## Execution Process
 
-Never silently abridge. Never stub the second half. Never paraphrase code with comments.
+1. **Scope** — Read the full request. Count how many distinct deliverables are expected (files, functions, sections, answers). Lock that number.
+2. **Build** — Generate every deliverable completely. No partial drafts, no "you can extend this later."
+3. **Cross-check** — Before output, re-read the original request. Compare your deliverable count against the scope count. If anything is missing, add it before responding.
 
-## When I'm asked for a single file that's genuinely too long
+## Handling Long Outputs
 
-Two options, in order:
+When a response approaches the token limit:
 
-1. **Refactor for size.** Propose splitting the file into smaller modules and ship those instead. (This usually applies -- files > 500 lines are likely architecture problems.)
-2. **Two-pass output.** Ship the first half, ask the user to confirm, then ship the second half. Don't try to cram with abridgments.
+- Do not compress remaining sections to squeeze them in.
+- Do not skip ahead to a conclusion.
+- Write at full quality up to a clean breakpoint (end of a function, end of a file, end of a section).
+- End with:
 
-## When I show diffs
+```
+[PAUSED — X of Y complete. Send "continue" to resume from: next section name]
+```
 
-Diffs include enough surrounding context to apply unambiguously. `git apply --check` should succeed. No "// ... unchanged ..." in patches.
+On "continue", pick up exactly where you stopped. No recap, no repetition.
 
-## Self-check before delivery
+## Quick Check
 
-Before sending any code response, scan it for the banned phrases above. If found, regenerate the relevant section in full.
+Before finalizing any response, verify:
+- No banned patterns from the list above appear anywhere in the output
+- Every item the user requested is present and finished
+- Code blocks contain actual runnable code, not descriptions of what code would do
+- Nothing was shortened to save space
+
+---
+## Sigil UI Context
+In Sigil projects, all visual properties must reference `var(--s-*)` tokens.
+See `.cursor/rules/taste-enforcement.mdc` for the Sigil-adapted enforcement rules.
+See `.cursor/rules/sigil-design-system.mdc` for the full token consumption table.
+Source: github.com/Leonxlnx/taste-skill

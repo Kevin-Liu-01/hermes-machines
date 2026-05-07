@@ -1,0 +1,84 @@
+/**
+ * POST /api/dashboard/admin/reload
+ *
+ * Runs `~/.hermes/scripts/reload-from-git.sh` on the live machine via
+ * Dedalus exec. The script does a shallow git fetch + reset on the
+ * pre-cloned hermes-machines checkout in /home/machine/hermes-machines/
+ * and re-syncs `knowledge/skills`, `knowledge/crons`, and the persona
+ * files into `~/.hermes/`.
+ *
+ * This is the "edit on GitHub, click reload, agent picks it up" flow --
+ * the persistence story for skills, crons, MEMORY.md, USER.md, etc.
+ * without ever needing to run the local CLI.
+ *
+ * Auth: Clerk middleware + redundant `auth()` check. Mutations on the
+ * machine state are write-once-per-click; the route waits for the
+ * script to finish (typically 2-5 seconds) and returns the script's
+ * stdout so the user sees the new HEAD SHA in the dashboard.
+ */
+
+import { auth } from "@clerk/nextjs/server";
+
+import { execOnMachine, isMachineRunning } from "@/lib/dashboard/exec";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const RELOAD_SCRIPT = "$HOME/.hermes/scripts/reload-from-git.sh";
+
+export async function POST(): Promise<Response> {
+	const { userId } = await auth();
+	if (!userId) {
+		return Response.json({ error: "unauthorized" }, { status: 401 });
+	}
+
+	if (!process.env.DEDALUS_API_KEY || !process.env.HERMES_MACHINE_ID) {
+		return Response.json(
+			{
+				error: "config_missing",
+				message:
+					"DEDALUS_API_KEY or HERMES_MACHINE_ID is not set in Vercel env",
+			},
+			{ status: 503 },
+		);
+	}
+
+	if (!(await isMachineRunning())) {
+		return Response.json(
+			{
+				error: "machine_offline",
+				message:
+					"Machine is not running. Wake it from /dashboard first.",
+			},
+			{ status: 503 },
+		);
+	}
+
+	try {
+		// 60s is plenty -- the script is git fetch + rsync, both small ops.
+		const result = await execOnMachine(
+			`if [ -x ${RELOAD_SCRIPT} ]; then ${RELOAD_SCRIPT}; else echo "reload script not installed; redeploy required" >&2; exit 2; fi`,
+			{ timeoutMs: 60_000 },
+		);
+		const headLine = result.stdout
+			.split("\n")
+			.find((line) => line.startsWith("[reload] HEAD:"));
+		const head = headLine ? headLine.replace("[reload] HEAD:", "").trim() : null;
+		return Response.json(
+			{
+				ok: result.exitCode === 0,
+				head,
+				stdout: result.stdout,
+				stderr: result.stderr,
+				reloadedAt: new Date().toISOString(),
+			},
+			{ headers: { "Cache-Control": "no-store" } },
+		);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : "reload failed";
+		return Response.json(
+			{ error: "reload_failed", message },
+			{ status: 502 },
+		);
+	}
+}

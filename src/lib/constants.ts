@@ -19,6 +19,20 @@ export const VM_KNOWLEDGE_DROP = `${VM_HOME}/.knowledge-payload.tar.gz`;
 export const VM_GATEWAY_LOG = `${VM_HERMES_HOME}/logs/gateway.log`;
 export const VM_DEPLOY_MARKER = `${VM_HERMES_HOME}/.hermes-machines-version`;
 
+/**
+ * Persistent git checkout of the hermes-machines repo, used by the
+ * dashboard's reload route. The bootstrap clones the repo here on first
+ * deploy; the reload script `git pull`s and re-syncs knowledge into
+ * ~/.hermes/. This is what makes "edit on GitHub, click reload, agent
+ * picks it up" possible without ever running the local CLI.
+ */
+export const VM_REPO_DIR = `${VM_HOME}/hermes-machines`;
+export const VM_RELOAD_SCRIPT = `${VM_HERMES_HOME}/scripts/reload-from-git.sh`;
+export const REPO_CLONE_URL =
+	process.env.HERMES_MACHINES_REPO_URL ??
+	"https://github.com/Kevin-Liu-01/hermes-machines.git";
+export const REPO_BRANCH = process.env.HERMES_MACHINES_REPO_BRANCH ?? "main";
+
 /** Hermes API server (OpenAI-compatible) port. */
 export const PORT_API = 8642;
 
@@ -29,7 +43,7 @@ export const PORT_DASHBOARD = 9119;
 export const STATE_FILE = ".machine-state.json";
 
 /** Bumped whenever bootstrap logic changes; triggers re-bootstrap on deploy. */
-export const DEPLOY_VERSION = "1.1.0";
+export const DEPLOY_VERSION = "1.2.0";
 
 /** Pinned Node major for the cursor-bridge MCP server. Cursor SDK needs Node 20+. */
 export const NODE_MAJOR = "22";

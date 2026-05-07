@@ -16,6 +16,7 @@
     "reload": "tsx src/cli.ts reload-knowledge",
     "reset": "tsx src/cli.ts reset",
     "gc": "tsx scripts/cleanup-machines.ts",
+    "sync-wiki": "node scripts/sync-from-wiki.mjs",
     "typecheck": "tsc --noEmit",
     "web": "cd web && npm run dev"
   },

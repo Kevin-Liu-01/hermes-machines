@@ -34,26 +34,166 @@ const SKILLS_DIR = join(REPO_ROOT, "knowledge", "skills");
 const OUT_DIR = join(WEB_ROOT, "data");
 const OUT_FILE = join(OUT_DIR, "skills.json");
 
+/**
+ * Category mapping for the dashboard's Skills browser. Wiki skills have
+ * minimal frontmatter (name + description only) so we classify by slug
+ * here. Anything missing falls into "uncategorized" and the dashboard
+ * still renders it -- the chip is the only thing that's wrong, content
+ * is fine.
+ */
 const CATEGORY_OF = {
+	// philosophy -- how to write code, how to think
 	"agent-ethos": "philosophy",
 	"empirical-verification": "philosophy",
 	"taste-output": "philosophy",
+	"torvalds": "philosophy",
+	"simple": "philosophy",
+	"counterfactual": "philosophy",
+	"invariant-first-coding": "philosophy",
+	"invariant-first-testing": "philosophy",
+	"minimal-first-implementation": "philosophy",
+	"fail-closed-case-matching": "philosophy",
+	"rtfm": "philosophy",
+
+	// engineering -- conventions, refactors, hard rules
 	"git-workflow": "engineering",
 	"production-safety": "engineering",
 	"plan-mode-review": "engineering",
-	"security-audit": "engineering",
+	"comment": "engineering",
+	"commit": "engineering",
+	"refine": "engineering",
+	"fix-types": "engineering",
+	"generate-interface": "engineering",
+	"stage-refactor-checklist": "engineering",
+	"state-machine-dfa": "engineering",
+	"column-aligned-fields": "engineering",
+	"style-guide": "engineering",
+	"test-writing": "engineering",
+	"go-style": "engineering",
+	"rust-neckbeard": "engineering",
+	"ultracite": "engineering",
+	"lerp": "engineering",
+	"greentext": "engineering",
+
+	// review -- bug finding, audit, security
+	"security-audit": "review",
+	"bugs": "review",
+	"deepsec": "review",
+	"gstack-review": "review",
+	"gstack-qa": "review",
+	"cross-modal-review": "review",
+	"recent-code-bugfix": "review",
+	"daily-bugfix-check": "review",
+	"exemplar-audit": "review",
+	"read-and-review": "review",
+	"pr-review": "review",
+	"postmortem": "review",
+	"perf": "review",
+
+	// design -- UI, taste, frontend
 	"frontend-design-taste": "design",
+	"frontend-design": "design",
 	"reticle-design-system": "design",
+	"emil-design-eng": "design",
+	"web-design-guidelines": "design",
+	"vercel-react-best-practices": "design",
+	"shadcn": "design",
+	"loading-screens": "design",
+	"make-interfaces-feel-better": "design",
+	"font-switcher-dev-tool": "design",
+	"og-metadata-audit": "design",
+	"taste-core": "design",
+	"taste-soft": "design",
+	"taste-redesign": "design",
+	"taste-minimalist": "design",
+	"taste-brutalist": "design",
+	"taste-stitch": "design",
+	"taste-gpt": "design",
+	"taste-brandkit": "design",
+	"taste-imagegen-web": "design",
+	"taste-imagegen-mobile": "design",
+	"taste-image-to-code": "design",
+	"gstack-design-review": "design",
+
+	// content -- writing, voice, marketing
+	"copywriting": "content",
+	"social-content": "content",
+	"social-draft": "content",
+	"content-strategy": "content",
+	"kevin-voice": "content",
+	"app-onboarding-questionnaire": "content",
+	"seo-audit": "content",
+	"seo-geo-optimization": "content",
+
+	// ops -- run things, schedule things, browse the internet
 	"automation-cron": "ops",
 	"computer-use": "ops",
 	"dedalus-machines": "ops",
+	"agent-browser": "ops",
+	"agent-reach": "ops",
+	"agent-activity-log": "ops",
+	"project-briefing": "ops",
+	"db": "ops",
+	"db-write": "ops",
+	"dcs-test": "ops",
+	"ci-cd-best-practices": "ops",
+	"hotfix-preview": "ops",
+	"promote": "ops",
+	"pr": "ops",
+	"issue": "ops",
+	"stripe": "ops",
+	"update-docs": "ops",
+	"mintlify-mdx": "ops",
+
+	// delegation + meta-skill machinery
 	"cursor-coding": "delegation",
+	"skill-creator": "delegation",
+	"skill-auditor": "delegation",
+	"find-skills": "delegation",
 };
+
+/**
+ * Wiki SKILL.md files sometimes have unquoted YAML descriptions
+ * containing colons ("uses: a, b, c") which gray-matter rejects.
+ * Fall back to a permissive line-by-line scan so a single bad
+ * description never blocks the whole sync.
+ */
+function parseFrontmatterPermissive(raw) {
+	const match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+	if (!match) return { data: {}, content: raw };
+	const fmText = match[1];
+	const content = match[2];
+	const data = {};
+	for (const line of fmText.split("\n")) {
+		const idx = line.indexOf(":");
+		if (idx <= 0) continue;
+		const key = line.slice(0, idx).trim();
+		if (!/^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(key)) continue;
+		let value = line.slice(idx + 1).trim();
+		if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+			value = value.slice(1, -1);
+		} else if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
+			value = value.slice(1, -1);
+		}
+		data[key] = value;
+	}
+	return { data, content };
+}
 
 function readSkill(slug) {
 	const path = join(SKILLS_DIR, slug, "SKILL.md");
 	const raw = readFileSync(path, "utf8");
-	const { data, content } = matter(raw);
+	let data;
+	let content;
+	try {
+		const parsed = matter(raw);
+		data = parsed.data ?? {};
+		content = parsed.content;
+	} catch (err) {
+		const fallback = parseFrontmatterPermissive(raw);
+		data = fallback.data;
+		content = fallback.content;
+	}
 	const tags = Array.isArray(data?.metadata?.hermes?.tags)
 		? data.metadata.hermes.tags
 		: [];
