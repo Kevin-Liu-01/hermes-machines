@@ -74,12 +74,28 @@ export function Logo({ mark, size = 18, className, tone }: Props) {
 	const aria = ARIA_LABEL[mark];
 
 	if (resolved === "currentColor") {
+		// The Nous mark's source SVG paints a rectangular frame at its
+		// outer bounds (the potrace tracing kept the original raster's
+		// border). When we mask it with currentColor, those frame
+		// columns render as 1px walls on the left and right edges. We
+		// can't kill them at the SVG layer without breaking the head
+		// silhouette (the frame is part of the same compound path), so
+		// we crop them at the CSS layer: render the mask slightly
+		// oversized and let the container's bounds clip the frame off.
+		//
+		// 110% size + centered position drops 5% of the SVG on each
+		// edge -- enough to hide the 4-unit rect frame at every
+		// rendered size from 14px (status header) up to 480px (debug
+		// preview), without visibly clipping the head silhouette
+		// (which sits well inside the SVG bounds).
+		const oversized = mark === "nous";
+		const maskSize = oversized ? "110%" : "contain";
 		return (
 			<span
 				role="img"
 				aria-label={aria}
 				className={cn(
-					"inline-block shrink-0 bg-[currentColor]",
+					"inline-block shrink-0 overflow-hidden bg-[currentColor]",
 					className,
 				)}
 				style={{
@@ -91,8 +107,8 @@ export function Logo({ mark, size = 18, className, tone }: Props) {
 					maskRepeat: "no-repeat",
 					WebkitMaskPosition: "center",
 					maskPosition: "center",
-					WebkitMaskSize: "contain",
-					maskSize: "contain",
+					WebkitMaskSize: maskSize,
+					maskSize: maskSize,
 				}}
 			/>
 		);
