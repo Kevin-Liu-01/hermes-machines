@@ -223,23 +223,34 @@ export class DedalusProvider implements MachineProvider {
 				`cannot wake machine in phase '${raw.status.phase}'; expected 'sleeping'`,
 			);
 		}
-		const revision = raw.status.revision;
-		if (revision === undefined || revision === null) {
-			throw new MachineProviderError(
-				"dedalus",
-				"fatal",
-				"machine has no revision token; cannot submit wake",
-			);
-		}
-		const response = await this.fetch(`/v1/machines/${machineId}/wake`, {
+		// Why not POST /v1/machines/<id>/wake?
+		//
+		// The Dedalus controlplane classifies POST /wake (and /sleep,
+		// /admit, /purge) as INTERNAL LIFECYCLE ROUTES guarded by an
+		// HMAC signing middleware (see `internal_route_auth.go`). Public
+		// API keys reliably 401 with "missing internal route signature"
+		// on those paths; the official SDK hits the same wall.
+		//
+		// The supported public path is to submit ANY execution against
+		// the sleeping machine. The execution scheduler internally calls
+		// the HMAC-signed admit/wake gate, and the machine transitions
+		// from sleeping -> wake_pending -> starting -> running. We
+		// submit a fast no-op (`/bin/true`) and don't wait for it to
+		// complete; the desired_state flip is what we care about.
+		const idempotencyKey = crypto.randomUUID();
+		const exec = await this.fetch(`/v1/machines/${machineId}/executions`, {
 			method: "POST",
-			headers: { "If-Match": String(revision) },
+			headers: { "Idempotency-Key": idempotencyKey },
+			body: JSON.stringify({
+				command: ["/bin/true"],
+				timeout_ms: 5000,
+			}),
 		});
-		if (!response.ok) {
+		if (!exec.ok) {
 			throw new MachineProviderError(
 				"dedalus",
 				"transient",
-				`wake ${response.status}: ${(await response.text()).slice(0, 200)}`,
+				`wake-via-exec ${exec.status}: ${(await exec.text()).slice(0, 200)}`,
 			);
 		}
 		return summarize(await this.getRaw(machineId));
@@ -248,6 +259,15 @@ export class DedalusProvider implements MachineProvider {
 	async sleep(machineId: string): Promise<ProviderMachineSummary> {
 		const raw = await this.getRaw(machineId);
 		if (raw.status.phase !== "running") return summarize(raw);
+		// Like /wake, POST /v1/machines/<id>/sleep is an internal
+		// lifecycle route guarded by HMAC signing on the dev fleet --
+		// public API keys return 401 "missing internal route signature".
+		// We still attempt the call (older deployments accept it) but
+		// swallow that specific 401 instead of throwing: every Dedalus
+		// machine has `autosleep_seconds` (default 300s) so the machine
+		// will sleep on its own once traffic stops. The "sleep" button
+		// in the dashboard then reads as "sleep sooner" rather than
+		// "sleep at all", which is consistent with the platform.
 		const revision = raw.status.revision;
 		if (revision === undefined || revision === null) {
 			throw new MachineProviderError(
@@ -261,10 +281,19 @@ export class DedalusProvider implements MachineProvider {
 			headers: { "If-Match": String(revision) },
 		});
 		if (!response.ok) {
+			const text = (await response.text()).slice(0, 400);
+			// HMAC-gated internal route -- log + return current state,
+			// the machine will auto-sleep on idle.
+			if (response.status === 401 && text.includes("internal route signature")) {
+				console.warn(
+					`[dedalus] sleep blocked by HMAC gate; relying on autosleep (${machineId})`,
+				);
+				return summarize(raw);
+			}
 			throw new MachineProviderError(
 				"dedalus",
 				"transient",
-				`sleep ${response.status}: ${(await response.text()).slice(0, 200)}`,
+				`sleep ${response.status}: ${text.slice(0, 200)}`,
 			);
 		}
 		return summarize(await this.getRaw(machineId));
