@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { BrandMark } from "@/components/BrandMark";
 import { Logo } from "@/components/Logo";
+import { ToolIcon } from "@/components/ToolIcon";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
@@ -717,7 +718,8 @@ function ToolsStep({
 				<div className="max-h-[40vh] space-y-3 overflow-y-auto border border-[var(--ret-border)] bg-[var(--ret-bg)] p-3">
 					{groupedBuiltins.map(([cat, list]) => (
 						<div key={cat}>
-							<p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+							<p className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+								<ToolIcon name={cat as ToolCategory} size={11} />
 								{CATEGORY_LABEL[cat as ToolCategory] ?? cat} . {list.length}
 							</p>
 							<div className="grid gap-1 sm:grid-cols-2">
@@ -745,6 +747,11 @@ function ToolsStep({
 											/>
 											<span className="min-w-0 flex-1">
 												<span className="flex items-center gap-1.5">
+													<ToolIcon
+														name={t.category}
+														size={11}
+														className="text-[var(--ret-text-muted)]"
+													/>
 													<span className="font-mono text-[11px] text-[var(--ret-text)]">
 														{t.name}
 													</span>
@@ -754,7 +761,7 @@ function ToolsStep({
 														</span>
 													) : null}
 												</span>
-												<p className="line-clamp-1 text-[10px] text-[var(--ret-text-dim)]">
+												<p className="line-clamp-1 pl-[18px] text-[10px] text-[var(--ret-text-dim)]">
 													{t.title}
 												</p>
 											</span>
@@ -1062,7 +1069,12 @@ function RigPreview({
 							key={cat}
 							className="flex items-center justify-between gap-2 px-4 py-1.5 font-mono text-[11px]"
 						>
-							<span className="text-[var(--ret-text)]">
+							<span className="flex items-center gap-1.5 text-[var(--ret-text)]">
+								<ToolIcon
+									name={cat as ToolCategory}
+									size={11}
+									className="text-[var(--ret-text-muted)]"
+								/>
 								{CATEGORY_LABEL[cat as ToolCategory] ?? cat}
 							</span>
 							<span className="font-mono tabular-nums text-[var(--ret-text-muted)]">

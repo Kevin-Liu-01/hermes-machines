@@ -27,6 +27,7 @@
  */
 
 import type { Mark } from "@/components/Logo";
+import type { ServiceSlug } from "@/components/ServiceIcon";
 
 export type AgentSupport = "hermes" | "openclaw" | "both";
 
@@ -288,6 +289,11 @@ export type ServiceEntry = {
 	tagline: string;
 	icon: ToolCategory;
 	color?: string;
+	/** Brand slug for `<ServiceIcon>`. When present, render the brand mark
+	 *  next to the service name; falls back to the category `<ToolIcon>`
+	 *  when omitted (e.g. for cross-cutting categories that don't map
+	 *  to a single vendor). */
+	brand?: ServiceSlug;
 	interfaces: ServiceInterface[];
 };
 
@@ -298,6 +304,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Deployments, env vars, logs, project config, domains",
 		icon: "code",
 		color: "#fff",
+		brand: "vercel",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-vercel-vercel", use: "deploys, env, logs, project config, domains" },
 			{ rank: 2, kind: "cli", label: "vercel", use: "vercel dev, vercel deploy, env pull, link" },
@@ -310,6 +317,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Customers, subscriptions, payments, invoices, products",
 		icon: "search",
 		color: "#635bff",
+		brand: "stripe",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-stripe-stripe", use: "read customers, subscriptions, payments, invoices, products" },
 			{ rank: 2, kind: "cli", label: "stripe", use: "listen, trigger, fixtures, logs tail" },
@@ -323,6 +331,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Schema, RLS, queries, auth, migrations",
 		icon: "filesystem",
 		color: "#3ecf8e",
+		brand: "supabase",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-supabase-supabase", use: "schema, read-only queries, RLS policies, auth config" },
 			{ rank: 2, kind: "cli", label: "supabase", use: "db diff, db push, init, migration new, gen types" },
@@ -336,6 +345,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Auth, user mgmt, orgs, webhooks",
 		icon: "memory",
 		color: "#6c47ff",
+		brand: "clerk",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-clerk-clerk", use: "auth mgmt, user lookup, org management" },
 			{ rank: 2, kind: "plugin-skill", label: "7 skills", use: "setup, orgs, webhooks, testing, nextjs-patterns, custom-ui, clerk router" },
@@ -347,6 +357,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Auth, Firestore, hosting, App Hosting, Genkit",
 		icon: "filesystem",
 		color: "#ffcb2b",
+		brand: "firebase",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-firebase-firebase", use: "project config, deploys, auth, Firestore" },
 			{ rank: 2, kind: "plugin-skill", label: "11 skills", use: "auth, Firestore, hosting, App Hosting, Genkit, Data Connect, AI Logic" },
@@ -358,6 +369,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Read files, inspect designs, generate components",
 		icon: "vision",
 		color: "#f24e1e",
+		brand: "figma",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-figma-figma", use: "read files, inspect designs, get component specs" },
 			{ rank: 2, kind: "plugin-skill", label: "9 skills", use: "always load figma-use first; design systems, implement-design, code-connect, diagrams" },
@@ -369,6 +381,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "HogQL, events, replays, flags",
 		icon: "search",
 		color: "#f9bd2b",
+		brand: "posthog",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-posthog-posthog", use: "HogQL queries, event data, session replays, feature flags" },
 			{ rank: 2, kind: "plugin-skill", label: "16 skills", use: "instrumentation (analytics, errors, flags, logs, LLM), experiments, autocapture, traces, query examples" },
@@ -380,6 +393,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Issues, alerts, error details, perf",
 		icon: "search",
 		color: "#362d59",
+		brand: "sentry",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-sentry-sentry", use: "issues, alerts, error details, performance data" },
 			{ rank: 2, kind: "plugin-skill", label: "26 skills", use: "SDK setup (15+ platforms), workflow, feature setup, code review, AI monitoring" },
@@ -391,6 +405,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Logs, metrics, traces, dashboards, monitors",
 		icon: "search",
 		color: "#632ca6",
+		brand: "datadog",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-datadog-datadog", use: "logs, metrics, traces, dashboards, monitors (run ddsetup if MCP not responding)" },
 			{ rank: 2, kind: "plugin-skill", label: "3 skills", use: "ddsetup, ddconfig, ddtoolsets" },
@@ -402,6 +417,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Issues, projects, team workflows",
 		icon: "code",
 		color: "#5e6ad2",
+		brand: "linear",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-linear-linear", use: "issues, projects, team workflows" },
 			{ rank: 2, kind: "personal-skill", label: "linear", use: "workflow automation via MCP" },
@@ -413,6 +429,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Messages, channels, search",
 		icon: "memory",
 		color: "#4a154b",
+		brand: "slack",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-slack-slack", use: "messages, channels, search" },
 			{ rank: 2, kind: "personal-skill", label: "slack", use: "browser-based automation via agent-browser" },
@@ -424,6 +441,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Admin API, Hydrogen, Liquid, Polaris, POS",
 		icon: "code",
 		color: "#95bf47",
+		brand: "shopify",
 		interfaces: [
 			{ rank: 1, kind: "plugin-skill", label: "20+ skills", use: "Admin API, Hydrogen, Liquid, Polaris, checkout, POS, customer accounts, Shopify Functions, custom data" },
 		],
@@ -434,6 +452,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Query execution, schema inspection",
 		icon: "search",
 		color: "#fc0",
+		brand: "clickhouse",
 		interfaces: [
 			{ rank: 1, kind: "mcp", label: "plugin-clickhouse", use: "query execution, schema inspection" },
 			{ rank: 2, kind: "plugin-skill", label: "1 skill", use: "clickhouse-best-practices (28 rules, MUST check before writing queries)" },
@@ -445,6 +464,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "PRs, issues, checks, releases, API calls",
 		icon: "code",
 		color: "#fff",
+		brand: "github",
 		interfaces: [
 			{ rank: 1, kind: "cli", label: "gh", use: "PRs, issues, checks, releases, API calls" },
 			{ rank: 2, kind: "personal-skill", label: "9 skills", use: "issue, pr, yeet, pr-review, gh-fix-ci, gh-address-comments, split-to-prs, babysit, hotfix-preview" },
@@ -457,6 +477,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "S3, ECS, SSM, ECR via SSO profiles",
 		icon: "code",
 		color: "#ff9900",
+		brand: "amazonwebservices",
 		interfaces: [
 			{ rank: 1, kind: "cli", label: "aws", use: "SSO profiles: dcs (dev/preview), admin (prod), dcs-prod. S3, ECS, SSM, ECR." },
 		],
@@ -467,6 +488,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Tunnels (cloudflared)",
 		icon: "browser",
 		color: "#f38020",
+		brand: "cloudflare",
 		interfaces: [
 			{ rank: 1, kind: "cli", label: "cloudflared", use: "Quick tunnels expose the agent's gateway publicly without a stable hostname. We fall back to *.trycloudflare.com when Dedalus previews aren't configured for the org." },
 		],
@@ -477,6 +499,7 @@ export const SERVICES: ReadonlyArray<ServiceEntry> = [
 		tagline: "Automation, scraping, frontend verification",
 		icon: "browser",
 		color: "#fff",
+		brand: "googlechrome",
 		interfaces: [
 			{ rank: 1, kind: "cli", label: "agent-browser", use: "ad-hoc browsing, frontend verification, scraping, computer use" },
 			{ rank: 2, kind: "mcp", label: "Chrome DevTools MCP", use: "inspect user's existing browser session" },
@@ -495,12 +518,32 @@ export type TaskTool = {
 	label: string;
 	use: string;
 	skill?: string;
+	/** Brand slug for `<ServiceIcon>` when this tool maps to a known
+	 *  vendor (Playwright, GSAP, Framer Motion, etc.). Falls back to a
+	 *  category `<ToolIcon>` when omitted. */
+	brand?: ServiceSlug;
 };
+
+export type TaskCategoryIcon =
+	| "browser"
+	| "code"
+	| "vision"
+	| "search"
+	| "memory"
+	| "schedule"
+	| "filesystem"
+	| "shell"
+	| "image";
+
+export type TaskEntryIcon = TaskCategoryIcon;
 
 export type TaskEntry = {
 	id: string;
 	name: string;
 	tagline: string;
+	/** ToolCategory key for the fallback `<ToolIcon>` in the task card
+	 *  header. Picks the most representative category for the task. */
+	category: ToolCategory;
 	tools: TaskTool[];
 };
 
@@ -509,27 +552,30 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "browser-automation",
 		name: "Browser automation",
 		tagline: "Snapshots, visual diff, React introspection, batch commands",
+		category: "browser",
 		tools: [
-			{ rank: 1, label: "agent-browser", use: "ref-based snapshots, visual diff, React introspection, Web Vitals, batch commands", skill: "agent-browser" },
-			{ rank: 2, label: "Chrome DevTools MCP", use: "inspect user's existing browser session" },
+			{ rank: 1, label: "agent-browser", brand: "googlechrome", use: "ref-based snapshots, visual diff, React introspection, Web Vitals, batch commands", skill: "agent-browser" },
+			{ rank: 2, label: "Chrome DevTools MCP", brand: "googlechrome", use: "inspect user's existing browser session" },
 			{ rank: 3, label: "cursor-ide-browser", use: "Cursor's built-in vision pipeline" },
-			{ rank: 4, label: "Playwright", use: "deterministic E2E in CI only" },
+			{ rank: 4, label: "Playwright", brand: "playwright", use: "deterministic E2E in CI only" },
 		],
 	},
 	{
 		id: "frontend-verification",
 		name: "Frontend verification",
 		tagline: "Diff snapshots, screenshots, vitals, React renders",
+		category: "vision",
 		tools: [
-			{ rank: 1, label: "agent-browser diff", use: "diff snapshot + diff screenshot + vitals + react renders", skill: "agent-browser" },
-			{ rank: 2, label: "agent-browser screenshot --annotate", use: "visual inspection" },
-			{ rank: 3, label: "Playwright", use: "regression test suites in CI only" },
+			{ rank: 1, label: "agent-browser diff", brand: "googlechrome", use: "diff snapshot + diff screenshot + vitals + react renders", skill: "agent-browser" },
+			{ rank: 2, label: "agent-browser screenshot --annotate", brand: "googlechrome", use: "visual inspection" },
+			{ rank: 3, label: "Playwright", brand: "playwright", use: "regression test suites in CI only" },
 		],
 	},
 	{
 		id: "generative-ui",
 		name: "Generative UI",
 		tagline: "Catalog-constrained UI generation",
+		category: "code",
 		tools: [
 			{ rank: 1, label: "json-render", use: "@json-render/core + shadcn + directives, catalog-constrained" },
 			{ rank: 2, label: "AI SDK structured output", use: "when json-render not installed" },
@@ -539,6 +585,7 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "code-review",
 		name: "Code review",
 		tagline: "Find bugs that pass CI but blow up in prod",
+		category: "code",
 		tools: [
 			{ rank: 1, label: "code-review", use: "staff-engineer review, production bugs", skill: "code-review" },
 			{ rank: 2, label: "counterfactual", use: "compare against minimal correct algorithm", skill: "counterfactual" },
@@ -549,6 +596,7 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "design-review",
 		name: "Design review",
 		tagline: "6-phase audit + animation + art direction",
+		category: "vision",
 		tools: [
 			{ rank: 1, label: "design-review", use: "6-phase audit, 80-item checklist, letter grades", skill: "design-review" },
 			{ rank: 2, label: "design-engineering", use: "animation decisions, component polish, performance rules", skill: "design-engineering" },
@@ -561,18 +609,20 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "qa",
 		name: "QA + testing",
 		tagline: "Real-browser testing, regression tests, invariants",
+		category: "browser",
 		tools: [
 			{ rank: 1, label: "qa", use: "exploratory QA with real browser", skill: "qa" },
 			{ rank: 2, label: "dogfood", use: "systematic app exploration, structured bug reports" },
 			{ rank: 3, label: "invariant-first-testing", use: "tests as invariants", skill: "invariant-first-testing" },
 			{ rank: 4, label: "test-writing", use: "terse Unix-tradition harnesses", skill: "test-writing" },
-			{ rank: 5, label: "Playwright", use: "deterministic E2E in CI only" },
+			{ rank: 5, label: "Playwright", brand: "playwright", use: "deterministic E2E in CI only" },
 		],
 	},
 	{
 		id: "research",
 		name: "Research",
 		tagline: "Multi-platform social search, page extraction",
+		category: "search",
 		tools: [
 			{ rank: 1, label: "last30days", use: "multi-platform social search (Reddit, X, YouTube, TikTok, IG, HN)", skill: "last30days" },
 			{ rank: 2, label: "agent-reach", use: "17 platforms via CLI", skill: "agent-reach" },
@@ -583,6 +633,7 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "content",
 		name: "Content creation",
 		tagline: "Drafts, strategy, conversion copy",
+		category: "memory",
 		tools: [
 			{ rank: 1, label: "social-draft", use: "platform-optimized drafting (X, LinkedIn)", skill: "social-draft" },
 			{ rank: 2, label: "social-content", use: "strategy, repurposing, engagement", skill: "social-content" },
@@ -594,6 +645,7 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "seo",
 		name: "SEO + GEO",
 		tagline: "AI-search optimization + traditional SEO + audits",
+		category: "search",
 		tools: [
 			{ rank: 1, label: "seo-geo-optimization", use: "GEO for AI search + traditional SEO", skill: "seo-geo-optimization" },
 			{ rank: 2, label: "seo-audit", use: "technical SEO audit", skill: "seo-audit" },
@@ -604,6 +656,7 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "security",
 		name: "Security",
 		tagline: "Vuln scans, CTF-style review, threat modeling",
+		category: "shell",
 		tools: [
 			{ rank: 1, label: "deepsec", use: "agent-powered vulnerability scanner", skill: "deepsec" },
 			{ rank: 2, label: "bugs", use: "CTF-style adversarial review", skill: "bugs" },
@@ -615,10 +668,11 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "animation",
 		name: "Animation",
 		tagline: "Scroll, component, physics, AE",
+		category: "image",
 		tools: [
-			{ rank: 1, label: "GSAP + ScrollTrigger", use: "scroll-driven narratives, pinned sections" },
-			{ rank: 2, label: "Motion (Framer Motion)", use: "component entrances, layout, gestures" },
-			{ rank: 3, label: "React Spring", use: "physics-based spring dynamics" },
+			{ rank: 1, label: "GSAP + ScrollTrigger", brand: "gsap", use: "scroll-driven narratives, pinned sections" },
+			{ rank: 2, label: "Motion (Framer Motion)", brand: "framer", use: "component entrances, layout, gestures" },
+			{ rank: 3, label: "React Spring", brand: "react", use: "physics-based spring dynamics" },
 			{ rank: 4, label: "Lottie", use: "After Effects JSON animations" },
 		],
 	},
@@ -626,9 +680,10 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 		id: "three-d",
 		name: "3D",
 		tagline: "WebGL / WebGPU rendering",
+		category: "vision",
 		tools: [
-			{ rank: 1, label: "React Three Fiber + drei", use: "declarative 3D in React" },
-			{ rank: 2, label: "Three.js", use: "outside React or no abstraction needed" },
+			{ rank: 1, label: "React Three Fiber + drei", brand: "react", use: "declarative 3D in React" },
+			{ rank: 2, label: "Three.js", brand: "threedotjs", use: "outside React or no abstraction needed" },
 			{ rank: 3, label: "OGL / custom GLSL", use: "shader IS the idea" },
 			{ rank: 4, label: "Babylon.js", use: "game engine features" },
 		],

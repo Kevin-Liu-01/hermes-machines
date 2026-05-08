@@ -3,6 +3,8 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { ServiceIcon } from "@/components/ServiceIcon";
+import { ToolIcon } from "@/components/ToolIcon";
 import { listMcpServers } from "@/lib/dashboard/mcps";
 import { listSkills } from "@/lib/dashboard/skills";
 import {
@@ -101,7 +103,12 @@ export function LoadoutPreview() {
 								key={cat}
 								className="flex items-center justify-between gap-2 font-mono text-[11px]"
 							>
-								<span className="text-[var(--ret-text)]">
+								<span className="flex items-center gap-1.5 text-[var(--ret-text)]">
+									<ToolIcon
+										name={cat as ToolCategory}
+										size={12}
+										className="text-[var(--ret-text-muted)]"
+									/>
 									{CATEGORY_LABEL[cat as ToolCategory] ?? cat}
 								</span>
 								<span className="font-mono tabular-nums text-[var(--ret-text-muted)]">
@@ -133,11 +140,19 @@ export function LoadoutPreview() {
 						{SERVICES.slice(0, 12).map((s) => (
 							<li
 								key={s.id}
-								className="truncate text-[var(--ret-text)]"
+								className="flex min-w-0 items-center gap-1.5 truncate text-[var(--ret-text)]"
 								title={s.tagline}
 							>
-								<span className="text-[var(--ret-text-muted)]">.</span>{" "}
-								{s.name}
+								{s.brand ? (
+									<ServiceIcon slug={s.brand} size={12} tone="color" />
+								) : (
+									<ToolIcon
+										name={s.icon}
+										size={12}
+										className="text-[var(--ret-text-muted)]"
+									/>
+								)}
+								<span className="truncate">{s.name}</span>
 							</li>
 						))}
 					</ul>
@@ -176,9 +191,17 @@ export function LoadoutPreview() {
 					/>
 					<ul className="space-y-2">
 						{featuredTasks.map((t) => (
-							<li key={t.id} className="font-mono text-[11px]">
+							<li
+								key={t.id}
+								className="flex items-baseline gap-1.5 font-mono text-[11px]"
+							>
+								<ToolIcon
+									name={t.category}
+									size={11}
+									className="text-[var(--ret-text-muted)]"
+								/>
 								<span className="text-[var(--ret-text)]">{t.name}</span>
-								<span className="ml-1.5 text-[10px] text-[var(--ret-text-muted)]">
+								<span className="ml-auto text-[10px] text-[var(--ret-text-muted)]">
 									{t.tools[0]?.label}
 								</span>
 							</li>

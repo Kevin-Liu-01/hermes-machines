@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Logo, type Mark } from "@/components/Logo";
+import { ToolIcon } from "@/components/ToolIcon";
 import { cn } from "@/lib/cn";
+import type { ToolCategory } from "@/lib/dashboard/loadout";
 import type { SkillSummary } from "@/lib/dashboard/types";
 
 /**
@@ -15,6 +17,22 @@ import type { SkillSummary } from "@/lib/dashboard/types";
 const SKILL_BRAND: Record<string, Mark> = {
 	"cursor-coding": "cursor",
 	"dedalus-machines": "dedalus",
+};
+
+/**
+ * Map a skill's category to a ToolIcon `ToolCategory` for the fallback
+ * Lucide-style icon. Each skill always shows *some* icon -- either its
+ * partner brand (above) or this category icon -- so cards never read
+ * as visually anonymous.
+ */
+const SKILL_CATEGORY_ICON: Record<string, ToolCategory> = {
+	content: "memory",
+	delegation: "delegate",
+	design: "vision",
+	engineering: "code",
+	ops: "shell",
+	philosophy: "memory",
+	review: "search",
 };
 
 const ALL = "all";
@@ -94,6 +112,7 @@ function Chip({
 
 function SkillCard({ skill }: { skill: SkillSummary }) {
 	const mark = SKILL_BRAND[skill.slug];
+	const categoryIcon = SKILL_CATEGORY_ICON[skill.category] ?? "memory";
 	return (
 		<Link
 			href={`/dashboard/skills/${skill.slug}`}
@@ -101,7 +120,15 @@ function SkillCard({ skill }: { skill: SkillSummary }) {
 		>
 			<div className="flex items-start justify-between gap-3">
 				<div className="flex min-w-0 items-center gap-2">
-					{mark ? <Logo mark={mark} size={14} /> : null}
+					{mark ? (
+						<Logo mark={mark} size={14} />
+					) : (
+						<ToolIcon
+							name={categoryIcon}
+							size={14}
+							className="text-[var(--ret-text-muted)]"
+						/>
+					)}
 					<p className="font-mono text-sm text-[var(--ret-purple)] group-hover:underline">
 						{skill.slug}
 					</p>

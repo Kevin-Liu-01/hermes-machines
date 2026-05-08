@@ -7,6 +7,8 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { ServiceIcon } from "@/components/ServiceIcon";
+import { ToolIcon } from "@/components/ToolIcon";
 import { cn } from "@/lib/cn";
 import {
 	CATEGORY_LABEL,
@@ -16,6 +18,7 @@ import {
 	type LoadoutCounts,
 	type ServiceEntry,
 	type TaskEntry,
+	type TaskTool,
 	type ToolCategory,
 } from "@/lib/dashboard/loadout";
 import type { McpServerWithBrand } from "@/lib/dashboard/mcps";
@@ -279,7 +282,18 @@ function BuiltinCard({ tool }: { tool: BuiltinTool }) {
 		<ReticleFrame>
 			<div className="flex items-start justify-between gap-2 border-b border-[var(--ret-border)] px-3 py-2">
 				<div className="flex items-center gap-2 min-w-0">
-					{provider ? <Logo mark={provider} size={14} /> : null}
+					{/* Brand mark when the tool ships from a partner; otherwise
+					    the category icon (Lucide-style) so every tool has a
+					    visual anchor. */}
+					{provider ? (
+						<Logo mark={provider} size={14} />
+					) : (
+						<ToolIcon
+							name={tool.category}
+							size={14}
+							className="text-[var(--ret-text-muted)]"
+						/>
+					)}
 					<span className="truncate font-mono text-[12px] text-[var(--ret-text)]">
 						{tool.name}
 					</span>
@@ -295,7 +309,8 @@ function BuiltinCard({ tool }: { tool: BuiltinTool }) {
 				<p className="text-[11px] leading-relaxed text-[var(--ret-text-dim)]">
 					{tool.description}
 				</p>
-				<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+				<p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+					<ToolIcon name={tool.category} size={10} />
 					{CATEGORY_LABEL[tool.category as ToolCategory]}
 				</p>
 			</div>
@@ -372,9 +387,20 @@ function ServiceCard({ service }: { service: ServiceEntry }) {
 	return (
 		<ReticleFrame>
 			<div className="flex items-center justify-between gap-2 border-b border-[var(--ret-border)] px-3 py-2">
-				<span className="font-mono text-[12px] text-[var(--ret-text)]">
-					{service.name}
-				</span>
+				<div className="flex items-center gap-2 min-w-0">
+					{service.brand ? (
+						<ServiceIcon slug={service.brand} size={16} tone="color" />
+					) : (
+						<ToolIcon
+							name={service.icon}
+							size={14}
+							className="text-[var(--ret-text-muted)]"
+						/>
+					)}
+					<span className="font-mono text-[12px] text-[var(--ret-text)]">
+						{service.name}
+					</span>
+				</div>
 				<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 					{service.interfaces.length} {service.interfaces.length === 1 ? "interface" : "interfaces"}
 				</span>
@@ -415,9 +441,16 @@ function TaskCard({ task }: { task: TaskEntry }) {
 	return (
 		<ReticleFrame>
 			<div className="flex items-center justify-between gap-2 border-b border-[var(--ret-border)] px-3 py-2">
-				<span className="font-mono text-[12px] text-[var(--ret-text)]">
-					{task.name}
-				</span>
+				<div className="flex items-center gap-2 min-w-0">
+					<ToolIcon
+						name={task.category}
+						size={14}
+						className="text-[var(--ret-text-muted)]"
+					/>
+					<span className="font-mono text-[12px] text-[var(--ret-text)]">
+						{task.name}
+					</span>
+				</div>
 				<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 					{task.tools.length} ranked
 				</span>
@@ -426,34 +459,48 @@ function TaskCard({ task }: { task: TaskEntry }) {
 				<p className="text-[11px] text-[var(--ret-text-dim)]">{task.tagline}</p>
 				<ol className="space-y-1.5">
 					{task.tools.map((tool) => (
-						<li
-							key={`${task.id}-${tool.rank}`}
-							className="flex items-start gap-2"
-						>
-							<span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center border border-[var(--ret-amber)]/40 bg-[var(--ret-amber)]/10 font-mono text-[9px] tabular-nums text-[var(--ret-amber)]">
-								{tool.rank}
-							</span>
-							<span className="min-w-0 flex-1">
-								<span className="font-mono text-[11px] text-[var(--ret-text)]">
-									{tool.label}
-								</span>
-								{tool.skill ? (
-									<a
-										href={`/dashboard/skills/${tool.skill}`}
-										className="ml-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--ret-purple)] hover:underline"
-									>
-										skill
-									</a>
-								) : null}
-								<p className="text-[10px] text-[var(--ret-text-dim)]">
-									{tool.use}
-								</p>
-							</span>
-						</li>
+						<TaskToolRow key={`${task.id}-${tool.rank}`} tool={tool} category={task.category} />
 					))}
 				</ol>
 			</div>
 		</ReticleFrame>
+	);
+}
+
+function TaskToolRow({
+	tool,
+	category,
+}: {
+	tool: TaskTool;
+	category: ToolCategory;
+}) {
+	return (
+		<li className="flex items-start gap-2">
+			<span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center border border-[var(--ret-amber)]/40 bg-[var(--ret-amber)]/10 font-mono text-[9px] tabular-nums text-[var(--ret-amber)]">
+				{tool.rank}
+			</span>
+			<span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center text-[var(--ret-text-muted)]">
+				{tool.brand ? (
+					<ServiceIcon slug={tool.brand} size={12} tone="mono" />
+				) : (
+					<ToolIcon name={category} size={12} />
+				)}
+			</span>
+			<span className="min-w-0 flex-1">
+				<span className="font-mono text-[11px] text-[var(--ret-text)]">
+					{tool.label}
+				</span>
+				{tool.skill ? (
+					<a
+						href={`/dashboard/skills/${tool.skill}`}
+						className="ml-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--ret-purple)] hover:underline"
+					>
+						skill
+					</a>
+				) : null}
+				<p className="text-[10px] text-[var(--ret-text-dim)]">{tool.use}</p>
+			</span>
+		</li>
 	);
 }
 
