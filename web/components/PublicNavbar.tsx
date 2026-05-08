@@ -52,7 +52,7 @@ export async function PublicNavbar({
 		<ReticleNavbar>
 			<div className="flex h-12 items-center justify-between gap-4 px-5">
 				<a href="#top" className="group flex items-center gap-2.5">
-					<BrandMark size={20} />
+					<BrandMark size={20} withLabel={false} />
 					<span
 						className="text-[20px] leading-none tracking-tight text-[var(--ret-text)] transition-colors group-hover:text-[var(--ret-purple)]"
 						style={{ fontFamily: "var(--font-display-serif)" }}

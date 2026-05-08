@@ -286,9 +286,14 @@ export function OnboardingFlow({
 			<WingBackground variant="cloud" />
 			<header className="relative z-10 border-b border-[var(--ret-border)] bg-[var(--ret-bg)]/85 px-6 py-4 backdrop-blur">
 				<div className="mx-auto flex max-w-[var(--ret-content-max)] items-center justify-between gap-4">
-					<a href="/" className="flex items-center gap-2">
+					<a href="/" className="group flex items-center gap-2.5">
 						<BrandMark size={20} gap="tight" withLabel={false} />
-						<span className="font-mono text-[13px]">agent-machines</span>
+						<span
+							className="text-[18px] leading-none tracking-tight text-[var(--ret-text)] transition-colors group-hover:text-[var(--ret-purple)]"
+							style={{ fontFamily: "var(--font-display-serif)" }}
+						>
+							agent-machines
+						</span>
 					</a>
 					<div className="flex items-center gap-3">
 						<ThemeToggle />

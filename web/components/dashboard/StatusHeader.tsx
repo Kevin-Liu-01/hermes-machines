@@ -93,9 +93,12 @@ export function StatusHeader({ agentKind }: Props) {
 			)}
 		>
 			<div className="flex items-center gap-3 min-w-0">
-				<Link href="/" className="flex items-center">
+				<Link href="/" className="group flex items-center gap-2.5">
 					<BrandMark agent={agentKind} size={20} gap="tight" withLabel={false} />
-					<span className="ml-2 hidden font-mono text-[13px] md:inline">
+					<span
+						className="hidden text-[18px] leading-none tracking-tight text-[var(--ret-text)] transition-colors group-hover:text-[var(--ret-purple)] md:inline"
+						style={{ fontFamily: "var(--font-display-serif)" }}
+					>
 						agent-machines
 					</span>
 				</Link>
