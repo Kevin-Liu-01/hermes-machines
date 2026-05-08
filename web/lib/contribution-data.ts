@@ -30,7 +30,7 @@ export type ContributionDay = {
 };
 
 /**
- * Plausible 26-week (182-day) lifecycle for one Hermes Machines
+ * Plausible 26-week (182-day) lifecycle for one Agent Machines
  * instance. Includes the actual milestones (commits + deploys + skill
  * loads) you'd expect to see on a real rig over six months. Seeded with
  * a deterministic PRNG so every render produces the same grid -- the

@@ -1,7 +1,7 @@
 /**
- * Centralized constants for paths, ports, and timing inside the Hermes VM.
+ * Centralized constants for paths, ports, and timing inside the agent VM.
  *
- * Everything Hermes touches lives under /home/machine, the persistent volume
+ * Everything we install lives under /home/machine, the persistent volume
  * that survives sleep/wake. The root filesystem resets on wake, so toolchains
  * (uv, Hermes venv, skills, sessions DB) all live here too.
  */
@@ -20,18 +20,28 @@ export const VM_GATEWAY_LOG = `${VM_HERMES_HOME}/logs/gateway.log`;
 export const VM_DEPLOY_MARKER = `${VM_HERMES_HOME}/.hermes-machines-version`;
 
 /**
- * Persistent git checkout of the hermes-machines repo, used by the
+ * Persistent git checkout of the agent-machines repo, used by the
  * dashboard's reload route. The bootstrap clones the repo here on first
  * deploy; the reload script `git pull`s and re-syncs knowledge into
  * ~/.hermes/. This is what makes "edit on GitHub, click reload, agent
  * picks it up" possible without ever running the local CLI.
+ *
+ * The on-disk directory is preserved as `hermes-machines/` (not
+ * `agent-machines/`) so existing machines from before the rename keep
+ * resolving the same path. GitHub auto-redirects the old repo URL to
+ * the new one, so the clone URL works either way; we use the new name
+ * here for clarity. Override with `AGENT_MACHINES_REPO_URL` if you fork.
  */
 export const VM_REPO_DIR = `${VM_HOME}/hermes-machines`;
 export const VM_RELOAD_SCRIPT = `${VM_HERMES_HOME}/scripts/reload-from-git.sh`;
 export const REPO_CLONE_URL =
-	process.env.HERMES_MACHINES_REPO_URL ??
-	"https://github.com/Kevin-Liu-01/hermes-machines.git";
-export const REPO_BRANCH = process.env.HERMES_MACHINES_REPO_BRANCH ?? "main";
+	process.env.AGENT_MACHINES_REPO_URL ??
+	process.env.HERMES_MACHINES_REPO_URL ?? // legacy override
+	"https://github.com/Kevin-Liu-01/agent-machines.git";
+export const REPO_BRANCH =
+	process.env.AGENT_MACHINES_REPO_BRANCH ??
+	process.env.HERMES_MACHINES_REPO_BRANCH ?? // legacy override
+	"main";
 
 /** Hermes API server (OpenAI-compatible) port. */
 export const PORT_API = 8642;
@@ -57,7 +67,7 @@ export const DEFAULTS = {
 	dedalusChatBaseUrl: "https://api.dedaluslabs.ai/v1",
 } as const;
 
-/** Shell prefix that puts every Hermes command on the right path with the right env. */
+/** Shell prefix that puts every agent command on the right path with the right env. */
 export const SHELL_ENV = [
 	`export HOME=${VM_HOME}`,
 	`export HERMES_HOME=${VM_HERMES_HOME}`,

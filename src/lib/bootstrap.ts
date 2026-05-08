@@ -168,7 +168,7 @@ async function seedKnowledge({
 }
 
 /**
- * Clone (or update) the hermes-machines repo on the VM and install a
+ * Clone (or update) the agent-machines repo on the VM and install a
  * `reload-from-git.sh` helper that the dashboard's reload route can
  * exec to pull the latest knowledge without touching the local CLI.
  *
@@ -195,7 +195,7 @@ async function installGitReload(input: BootstrapInput): Promise<void> {
 	const script = [
 		"#!/usr/bin/env bash",
 		"# Refresh ~/.hermes/{skills,crons,SOUL.md,USER.md,MEMORY.md,AGENTS.md}",
-		"# from the latest commit on origin/main of the hermes-machines repo.",
+		"# from the latest commit on origin/main of the agent-machines repo.",
 		"# Invoked by the dashboard's /api/dashboard/admin/reload route.",
 		"set -euo pipefail",
 		`REPO_DIR=${VM_REPO_DIR}`,

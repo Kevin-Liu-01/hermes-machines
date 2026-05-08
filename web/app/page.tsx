@@ -53,7 +53,7 @@ export default function HomePage() {
 							architecture
 						</a>
 						<a
-							href="https://github.com/Kevin-Liu-01/hermes-machines"
+							href="https://github.com/Kevin-Liu-01/agent-machines"
 							target="_blank"
 							rel="noreferrer"
 							className="hidden hover:text-[var(--ret-text)] md:inline"

@@ -21,7 +21,7 @@ const LEVEL_COLOR: Record<LogLine["level"], string> = {
  * Polled tail of `~/.hermes/logs/*.log`. Auto-scrolls to bottom when
  * follow-mode is on; users can pause it to scroll back through history.
  * SSE streaming is reserved for PR2.5 -- this version is good enough to
- * watch live agent activity without burning hermes-machines' Vercel
+ * watch live agent activity without burning agent-machines' Vercel
  * function budget.
  */
 export function LogsTail() {

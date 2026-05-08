@@ -47,7 +47,7 @@ export function LandingCTA() {
 							</ReticleButton>
 							<ReticleButton
 								as="a"
-								href="https://github.com/Kevin-Liu-01/hermes-machines"
+								href="https://github.com/Kevin-Liu-01/agent-machines"
 								target="_blank"
 								variant="secondary"
 							>

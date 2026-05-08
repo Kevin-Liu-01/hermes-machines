@@ -64,7 +64,7 @@ export function Footer() {
 					</div>
 					<span className="flex items-center gap-3">
 						<a
-							href="https://github.com/Kevin-Liu-01/hermes-machines"
+							href="https://github.com/Kevin-Liu-01/agent-machines"
 							className="hover:text-[var(--ret-text)]"
 							target="_blank"
 							rel="noreferrer"

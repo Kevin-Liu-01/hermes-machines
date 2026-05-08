@@ -2,9 +2,9 @@
 
 > Bring any agent to any provider.
 
-A multi-tenant rig that lets any signed-in user spin up a persistent agent on the cloud microVM provider of their choice. Pick **[Hermes](https://github.com/NousResearch/hermes-agent)** (Nous Research's self-improving agent) or **[OpenClaw](https://github.com/openclaw/openclaw)** (Dedalus's open computer-use baseline). Plug in a key for **[Dedalus Machines](https://docs.dedaluslabs.ai/dcs)**, **Vercel Sandbox**, or **Fly Machines**. Get an OpenAI-compatible chat gateway, a per-user fleet view, persistent chat history + artifact storage on Vercel Blob, scheduled cron automations, a 95-skill library, and the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) wired in as an MCP tool so the agent can spawn real coding agents that inherit the rig's conventions as `.cursor/rules`.
+A multi-tenant rig that lets any signed-in user spin up a persistent agent on the cloud microVM provider of their choice. Pick **[Hermes](https://github.com/NousResearch/hermes-agent)** (Nous Research's self-improving agent) or **[OpenClaw](https://github.com/openclaw/openclaw)** (Dedalus's open computer-use baseline). Plug in a key for **[Dedalus Machines](https://docs.dedaluslabs.ai/dcs)**, **Vercel Sandbox**, or **Fly Machines**. Get an OpenAI-compatible chat gateway, a per-user fleet view, persistent chat history + artifact storage on the user's own machine (under `~/.agent-machines/` on the persistent volume), scheduled cron automations, a 95-skill library, and the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) wired in as an MCP tool so the agent can spawn real coding agents that inherit the rig's conventions as `.cursor/rules`.
 
-> Note: the GitHub repo is still `Kevin-Liu-01/hermes-machines` while the rebrand percolates. The package + display name is `agent-machines`; the repo URL stays unchanged for now to keep deploy hooks and the on-VM `reload-from-git` script working.
+Live at **<https://agentmachines.vercel.app>**. Repo at **<https://github.com/Kevin-Liu-01/agent-machines>**.
 
 ```
                           [ you @ npm run chat ]
@@ -32,13 +32,13 @@ A multi-tenant rig that lets any signed-in user spin up a persistent agent on th
 
 ## Shoutouts
 
-Huge thanks to [`dedalus-labs/openclaw-demo`](https://github.com/dedalus-labs/openclaw-demo) and [`AgentWings/hermes-agent-ddls`](https://github.com/AgentWings/hermes-agent-ddls) for the inspiration -- both showed the path: provision a machine, install the agent, point it at Dedalus as the OpenAI provider. `hermes-machines` grows that pattern into a fuller deployment with the Cursor SDK as a delegation surface, a bundled skill library as the knowledge base, scheduled cron automations, a Reticle-styled chat UI, and a complete lifecycle CLI.
+Huge thanks to [`dedalus-labs/openclaw-demo`](https://github.com/dedalus-labs/openclaw-demo), [`dedalus-labs/openclaw-ddls`](https://github.com/dedalus-labs/openclaw-ddls), and [`AgentWings/hermes-agent-ddls`](https://github.com/AgentWings/hermes-agent-ddls) for the inspiration -- all three showed the path: provision a machine, install the agent, point it at Dedalus as the OpenAI provider. `agent-machines` grows that pattern into a multi-tenant deployment with the Cursor SDK as a delegation surface, a bundled skill library as the knowledge base, scheduled cron automations, a Reticle-styled chat UI, per-user persistent chat + artifact storage on each user's own machine disk, and a complete lifecycle CLI.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/Kevin-Liu-01/hermes-machines
-cd hermes-machines
+git clone https://github.com/Kevin-Liu-01/agent-machines
+cd agent-machines
 cp .env.example .env
 # paste your DEDALUS_API_KEY into .env
 
@@ -236,7 +236,7 @@ You only `npm run destroy` when you mean it.
 ## File layout
 
 ```
-hermes-machines/
+agent-machines/
 ├── README.md                 (this file)
 ├── package.json              (cli scripts + deps)
 ├── .env.example

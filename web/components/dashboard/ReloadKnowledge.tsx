@@ -23,7 +23,7 @@ type Props = {
 /**
  * "Reload knowledge" card. Triggers POST /api/dashboard/admin/reload,
  * which runs the on-VM `reload-from-git.sh` script -- git fetch + reset
- * + rsync the latest knowledge/ from the hermes-machines repo into
+ * + rsync the latest knowledge/ from the agent-machines repo into
  * ~/.hermes/. This is the persistence story: edit a SKILL.md on GitHub
  * (or push from any machine) and the agent picks it up here, no CLI.
  *
