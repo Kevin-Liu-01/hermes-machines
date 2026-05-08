@@ -23,7 +23,7 @@ export default function SignInPage() {
 			<div className="flex w-full max-w-md flex-col items-center gap-6">
 				<div className="flex flex-col items-center gap-3 text-center">
 					<BrandMark size={28} withLabel={false} />
-					<ReticleLabel>HERMES MACHINES</ReticleLabel>
+					<ReticleLabel>AGENT MACHINES</ReticleLabel>
 					<h1 className="text-2xl font-semibold tracking-tight">
 						{CLERK_READY ? "Sign in to dashboard" : "Auth not configured"}
 					</h1>
