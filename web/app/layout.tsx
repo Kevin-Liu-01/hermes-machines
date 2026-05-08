@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Instrument_Serif } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
@@ -20,6 +21,20 @@ const nacelle = localFont({
 	variable: "--font-nacelle",
 	display: "swap",
 	preload: true,
+});
+
+/**
+ * Instrument Serif italic for the wordmark only. A single weight, a
+ * single style; we intentionally do not expose this as a default
+ * typeface anywhere -- it's reserved for the brand wordmark in the
+ * navbar so it reads as identity, not body copy.
+ */
+const instrumentSerif = Instrument_Serif({
+	weight: "400",
+	style: "italic",
+	subsets: ["latin"],
+	variable: "--font-display-serif",
+	display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -57,7 +72,11 @@ const THEME_BOOT = `(function(){try{var t=localStorage.getItem("agent-machines.t
 
 export default function RootLayout({ children }: { children: ReactNode }) {
 	const tree = (
-		<html lang="en" className={nacelle.variable} suppressHydrationWarning>
+		<html
+			lang="en"
+			className={`${nacelle.variable} ${instrumentSerif.variable}`}
+			suppressHydrationWarning
+		>
 			<head>
 				<script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
 			</head>
