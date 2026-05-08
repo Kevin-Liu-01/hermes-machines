@@ -5,6 +5,11 @@
  * last error reason if the machine is in `failed`. Auth-gated by Clerk
  * middleware; the route also re-checks `auth()` so a misconfigured matcher
  * can never leak machine state to anonymous callers.
+ *
+ * Reads the machine ID + Dedalus key from the caller's Clerk metadata
+ * (with env fallback for the project owner). Users who haven't run the
+ * setup wizard yet get a typed `not_provisioned` response instead of a
+ * generic 5xx.
  */
 
 import { auth } from "@clerk/nextjs/server";
@@ -26,9 +31,8 @@ export async function GET(): Promise<Response> {
 		});
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "unknown_error";
-		return Response.json(
-			{ error: "fetch_failed", message },
-			{ status: 502 },
-		);
+		const status = /not set/.test(message) ? 404 : 502;
+		const error = status === 404 ? "not_provisioned" : "fetch_failed";
+		return Response.json({ error, message }, { status });
 	}
 }

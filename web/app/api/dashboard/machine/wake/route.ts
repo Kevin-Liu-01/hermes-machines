@@ -11,6 +11,9 @@
  *     machine is already running or mid-wake.
  *   - the response always carries the machine's current phase so the
  *     caller can drop straight into status polling on /api/dashboard/machine.
+ *
+ * Resolves the machine from the caller's Clerk metadata; users without
+ * a provisioned machine get a typed `not_provisioned` response.
  */
 
 import { auth } from "@clerk/nextjs/server";
@@ -32,9 +35,8 @@ export async function POST(): Promise<Response> {
 		});
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "wake failed";
-		return Response.json(
-			{ error: "wake_failed", message },
-			{ status: 502 },
-		);
+		const status = /not set/.test(message) ? 404 : 502;
+		const error = status === 404 ? "not_provisioned" : "wake_failed";
+		return Response.json({ error, message }, { status });
 	}
 }

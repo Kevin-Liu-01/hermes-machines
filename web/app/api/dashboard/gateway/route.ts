@@ -6,12 +6,14 @@
  * so the dashboard can show real latency. When the gateway is asleep or
  * the cloudflared tunnel is dead, the route surfaces a typed error
  * instead of a 5xx so the UI can render the "offline" state gracefully.
+ *
+ * Reads the gateway URL + bearer token from the caller's Clerk metadata.
  */
 
 import { auth } from "@clerk/nextjs/server";
 
-import { getServerConfig } from "@/lib/env";
 import type { GatewaySummary } from "@/lib/dashboard/types";
+import { getGatewayEnvForUser } from "@/lib/user-config/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,21 +24,21 @@ export async function GET(): Promise<Response> {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
 
-	let config: ReturnType<typeof getServerConfig>;
+	let env: Awaited<ReturnType<typeof getGatewayEnvForUser>>;
 	try {
-		config = getServerConfig();
+		env = await getGatewayEnvForUser();
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "config_error";
 		return Response.json(
-			{ error: "config_missing", message },
-			{ status: 500 },
+			{ error: "not_provisioned", message },
+			{ status: 404 },
 		);
 	}
 
 	const start = performance.now();
 	try {
-		const response = await fetch(`${config.apiUrl}/models`, {
-			headers: { Authorization: `Bearer ${config.apiKey}` },
+		const response = await fetch(`${env.apiUrl}/models`, {
+			headers: { Authorization: `Bearer ${env.apiKey}` },
 			cache: "no-store",
 		});
 		const latencyMs = Math.round(performance.now() - start);
@@ -53,8 +55,8 @@ export async function GET(): Promise<Response> {
 		const payload: GatewaySummary = {
 			ok: response.ok,
 			status: response.status,
-			model: config.model,
-			apiHost: new URL(config.apiUrl).host,
+			model: env.model,
+			apiHost: new URL(env.apiUrl).host,
 			latencyMs,
 			modelCount,
 		};
@@ -66,8 +68,8 @@ export async function GET(): Promise<Response> {
 		const payload: GatewaySummary = {
 			ok: false,
 			status: 0,
-			model: config.model,
-			apiHost: new URL(config.apiUrl).host,
+			model: env.model,
+			apiHost: new URL(env.apiUrl).host,
 			latencyMs,
 			modelCount: null,
 			error: err instanceof Error ? err.message : "fetch_failed",

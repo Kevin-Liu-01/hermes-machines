@@ -6,7 +6,8 @@
  * cloudflared tunnel URL.
  *
  * Idempotent: if the machine is already in any non-running state we
- * return the current summary unchanged.
+ * return the current summary unchanged. Resolves the machine from the
+ * caller's Clerk metadata.
  */
 
 import { auth } from "@clerk/nextjs/server";
@@ -28,9 +29,8 @@ export async function POST(): Promise<Response> {
 		});
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "sleep failed";
-		return Response.json(
-			{ error: "sleep_failed", message },
-			{ status: 502 },
-		);
+		const status = /not set/.test(message) ? 404 : 502;
+		const error = status === 404 ? "not_provisioned" : "sleep_failed";
+		return Response.json({ error, message }, { status });
 	}
 }

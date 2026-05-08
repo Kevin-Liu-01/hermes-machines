@@ -10,11 +10,17 @@ import type {
 	GatewaySummary,
 	MachineSummary,
 } from "@/lib/dashboard/types";
+import type { AgentKind } from "@/lib/user-config/schema";
 
+import { AgentSwitcher } from "./AgentSwitcher";
 import { StatusPill } from "./StatusPill";
 
 const POLL_MS = 5000;
 const CLERK_READY = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+type Props = {
+	agentKind: AgentKind;
+};
 
 type State = {
 	machine: MachineSummary | null;
@@ -24,11 +30,11 @@ type State = {
 
 /**
  * Top bar for /dashboard/*. Shows the live machine pill, gateway latency,
- * model id, and the Clerk user menu. Polls the two cheap endpoints every
- * five seconds; pauses while the tab is hidden so we don't burn budget on
- * a backgrounded laptop.
+ * model id, the agent switcher, and the Clerk user menu. Polls the two
+ * cheap endpoints every five seconds; pauses while the tab is hidden so
+ * we don't burn budget on a backgrounded laptop.
  */
-export function StatusHeader() {
+export function StatusHeader({ agentKind }: Props) {
 	const [state, setState] = useState<State>({
 		machine: null,
 		gateway: null,
@@ -86,7 +92,7 @@ export function StatusHeader() {
 		>
 			<div className="flex items-center gap-3 min-w-0">
 				<Link href="/" className="flex items-center">
-					<BrandMark size={20} gap="tight" withLabel={false} />
+					<BrandMark agent={agentKind} size={20} gap="tight" withLabel={false} />
 					<span className="ml-2 hidden font-mono text-[13px] md:inline">
 						hermes-machines
 					</span>
@@ -100,8 +106,9 @@ export function StatusHeader() {
 				) : null}
 			</div>
 
-			<div className="flex items-center gap-4">
+			<div className="flex items-center gap-3">
 				<GatewayBadge data={gateway} />
+				<AgentSwitcher value={agentKind} />
 				{CLERK_READY ? (
 					<UserButton
 						appearance={{

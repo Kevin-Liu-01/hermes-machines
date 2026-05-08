@@ -11,7 +11,13 @@
  * The dashboard is read-only by contract -- never run a command that
  * mutates state. Use the CLI for that. Commands here should look like
  * `cat`, `tail`, `ls`, never `rm` or `>`.
+ *
+ * Multi-tenant: the env (api key, machine id, base url) comes from the
+ * Clerk-backed `getDedalusEnvForUser()`. Each request resolves the
+ * caller's machine, never a shared one.
  */
+
+import { getDedalusEnvForUser } from "@/lib/user-config/clerk";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const POLL_INTERVAL_MS = 1000;
@@ -37,17 +43,6 @@ function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getEnv() {
-	const apiKey = process.env.DEDALUS_API_KEY?.trim();
-	const baseUrl = (process.env.DEDALUS_BASE_URL ?? "https://dcs.dedaluslabs.ai")
-		.trim()
-		.replace(/\/$/, "");
-	const machineId = process.env.HERMES_MACHINE_ID?.trim();
-	if (!apiKey) throw new Error("DEDALUS_API_KEY is not set");
-	if (!machineId) throw new Error("HERMES_MACHINE_ID is not set");
-	return { apiKey, baseUrl, machineId };
-}
-
 async function dedalusFetch(
 	apiKey: string,
 	url: string,
@@ -68,7 +63,7 @@ export async function execOnMachine(
 	command: string,
 	options: { timeoutMs?: number } = {},
 ): Promise<ExecResult> {
-	const { apiKey, baseUrl, machineId } = getEnv();
+	const { apiKey, baseUrl, machineId } = await getDedalusEnvForUser();
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
 	const createResponse = await dedalusFetch(
@@ -98,7 +93,9 @@ export async function execOnMachine(
 		current.status !== "cancelled"
 	) {
 		if (Date.now() > deadline) {
-			throw new Error(`exec poll timed out after ${timeoutMs}ms: ${command.slice(0, 80)}`);
+			throw new Error(
+				`exec poll timed out after ${timeoutMs}ms: ${command.slice(0, 80)}`,
+			);
 		}
 		await sleep(POLL_INTERVAL_MS);
 		const pollResponse = await dedalusFetch(
@@ -133,10 +130,14 @@ export async function execOnMachine(
  * True iff the live machine is currently in a state where an exec is
  * likely to succeed. Routes call this first so they can return a typed
  * "machine_offline" payload instead of timing out.
+ *
+ * Returns false on any failure -- missing config, network error, dead
+ * machine -- so callers don't have to distinguish between failure modes
+ * before falling back to the offline UI.
  */
 export async function isMachineRunning(): Promise<boolean> {
 	try {
-		const { apiKey, baseUrl, machineId } = getEnv();
+		const { apiKey, baseUrl, machineId } = await getDedalusEnvForUser();
 		const response = await fetch(`${baseUrl}/v1/machines/${machineId}`, {
 			headers: { "X-API-Key": apiKey },
 			cache: "no-store",

@@ -11,15 +11,15 @@
  * the persistence story for skills, crons, MEMORY.md, USER.md, etc.
  * without ever needing to run the local CLI.
  *
- * Auth: Clerk middleware + redundant `auth()` check. Mutations on the
- * machine state are write-once-per-click; the route waits for the
- * script to finish (typically 2-5 seconds) and returns the script's
- * stdout so the user sees the new HEAD SHA in the dashboard.
+ * Resolves the target machine from the caller's Clerk metadata. Users
+ * who haven't provisioned a machine yet get a typed `not_provisioned`
+ * envelope; users whose machine is asleep get `machine_offline`.
  */
 
 import { auth } from "@clerk/nextjs/server";
 
 import { execOnMachine, isMachineRunning } from "@/lib/dashboard/exec";
+import { getUserConfig } from "@/lib/user-config/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,14 +32,15 @@ export async function POST(): Promise<Response> {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
 
-	if (!process.env.DEDALUS_API_KEY || !process.env.HERMES_MACHINE_ID) {
+	const config = await getUserConfig();
+	if (!config.dedalusApiKey || !config.machineId) {
 		return Response.json(
 			{
-				error: "config_missing",
+				error: "not_provisioned",
 				message:
-					"DEDALUS_API_KEY or HERMES_MACHINE_ID is not set in Vercel env",
+					"No machine configured for this user. Complete /dashboard/setup first.",
 			},
-			{ status: 503 },
+			{ status: 404 },
 		);
 	}
 
@@ -47,15 +48,13 @@ export async function POST(): Promise<Response> {
 		return Response.json(
 			{
 				error: "machine_offline",
-				message:
-					"Machine is not running. Wake it from /dashboard first.",
+				message: "Machine is not running. Wake it from /dashboard first.",
 			},
 			{ status: 503 },
 		);
 	}
 
 	try {
-		// 60s is plenty -- the script is git fetch + rsync, both small ops.
 		const result = await execOnMachine(
 			`if [ -x ${RELOAD_SCRIPT} ]; then ${RELOAD_SCRIPT}; else echo "reload script not installed; redeploy required" >&2; exit 2; fi`,
 			{ timeoutMs: 60_000 },
@@ -63,7 +62,9 @@ export async function POST(): Promise<Response> {
 		const headLine = result.stdout
 			.split("\n")
 			.find((line) => line.startsWith("[reload] HEAD:"));
-		const head = headLine ? headLine.replace("[reload] HEAD:", "").trim() : null;
+		const head = headLine
+			? headLine.replace("[reload] HEAD:", "").trim()
+			: null;
 		return Response.json(
 			{
 				ok: result.exitCode === 0,

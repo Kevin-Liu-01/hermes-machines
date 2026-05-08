@@ -15,6 +15,7 @@ import type {
 	LogLine,
 	LogsPayload,
 } from "@/lib/dashboard/types";
+import { getUserConfig } from "@/lib/user-config/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,11 +58,13 @@ export async function GET(request: Request): Promise<Response> {
 		? Math.min(MAX_N, Math.max(20, Math.floor(requested)))
 		: DEFAULT_N;
 
-	if (!process.env.HERMES_MACHINE_ID || !process.env.DEDALUS_API_KEY) {
+	const config = await getUserConfig();
+	if (!config.dedalusApiKey || !config.machineId) {
 		const envelope: LiveDataEnvelope<LogsPayload> = {
 			ok: false,
 			reason: "config_missing",
-			message: "DEDALUS_API_KEY or HERMES_MACHINE_ID is not set",
+			message:
+				"No machine configured. Complete /dashboard/setup to provision.",
 		};
 		return Response.json(envelope);
 	}
@@ -88,7 +91,7 @@ export async function GET(request: Request): Promise<Response> {
 			.map((line) => {
 				const [path, size] = line.split("\t");
 				return {
-					path: path.replace(`${process.env.HOME ?? "/home/machine"}/.hermes`, "~/.hermes"),
+					path: path.replace(/\/home\/[^/]+\/\.hermes/, "~/.hermes"),
 					bytes: Number.parseInt(size ?? "0", 10) || 0,
 				};
 			});

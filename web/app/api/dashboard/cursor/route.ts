@@ -18,6 +18,7 @@ import type {
 	CursorRunsPayload,
 	LiveDataEnvelope,
 } from "@/lib/dashboard/types";
+import { getUserConfig } from "@/lib/user-config/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,11 +56,13 @@ export async function GET(): Promise<Response> {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
 
-	if (!process.env.HERMES_MACHINE_ID || !process.env.DEDALUS_API_KEY) {
+	const config = await getUserConfig();
+	if (!config.dedalusApiKey || !config.machineId) {
 		const envelope: LiveDataEnvelope<CursorRunsPayload> = {
 			ok: false,
 			reason: "config_missing",
-			message: "DEDALUS_API_KEY or HERMES_MACHINE_ID is not set",
+			message:
+				"No machine configured. Complete /dashboard/setup to provision.",
 		};
 		return Response.json(envelope);
 	}

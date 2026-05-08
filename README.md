@@ -74,9 +74,9 @@ npm run reload             # re-upload knowledge/ folder
 npm run gc                 # destroy every machine on the org (use after `409 quota exceeded`)
 ```
 
-## Web UI -- Next.js + Reticle/Sigil + Clerk-gated dashboard
+## Web UI -- Next.js + Reticle/Sigil + Clerk-gated, multi-tenant dashboard
 
-The `web/` app is the polished console for the rig. Public marketing landing at `/`; everything live (chat, skills browser, MCP browser, machine telemetry) lives behind Clerk auth at `/dashboard/*`.
+The `web/` app is the polished console for the rig. Public marketing landing at `/`; everything live (chat, skills browser, MCP browser, machine telemetry, the setup wizard) lives behind Clerk auth at `/dashboard/*`.
 
 ```bash
 cd web
@@ -87,32 +87,49 @@ npm run dev
 
 Open [http://localhost:3210](http://localhost:3210). Sign in routes through Clerk; allowlist your email in the Clerk dashboard. The dashboard polls Dedalus and the Hermes gateway every five seconds for live state.
 
+### Multi-tenant flow (PR1)
+
+Every signed-in user owns their own agent. On first sign-in the dashboard surfaces a "Setup" entry with a yellow dot; clicking through the wizard captures the user's Dedalus API key, agent choice (Hermes or OpenClaw), provider (Dedalus today; Vercel Sandbox + Fly land in PR4), machine spec, and triggers a provision call. The resulting `machine_id` is saved to that user's Clerk private metadata, so every subsequent dashboard call resolves to their machine.
+
+The project owner's Vercel env vars (`DEDALUS_API_KEY`, `HERMES_MACHINE_ID`, `HERMES_API_URL`, `HERMES_API_KEY`) become the fallback defaults -- so the existing single-tenant deploy keeps working unchanged for the owner, while fresh users provision their own machine end-to-end through the browser.
+
+PR2 ships browser-driven bootstrap (the 12 install phases run from the wizard, not from a local `npm run deploy`). PR3 splits machine telemetry per user. PR4 adds the Vercel Sandbox and Fly providers behind the same `MachineProvider` interface.
+
 ### Required env vars
 
 | Var | Where it lives | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk dashboard -> API Keys | Auth -- public client key |
 | `CLERK_SECRET_KEY` | Clerk dashboard -> API Keys | Auth -- server secret |
-| `DEDALUS_API_KEY` | same as the CLI's `.env` | dashboard reads machine state |
-| `HERMES_MACHINE_ID` | printed by `npm run deploy` | which machine the dashboard reports on |
-| `HERMES_API_URL` | printed by `npm run deploy` | gateway base URL |
-| `HERMES_API_KEY` | printed by `npm run deploy` | gateway bearer |
-| `HERMES_MODEL` | optional | label only; the gateway picks the actual model |
+| `DEDALUS_API_KEY` | optional fallback | owner-default Dedalus key when a user has none on file |
+| `HERMES_MACHINE_ID` | optional fallback | owner-default machine for the project owner |
+| `HERMES_API_URL` | optional fallback | owner-default gateway URL |
+| `HERMES_API_KEY` | optional fallback | owner-default gateway bearer |
+| `HERMES_MODEL` | optional | default model id surfaced in the wizard |
 
-For a Vercel deploy, set the same vars in the project env and push -- Vercel auto-builds the `web/` root.
+The four `HERMES_*` env vars and `DEDALUS_API_KEY` were required pre-PR1; in PR1 they're optional fallbacks. Each user can override them by completing `/dashboard/setup`.
+
+For a Vercel deploy, set the Clerk vars; the rest are owner conveniences.
 
 ### Routes
 
 | Route | Auth | What it does |
 |---|---|---|
-| `/` | public | marketing landing with hero, three.js bust, architecture diagram |
+| `/` | public | marketing landing with hero, contribution grid, architecture diagram |
 | `/sign-in` | public | Clerk sign-in card, redirects to `/dashboard` after success |
 | `/dashboard` | gated | overview cards: machine status, gateway state, latency, counts |
-| `/dashboard/chat` | gated | streaming chat (same UX as before, behind auth) |
-| `/dashboard/skills` | gated | 13 skills grouped by category, click for full markdown |
+| `/dashboard/setup` | gated | five-step wizard -- API key, agent, provider, spec, review, provisioned |
+| `/dashboard/chat` | gated | streaming chat against the user's gateway |
+| `/dashboard/skills` | gated | bundled skills grouped by category, click for full markdown |
 | `/dashboard/skills/[slug]` | gated | rendered SKILL.md with metadata sidebar |
 | `/dashboard/mcps` | gated | MCP servers + per-tool descriptions |
-| `/dashboard/{sessions,logs,cursor}` | gated | placeholder nav -- live data ships in PR2 |
+| `/dashboard/sessions` | gated | live SQLite session catalog from `~/.hermes/sessions/` |
+| `/dashboard/logs` | gated | live tail of `~/.hermes/logs/*.log` |
+| `/dashboard/cursor` | gated | live `~/.hermes/cursor-runs.jsonl` history |
+
+### Agent switcher
+
+The status header carries a `BrandMark` lockup (Dedalus x your agent) plus a dropdown that lets you swap agents. Hermes is the default (Nous Research's framework); OpenClaw is the other option (Dedalus's open computer-use baseline). Switching writes to your Clerk metadata; PR2 will trigger a SOUL.md rewrite + gateway restart on switch so the change lands immediately.
 
 ## What ships into the machine
 

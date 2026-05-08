@@ -12,20 +12,34 @@ type NavItem = {
 	hint: string;
 	icon: ComponentType<SVGProps<SVGSVGElement>>;
 	disabled?: boolean;
+	dot?: boolean;
 };
 
-const NAV: NavItem[] = [
+type Props = {
+	setupComplete: boolean;
+};
+
+const BASE_NAV: ReadonlyArray<NavItem> = [
 	{ href: "/dashboard", label: "Overview", hint: "machine + counters", icon: IconGrid },
-	{ href: "/dashboard/chat", label: "Chat", hint: "talk to hermes", icon: IconChat },
-	{ href: "/dashboard/skills", label: "Skills", hint: "13 bundled", icon: IconScroll },
+	{ href: "/dashboard/chat", label: "Chat", hint: "talk to agent", icon: IconChat },
+	{ href: "/dashboard/skills", label: "Skills", hint: "bundled", icon: IconScroll },
 	{ href: "/dashboard/mcps", label: "MCPs", hint: "tool servers", icon: IconPlug },
 	{ href: "/dashboard/sessions", label: "Sessions", hint: "live", icon: IconRows },
 	{ href: "/dashboard/logs", label: "Logs", hint: "live", icon: IconWave },
 	{ href: "/dashboard/cursor", label: "Cursor runs", hint: "live", icon: IconBolt },
 ];
 
-export function SidebarNav() {
+const SETUP_ITEM: NavItem = {
+	href: "/dashboard/setup",
+	label: "Setup",
+	hint: "your machine",
+	icon: IconKey,
+};
+
+export function SidebarNav({ setupComplete }: Props) {
 	const pathname = usePathname();
+	const setupItem: NavItem = { ...SETUP_ITEM, dot: !setupComplete };
+	const nav: NavItem[] = [...BASE_NAV, setupItem];
 	return (
 		<nav
 			aria-label="Dashboard"
@@ -34,18 +48,14 @@ export function SidebarNav() {
 			<p className="px-3 pb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
 				Dashboard
 			</p>
-			{NAV.map((item) => {
+			{nav.map((item) => {
 				const active =
 					pathname === item.href ||
 					(item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
 				return item.disabled ? (
 					<DisabledRow key={item.href} item={item} />
 				) : (
-					<ActiveRow
-						key={item.href}
-						item={item}
-						active={active}
-					/>
+					<ActiveRow key={item.href} item={item} active={active} />
 				);
 			})}
 		</nav>
@@ -71,6 +81,12 @@ function ActiveRow({ item, active }: { item: NavItem; active: boolean }) {
 				)}
 			/>
 			<span className="flex-1">{item.label}</span>
+			{item.dot ? (
+				<span
+					aria-label="needs setup"
+					className="h-1.5 w-1.5 bg-[var(--ret-amber)]"
+				/>
+			) : null}
 			<span className="text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 				{item.hint}
 			</span>
@@ -86,7 +102,7 @@ function DisabledRow({ item }: { item: NavItem }) {
 				"flex cursor-not-allowed items-center gap-3 px-3 py-2",
 				"text-[var(--ret-text-muted)]",
 			)}
-			title="Shipping in PR2"
+			title="Shipping later"
 		>
 			<Icon className="h-3.5 w-3.5" />
 			<span className="flex-1">{item.label}</span>
@@ -96,9 +112,6 @@ function DisabledRow({ item }: { item: NavItem }) {
 		</div>
 	);
 }
-
-// Inline SVG icons -- 16x16 viewbox, currentColor stroke. Inline keeps the
-// bundle small (no icon library) and themeable via class color.
 
 function IconGrid(props: SVGProps<SVGSVGElement>) {
 	return (
@@ -158,6 +171,15 @@ function IconBolt(props: SVGProps<SVGSVGElement>) {
 	return (
 		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" {...props}>
 			<path d="M9 2 L4 9 h4 l-1 5 l5 -7 h-4 z" />
+		</svg>
+	);
+}
+
+function IconKey(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+			<circle cx="11" cy="5" r="2.5" />
+			<path d="M9 7 L3 13 M5 11 L7 13 M3 13 L4.5 14.5" />
 		</svg>
 	);
 }

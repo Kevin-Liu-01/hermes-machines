@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+import type { PublicUserConfig } from "@/lib/user-config/schema";
 
 import { SidebarNav } from "./SidebarNav";
 import { StatusHeader } from "./StatusHeader";
 
 type Props = {
 	children: ReactNode;
+	config: PublicUserConfig;
 };
 
 /**
@@ -18,25 +20,23 @@ type Props = {
  * `--ret-bg`/`--ret-surface` get a slight contrast edge without a hard
  * border line in every direction.
  *
- * The Dedalus nyx-lines wing graphic sits in the sidebar foot at very low
- * opacity -- present enough to feel branded, quiet enough to never compete
- * with the dashboard's live data on the right.
+ * Receives the caller's `PublicUserConfig` from the server-side layout.
+ * SidebarNav uses it to decorate the Setup row with a "needs attention"
+ * dot until the user provisions a machine; StatusHeader uses it to
+ * render the agent switcher with the current agent.
  */
-export function DashboardShell({ children }: Props) {
+export function DashboardShell({ children, config }: Props) {
+	const setupComplete = Boolean(config.machineId);
 	return (
 		<div className="grid min-h-[100dvh] bg-[var(--ret-bg-soft)] lg:grid-cols-[220px_1fr]">
 			<aside className="relative hidden border-r border-[var(--ret-border)] bg-[var(--ret-bg)] lg:flex lg:flex-col">
-				<SidebarNav />
-				{/* Reticle filler: diagonal hatch fills the empty bottom of
-				    the sidebar so the rail never reads as accidentally
-				    blank. The brand wing PNG previously here was decorative
-				    noise; hatching is the structural answer. */}
+				<SidebarNav setupComplete={setupComplete} />
 				<div className="mt-auto border-t border-[var(--ret-border)]">
 					<ReticleHatch className="h-24" pitch={6} />
 				</div>
 			</aside>
 			<div className="flex min-h-[100dvh] min-w-0 flex-col bg-[var(--ret-bg)]">
-				<StatusHeader />
+				<StatusHeader agentKind={config.agentKind} />
 				<main className="flex-1">{children}</main>
 			</div>
 		</div>

@@ -5,9 +5,21 @@
  * `dedalus` SDK because the dashboard only needs read-only machine state.
  * Skipping the SDK keeps the Vercel function bundle small and the auth
  * surface obvious -- one header, one base URL, one endpoint per call.
+ *
+ * Multi-tenant: every helper takes a resolved `DedalusEnv` from
+ * `getDedalusEnvForUser()` (Clerk metadata, with env fallback). The
+ * helpers themselves never reach into `process.env`.
  */
 
+import { getDedalusEnvForUser } from "@/lib/user-config/clerk";
+
 import type { MachinePhase, MachineSummary } from "./types";
+
+export type DedalusEnv = {
+	apiKey: string;
+	baseUrl: string;
+	machineId: string;
+};
 
 type RawMachine = {
 	machine_id: string;
@@ -52,21 +64,9 @@ function asDesired(value: string): MachineSummary["desired"] {
 	return "unknown";
 }
 
-function getEnv() {
-	const apiKey = process.env.DEDALUS_API_KEY?.trim();
-	const baseUrl = (process.env.DEDALUS_BASE_URL ?? "https://dcs.dedaluslabs.ai")
-		.trim()
-		.replace(/\/$/, "");
-	const machineId = process.env.HERMES_MACHINE_ID?.trim();
-	if (!apiKey) throw new Error("DEDALUS_API_KEY is not set");
-	if (!machineId) throw new Error("HERMES_MACHINE_ID is not set");
-	return { apiKey, baseUrl, machineId };
-}
-
-async function fetchRawMachine(): Promise<RawMachine> {
-	const { apiKey, baseUrl, machineId } = getEnv();
-	const response = await fetch(`${baseUrl}/v1/machines/${machineId}`, {
-		headers: { "X-API-Key": apiKey },
+async function fetchRawMachine(env: DedalusEnv): Promise<RawMachine> {
+	const response = await fetch(`${env.baseUrl}/v1/machines/${env.machineId}`, {
+		headers: { "X-API-Key": env.apiKey },
 		cache: "no-store",
 	});
 	if (!response.ok) {
@@ -92,7 +92,8 @@ function summarize(raw: RawMachine): MachineSummary {
 }
 
 export async function fetchMachineSummary(): Promise<MachineSummary> {
-	return summarize(await fetchRawMachine());
+	const env = await getDedalusEnvForUser();
+	return summarize(await fetchRawMachine(env));
 }
 
 /**
@@ -106,9 +107,13 @@ export async function fetchMachineSummary(): Promise<MachineSummary> {
  * `/api/dashboard/machine` to follow the transition.
  */
 export async function wakeMachine(): Promise<MachineSummary> {
-	const { apiKey, baseUrl, machineId } = getEnv();
-	const raw = await fetchRawMachine();
-	if (raw.status.phase === "running" || raw.status.phase === "wake_pending" || raw.status.phase === "starting") {
+	const env = await getDedalusEnvForUser();
+	const raw = await fetchRawMachine(env);
+	if (
+		raw.status.phase === "running" ||
+		raw.status.phase === "wake_pending" ||
+		raw.status.phase === "starting"
+	) {
 		return summarize(raw);
 	}
 	if (raw.status.phase !== "sleeping") {
@@ -120,19 +125,22 @@ export async function wakeMachine(): Promise<MachineSummary> {
 	if (revision === undefined || revision === null) {
 		throw new Error("machine has no revision token; cannot submit wake");
 	}
-	const response = await fetch(`${baseUrl}/v1/machines/${machineId}/wake`, {
-		method: "POST",
-		headers: {
-			"X-API-Key": apiKey,
-			"If-Match": String(revision),
+	const response = await fetch(
+		`${env.baseUrl}/v1/machines/${env.machineId}/wake`,
+		{
+			method: "POST",
+			headers: {
+				"X-API-Key": env.apiKey,
+				"If-Match": String(revision),
+			},
 		},
-	});
+	);
 	if (!response.ok) {
 		throw new Error(
 			`wake ${response.status}: ${(await response.text()).slice(0, 200)}`,
 		);
 	}
-	return summarize(await fetchRawMachine());
+	return summarize(await fetchRawMachine(env));
 }
 
 /**
@@ -140,24 +148,27 @@ export async function wakeMachine(): Promise<MachineSummary> {
  * unchanged if the machine is already in any non-running state.
  */
 export async function sleepMachine(): Promise<MachineSummary> {
-	const { apiKey, baseUrl, machineId } = getEnv();
-	const raw = await fetchRawMachine();
+	const env = await getDedalusEnvForUser();
+	const raw = await fetchRawMachine(env);
 	if (raw.status.phase !== "running") return summarize(raw);
 	const revision = raw.status.revision;
 	if (revision === undefined || revision === null) {
 		throw new Error("machine has no revision token; cannot submit sleep");
 	}
-	const response = await fetch(`${baseUrl}/v1/machines/${machineId}/sleep`, {
-		method: "POST",
-		headers: {
-			"X-API-Key": apiKey,
-			"If-Match": String(revision),
+	const response = await fetch(
+		`${env.baseUrl}/v1/machines/${env.machineId}/sleep`,
+		{
+			method: "POST",
+			headers: {
+				"X-API-Key": env.apiKey,
+				"If-Match": String(revision),
+			},
 		},
-	});
+	);
 	if (!response.ok) {
 		throw new Error(
 			`sleep ${response.status}: ${(await response.text()).slice(0, 200)}`,
 		);
 	}
-	return summarize(await fetchRawMachine());
+	return summarize(await fetchRawMachine(env));
 }

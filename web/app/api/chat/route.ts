@@ -4,13 +4,16 @@
  * The browser POSTs `{ messages: [...] }`. We add the bearer-token-protected
  * Hermes API call server-side (so the token never touches the browser) and
  * stream the SSE response back unchanged. Errors return JSON, not partial SSE.
+ *
+ * Uses the caller's Clerk-stored gateway env (with env-var fallback for the
+ * project owner).
  */
 
 import { auth } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
 
-import { getServerConfig } from "@/lib/env";
 import type { ChatRequestBody } from "@/lib/types";
+import { getGatewayEnvForUser } from "@/lib/user-config/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,22 +35,25 @@ export async function POST(request: NextRequest): Promise<Response> {
 		return Response.json({ error: "messages_required" }, { status: 422 });
 	}
 
-	let config: ReturnType<typeof getServerConfig>;
+	let env: Awaited<ReturnType<typeof getGatewayEnvForUser>>;
 	try {
-		config = getServerConfig();
+		env = await getGatewayEnvForUser();
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "config_error";
-		return Response.json({ error: "config_missing", message }, { status: 500 });
+		return Response.json(
+			{ error: "not_provisioned", message },
+			{ status: 404 },
+		);
 	}
 
-	const upstream = await fetch(`${config.apiUrl}/chat/completions`, {
+	const upstream = await fetch(`${env.apiUrl}/chat/completions`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${config.apiKey}`,
+			Authorization: `Bearer ${env.apiKey}`,
 		},
 		body: JSON.stringify({
-			model: config.model,
+			model: env.model,
 			messages: body.messages,
 			stream: true,
 		}),
