@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -12,19 +12,31 @@ type Props = {
 	borderBottom?: boolean;
 	/** Render `+` cross marks where the top border meets the page rails. */
 	corners?: boolean;
+	/**
+	 * Background hatching behind the inner content column. "none" (default)
+	 * paints solid `--ret-bg`; "hatch" paints the same diagonal pattern
+	 * the page-grid uses for its margins, so an emphasized section reads
+	 * as belonging to the engineering grid. Tailwind's marketing site
+	 * uses this for "feature highlight" sections.
+	 */
+	background?: "none" | "hatch";
 	as?: "section" | "div" | "header" | "footer" | "main";
 	id?: string;
 };
 
+const SECTION_HATCH =
+	"repeating-linear-gradient(135deg, var(--ret-rail) 0 1px, transparent 1px 5px)";
+
 /**
  * A page section. Renders full-width so its `border-t` / `border-b`
- * extend edge-to-edge, breaking the page grid's vertical rails into
- * discrete segments (Tailwind / chanhdai pattern). The inner content
- * is constrained to `--ret-content-max` and centered.
+ * extend edge-to-edge through the page-grid margin hatching, breaking
+ * the rails into discrete segments (Tailwind / chanhdai pattern). The
+ * inner content is constrained to `--ret-content-max`, centered, and
+ * paints `--ret-bg` so the diagonal margin hatching stops cleanly at
+ * the rails -- it never bleeds into copy.
  *
- * Default vertical padding is generous (`py-14 md:py-16`) so adjacent
- * sections feel like distinct moments instead of touching each other.
- * The corner crosses sit exactly where the rails meet the border.
+ * Pass `background="hatch"` to flip that: the inner content area gets
+ * the hatch and the section reads as one continuous patterned strip.
  */
 export function ReticleSection({
 	children,
@@ -33,10 +45,13 @@ export function ReticleSection({
 	borderTop = true,
 	borderBottom = false,
 	corners,
+	background = "none",
 	as: Tag = "section",
 	id,
 }: Props) {
 	const showCorners = corners ?? borderTop;
+	const innerStyle: CSSProperties =
+		background === "hatch" ? { backgroundImage: SECTION_HATCH } : {};
 	return (
 		<Tag
 			id={id}
@@ -75,9 +90,11 @@ export function ReticleSection({
 			) : null}
 			<div
 				className={cn(
-					"mx-auto max-w-[var(--ret-content-max)]",
+					"relative mx-auto max-w-[var(--ret-content-max)]",
+					background === "hatch" ? null : "bg-[var(--ret-bg)]",
 					contentClassName,
 				)}
+				style={innerStyle}
 			>
 				{children}
 			</div>
