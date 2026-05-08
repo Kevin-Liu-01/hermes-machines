@@ -1,4 +1,4 @@
-import { Logo, type Mark } from "@/components/Logo";
+import { Logo, type CompositeMark } from "@/components/Logo";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 import { cn } from "@/lib/cn";
 
@@ -7,7 +7,7 @@ type Capability = {
 	title: string;
 	body: string;
 	notes: string[];
-	mark?: Mark;
+	mark?: CompositeMark;
 };
 
 const CAPABILITIES: ReadonlyArray<Capability> = [
@@ -23,7 +23,7 @@ const CAPABILITIES: ReadonlyArray<Capability> = [
 		title: "40+ tools, one prompt away",
 		body: "Terminal, file ops, web search, browser automation (Playwright), vision, image generation, MCP servers, code execution, subagent delegation.",
 		notes: ["terminal", "browser_*", "web_search", "execute_code"],
-		mark: "nous",
+		mark: "agent",
 	},
 	{
 		kicker: "KNOWLEDGE",
@@ -36,7 +36,7 @@ const CAPABILITIES: ReadonlyArray<Capability> = [
 		title: "Persistent across sessions",
 		body: "USER.md models you. MEMORY.md models the environment. FTS5 sessions DB lets the agent search every prior conversation.",
 		notes: ["USER.md", "MEMORY.md", "FTS5"],
-		mark: "nous",
+		mark: "agent",
 	},
 	{
 		kicker: "SCHEDULE",

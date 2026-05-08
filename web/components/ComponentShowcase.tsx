@@ -223,6 +223,11 @@ export function ShowcaseAttribution() {
 				<Logo mark="nous" size={14} />
 				nous
 			</span>
+			<span>/</span>
+			<span className="flex items-center gap-1.5">
+				<Logo mark="openclaw" size={14} />
+				openclaw
+			</span>
 			<span>+</span>
 			<span className="flex items-center gap-1.5">
 				<Logo mark="cursor" size={14} />

@@ -13,7 +13,7 @@ import {
 } from "reactflow";
 import "reactflow/dist/style.css";
 
-import { Logo, type Mark } from "@/components/Logo";
+import { Logo, type CompositeMark } from "@/components/Logo";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 
 /**
@@ -30,7 +30,7 @@ import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 type NodeData = {
 	title: string;
 	subtitle?: string;
-	mark?: Mark;
+	mark?: CompositeMark;
 	tone?: "default" | "purple" | "muted";
 };
 
@@ -99,9 +99,9 @@ const NODES: Node<NodeData>[] = [
 		type: "box",
 		position: { x: 420, y: 220 },
 		data: {
-			title: "Hermes gateway",
+			title: "Agent gateway",
 			subtitle: "OpenAI-compatible /v1",
-			mark: "nous",
+			mark: "agent",
 			tone: "purple",
 		},
 	},
@@ -110,9 +110,9 @@ const NODES: Node<NodeData>[] = [
 		type: "box",
 		position: { x: 200, y: 360 },
 		data: {
-			title: "Hermes Agent",
+			title: "Hermes / OpenClaw",
 			subtitle: "tools, cron, skills, memory",
-			mark: "nous",
+			mark: "agent",
 		},
 	},
 	{

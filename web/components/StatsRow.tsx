@@ -11,7 +11,7 @@ const STATS: ReadonlyArray<{ label: string; value: string; hint?: string }> = [
 ];
 
 const STACK: ReadonlyArray<{
-	mark: "dedalus" | "nous" | "cursor";
+	mark: "dedalus" | "agent" | "cursor";
 	name: string;
 	role: string;
 	href: string;
@@ -23,8 +23,8 @@ const STACK: ReadonlyArray<{
 		href: "https://docs.dedaluslabs.ai/dcs",
 	},
 	{
-		mark: "nous",
-		name: "Hermes Agent",
+		mark: "agent",
+		name: "Hermes / OpenClaw",
 		role: "agent",
 		href: "https://github.com/NousResearch/hermes-agent",
 	},

@@ -2,7 +2,7 @@ import { Logo } from "@/components/Logo";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 
 const STACK: ReadonlyArray<{
-	mark: "dedalus" | "nous" | "cursor";
+	mark: "dedalus" | "agent" | "cursor";
 	name: string;
 	role: string;
 	href: string;
@@ -16,11 +16,11 @@ const STACK: ReadonlyArray<{
 		tag: "microVM + gateway",
 	},
 	{
-		mark: "nous",
-		name: "Hermes Agent",
+		mark: "agent",
+		name: "Hermes / OpenClaw",
 		role: "the agent layer",
 		href: "https://github.com/NousResearch/hermes-agent",
-		tag: "by Nous Research",
+		tag: "swap in the navbar",
 	},
 	{
 		mark: "cursor",

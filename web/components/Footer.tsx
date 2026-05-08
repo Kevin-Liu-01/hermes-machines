@@ -50,6 +50,16 @@ export function Footer() {
 								<Logo mark="nous" size={14} />
 								<span>Nous</span>
 							</a>
+							<span>/</span>
+							<a
+								href="https://github.com/openclaw/openclaw"
+								target="_blank"
+								rel="noreferrer"
+								className="inline-flex items-center gap-1 hover:text-[var(--ret-text)]"
+							>
+								<Logo mark="openclaw" size={14} />
+								<span>OpenClaw</span>
+							</a>
 							<span>+</span>
 							<a
 								href="https://cursor.com/"

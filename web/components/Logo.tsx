@@ -4,8 +4,17 @@ import { cn } from "@/lib/cn";
 
 export type Mark = "dedalus" | "nous" | "cursor" | "openclaw";
 
+/**
+ * Pseudo-mark for "either agent". Wherever a UI surface represents the
+ * agent layer abstractly (not a specific Hermes vs OpenClaw choice),
+ * use `<Logo mark="agent" />`. It renders the Nous + OpenClaw marks
+ * side-by-side with a slight overlap so the rig's multi-agent story
+ * reads at a glance.
+ */
+export type CompositeMark = Mark | "agent";
+
 type Props = {
-	mark: Mark;
+	mark: CompositeMark;
 	size?: number;
 	className?: string;
 	/**
@@ -75,6 +84,31 @@ const ARIA_LABEL: Record<Mark, string> = {
  * width and height; the SVG is centered and contained.
  */
 export function Logo({ mark, size = 18, className, tone }: Props) {
+	if (mark === "agent") {
+		// Render Nous + OpenClaw side-by-side with a small horizontal
+		// overlap. Used wherever the UI represents the agent layer
+		// abstractly (capability cards, stack rows, architecture
+		// nodes) so the multi-agent story is visible at a glance.
+		const overlap = Math.max(2, Math.round(size * 0.18));
+		const pairWidth = size * 2 - overlap;
+		return (
+			<span
+				role="img"
+				aria-label="Hermes or OpenClaw"
+				className={cn("inline-flex items-center", className)}
+				style={{ width: `${pairWidth}px`, height: `${size}px` }}
+			>
+				<Logo mark="nous" size={size} />
+				<span
+					className="inline-flex"
+					style={{ marginLeft: `-${overlap}px` }}
+				>
+					<Logo mark="openclaw" size={size} />
+				</span>
+			</span>
+		);
+	}
+
 	const resolved = tone ?? DEFAULT_TONE[mark];
 	const dim = `${size}px`;
 	const aria = ARIA_LABEL[mark];
