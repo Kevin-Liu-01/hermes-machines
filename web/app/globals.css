@@ -285,3 +285,61 @@ body {
 		mix-blend-mode: screen;
 	}
 }
+
+/* ------------------------------------------------------------------ *
+ * Clerk OAuth icon theming.
+ *
+ * Clerk ships brand-correct OAuth icons (GitHub black, X black, Apple
+ * black, etc.) that render with hard-coded fills. On a light card they
+ * read; on a dark card the black icons disappear into the surface.
+ * Invert them in dark mode to keep contrast.
+ *
+ * We target the icon image inside Clerk's per-provider class
+ * (`.cl-socialButtonsProviderIcon__<provider>`) so the chromatic
+ * Google G stays untouched while monochrome marks flip with the
+ * theme. Same treatment scoped to the dropdown / popover surfaces too.
+ * ------------------------------------------------------------------ */
+
+.dark .cl-socialButtonsProviderIcon__github img,
+.dark .cl-socialButtonsProviderIcon__github svg,
+.dark .cl-socialButtonsProviderIcon__x img,
+.dark .cl-socialButtonsProviderIcon__x svg,
+.dark .cl-socialButtonsProviderIcon__x_twitter img,
+.dark .cl-socialButtonsProviderIcon__x_twitter svg,
+.dark .cl-socialButtonsProviderIcon__apple img,
+.dark .cl-socialButtonsProviderIcon__apple svg,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__github img,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__github svg,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__x img,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__x svg,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__x_twitter img,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__x_twitter svg,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__apple img,
+:root[data-theme="dark"] .cl-socialButtonsProviderIcon__apple svg {
+	filter: invert(1) brightness(1.6) saturate(0);
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"])
+		.cl-socialButtonsProviderIcon__github img,
+	:root:not([data-theme="light"])
+		.cl-socialButtonsProviderIcon__github svg,
+	:root:not([data-theme="light"]) .cl-socialButtonsProviderIcon__x img,
+	:root:not([data-theme="light"]) .cl-socialButtonsProviderIcon__x svg,
+	:root:not([data-theme="light"])
+		.cl-socialButtonsProviderIcon__x_twitter img,
+	:root:not([data-theme="light"])
+		.cl-socialButtonsProviderIcon__x_twitter svg,
+	:root:not([data-theme="light"]) .cl-socialButtonsProviderIcon__apple img,
+	:root:not([data-theme="light"]) .cl-socialButtonsProviderIcon__apple svg {
+		filter: invert(1) brightness(1.6) saturate(0);
+	}
+}
+
+/* Force every monochrome OAuth icon to a clean off-white in dark mode
+ * even when it ships as a near-black raster (older Clerk SDKs). The
+ * filter alone handles SVG; this fallback handles raster pngs. */
+.cl-socialButtonsProviderIcon img,
+.cl-socialButtonsProviderIcon svg {
+	max-height: 18px;
+	width: auto;
+}

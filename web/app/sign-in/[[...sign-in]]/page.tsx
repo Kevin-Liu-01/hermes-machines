@@ -56,18 +56,47 @@ export default function SignInPage() {
 								colorBackground: "var(--ret-bg)",
 								colorText: "var(--ret-text)",
 								colorTextSecondary: "var(--ret-text-dim)",
-								colorInputBackground: "var(--ret-bg)",
+								colorMuted: "var(--ret-text-muted)",
+								colorInputBackground: "var(--ret-bg-soft)",
 								colorInputText: "var(--ret-text)",
-								borderRadius: "10px",
+								colorNeutral: "var(--ret-text)",
+								borderRadius: "0px",
 								fontFamily: "var(--font-sans)",
+								fontSize: "14px",
 							},
 							elements: {
-								card: "border border-[var(--ret-border)] bg-[var(--ret-surface)] shadow-none",
+								rootBox: "w-full",
+								card: "w-full border border-[var(--ret-border)] bg-[var(--ret-surface)] shadow-none rounded-none",
 								headerTitle: "hidden",
 								headerSubtitle: "hidden",
+								// OAuth row
+								socialButtons: "gap-2",
 								socialButtonsBlockButton:
-									"border border-[var(--ret-border)] hover:border-[var(--ret-border-hover)]",
+									"border border-[var(--ret-border)] bg-[var(--ret-bg)] text-[var(--ret-text)] rounded-none hover:border-[var(--ret-border-hover)] hover:bg-[var(--ret-surface-hover)]",
+								socialButtonsBlockButtonText: "text-[var(--ret-text)]",
+								socialButtonsIconButton:
+									"border border-[var(--ret-border)] bg-[var(--ret-bg)] rounded-none hover:border-[var(--ret-border-hover)] hover:bg-[var(--ret-surface-hover)]",
+								// Divider
+								dividerLine: "bg-[var(--ret-border)]",
+								dividerText: "text-[var(--ret-text-muted)]",
+								// Form
+								formFieldLabel:
+									"text-[var(--ret-text)] font-mono text-[10px] uppercase tracking-[0.18em]",
+								formFieldInput:
+									"border border-[var(--ret-border)] bg-[var(--ret-bg)] text-[var(--ret-text)] rounded-none focus:border-[var(--ret-purple)] focus:ring-0",
+								formButtonPrimary:
+									"bg-[var(--ret-purple)] text-[#0F0F0F] font-medium rounded-none hover:brightness-110 hover:shadow-[0_0_24px_var(--ret-purple-glow)]",
+								// Misc
+								identityPreview:
+									"border border-[var(--ret-border)] bg-[var(--ret-bg)] rounded-none",
+								identityPreviewText: "text-[var(--ret-text)]",
+								identityPreviewEditButtonIcon: "text-[var(--ret-purple)]",
+								footer: "border-t border-[var(--ret-border)] bg-[var(--ret-bg-soft)]",
 								footerAction: "text-[var(--ret-text-dim)]",
+								footerActionLink:
+									"text-[var(--ret-purple)] hover:text-[var(--ret-purple)]/80",
+								alert: "border border-[var(--ret-red)]/40 bg-[var(--ret-red)]/10 text-[var(--ret-red)] rounded-none",
+								alertText: "text-[var(--ret-red)]",
 							},
 						}}
 					/>

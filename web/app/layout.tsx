@@ -166,8 +166,30 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 					colorPrimary: "var(--ret-purple)",
 					colorBackground: "var(--ret-bg)",
 					colorText: "var(--ret-text)",
+					colorTextSecondary: "var(--ret-text-dim)",
+					colorMuted: "var(--ret-text-muted)",
+					colorInputBackground: "var(--ret-bg-soft)",
+					colorInputText: "var(--ret-text)",
+					colorNeutral: "var(--ret-text)",
+					borderRadius: "0px",
 					fontFamily: "var(--font-sans)",
-					borderRadius: "10px",
+					fontSize: "14px",
+				},
+				elements: {
+					card: "border border-[var(--ret-border)] bg-[var(--ret-surface)] shadow-none rounded-none",
+					socialButtonsBlockButton:
+						"border border-[var(--ret-border)] bg-[var(--ret-bg)] text-[var(--ret-text)] rounded-none hover:border-[var(--ret-border-hover)] hover:bg-[var(--ret-surface-hover)]",
+					socialButtonsIconButton:
+						"border border-[var(--ret-border)] bg-[var(--ret-bg)] rounded-none hover:border-[var(--ret-border-hover)] hover:bg-[var(--ret-surface-hover)]",
+					dividerLine: "bg-[var(--ret-border)]",
+					formFieldInput:
+						"border border-[var(--ret-border)] bg-[var(--ret-bg)] text-[var(--ret-text)] rounded-none",
+					formButtonPrimary:
+						"bg-[var(--ret-purple)] text-[#0F0F0F] rounded-none hover:brightness-110",
+					userButtonPopoverCard:
+						"border border-[var(--ret-border)] bg-[var(--ret-surface)] shadow-none rounded-none",
+					userButtonPopoverActionButton:
+						"text-[var(--ret-text)] hover:bg-[var(--ret-surface-hover)]",
 				},
 			}}
 		>
