@@ -25,9 +25,24 @@ import { ServiceIcon, type ServiceSlug } from "@/components/ServiceIcon";
 import { cn } from "@/lib/cn";
 
 /* ------------------------------------------------------------------ *
- * Tone tokens                                                         *
- * Each tone maps to a foreground border + background pair so a node   *
- * tells you what tier of the system it belongs to at a glance.       *
+ * Layout philosophy                                                   *
+ *                                                                     *
+ * 11 nodes in a clean vertical funnel. Each node carries more         *
+ * information in bullets so the canvas stays readable; click any node *
+ * for the full body in the side panel. No sister-node fan-outs --     *
+ * those compress into bullet lists inside one parent node.            *
+ *                                                                     *
+ *   row 0  operator                                                   *
+ *   row 1  dashboard           CLI                                    *
+ *   row 2  fleet metadata                                             *
+ *   row 3  provider tier (3 sub-providers as bullets)                 *
+ *   row 4  persistent machine (the product boundary)                  *
+ *   row 5  gateway                                                    *
+ *   row 6  agent runtimes (Hermes/OpenClaw as bullets)                *
+ *   row 7  filesystem layout (4 path roots as bullets)                *
+ *   row 8  tool surface       cursor-bridge                           *
+ *   row 9  inference router                                           *
+ *   row 10 model providers (3 catalogs as bullets)                    *
  * ------------------------------------------------------------------ */
 
 type NodeTone =
@@ -40,10 +55,9 @@ type NodeTone =
 	| "agent"
 	| "state"
 	| "tools"
-	| "service"
 	| "delegation"
-	| "model"
-	| "router";
+	| "router"
+	| "model";
 
 const NODE_TONE: Record<NodeTone, string> = {
 	operator: "border-[var(--ret-border)] bg-[var(--ret-bg)]",
@@ -56,10 +70,9 @@ const NODE_TONE: Record<NodeTone, string> = {
 	agent: "border-[var(--ret-border-hover)] bg-[var(--ret-bg)]",
 	state: "border-[var(--ret-border)] bg-[var(--ret-bg-soft)]",
 	tools: "border-[var(--ret-green)]/35 bg-[var(--ret-green)]/5",
-	service: "border-[var(--ret-border)] bg-[var(--ret-bg-soft)]",
 	delegation: "border-[var(--ret-border)] bg-[var(--ret-bg)]",
-	model: "border-[var(--ret-purple)]/40 bg-[var(--ret-purple-glow)]",
 	router: "border-[var(--ret-border-hover)] bg-[var(--ret-surface)]",
+	model: "border-[var(--ret-purple)]/40 bg-[var(--ret-purple-glow)]",
 };
 
 type NodeStatus = "live" | "stub" | "optional";
@@ -79,10 +92,6 @@ const STATUS_LABEL: Record<NodeStatus, { label: string; tone: string }> = {
 	},
 };
 
-/* ------------------------------------------------------------------ *
- * Node data                                                           *
- * ------------------------------------------------------------------ */
-
 type NodeData = {
 	eyebrow: string;
 	title: string;
@@ -97,9 +106,9 @@ type NodeData = {
 };
 
 const NODE_SIZE: Record<NonNullable<NodeData["size"]>, string> = {
-	sm: "w-[210px]",
-	md: "w-[250px]",
-	lg: "w-[300px]",
+	sm: "w-[230px]",
+	md: "w-[280px]",
+	lg: "w-[340px]",
 };
 
 function FlowNode({
@@ -121,7 +130,7 @@ function FlowNode({
 					"border-[var(--ret-purple)] bg-[var(--ret-purple-glow)] shadow-[0_0_38px_var(--ret-purple-glow)]",
 			)}
 		>
-			<div className="flex items-start justify-between gap-3">
+			<div className="flex items-start justify-between gap-2">
 				<div className="min-w-0">
 					<p className="flex items-center gap-2 text-[9px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
 						{data.eyebrow}
@@ -148,9 +157,9 @@ function FlowNode({
 					</div>
 				</div>
 				{data.services ? (
-					<div className="flex max-w-[88px] flex-wrap justify-end gap-1 text-[var(--ret-text-dim)]">
+					<div className="flex max-w-[96px] flex-wrap justify-end gap-1 text-[var(--ret-text-dim)]">
 						{data.services.slice(0, 6).map((slug) => (
-							<ServiceIcon key={slug} slug={slug} size={13} tone="mono" />
+							<ServiceIcon key={slug} slug={slug} size={12} tone="mono" />
 						))}
 					</div>
 				) : null}
@@ -158,6 +167,16 @@ function FlowNode({
 			<p className="mt-1.5 text-[11px] leading-snug text-[var(--ret-text-dim)]">
 				{data.subtitle}
 			</p>
+			{data.bullets.length > 0 ? (
+				<ul className="mt-2 space-y-0.5 text-[10px] leading-snug text-[var(--ret-text-muted)]">
+					{data.bullets.map((b) => (
+						<li key={b} className="flex items-baseline gap-1.5">
+							<span className="text-[var(--ret-purple)]">.</span>
+							<span className="truncate">{b}</span>
+						</li>
+					))}
+				</ul>
+			) : null}
 			<Handle
 				type="target"
 				position={targetPosition ?? Position.Top}
@@ -174,18 +193,12 @@ function FlowNode({
 
 const NODE_TYPES = { box: FlowNode };
 
-/* ------------------------------------------------------------------ *
- * Layout                                                              *
- * Twelve-row flow, grouped into five horizontal zones (operator,      *
- * control plane, provider tier, machine, runtime + downstream).       *
- * ------------------------------------------------------------------ */
-
 const INITIAL_NODES: Node<NodeData>[] = [
 	// Row 0 -- operator
 	{
 		id: "operator",
 		type: "box",
-		position: { x: 620, y: 0 },
+		position: { x: 540, y: 0 },
 		data: {
 			eyebrow: "operator",
 			title: "you",
@@ -200,11 +213,12 @@ const INITIAL_NODES: Node<NodeData>[] = [
 			size: "sm",
 		},
 	},
-	// Row 1 -- control plane
+
+	// Row 1 -- control plane (left + right)
 	{
 		id: "web",
 		type: "box",
-		position: { x: 280, y: 130 },
+		position: { x: 180, y: 160 },
 		targetPosition: Position.Top,
 		sourcePosition: Position.Right,
 		data: {
@@ -225,7 +239,7 @@ const INITIAL_NODES: Node<NodeData>[] = [
 	{
 		id: "cli",
 		type: "box",
-		position: { x: 940, y: 130 },
+		position: { x: 940, y: 160 },
 		targetPosition: Position.Top,
 		sourcePosition: Position.Left,
 		data: {
@@ -242,11 +256,12 @@ const INITIAL_NODES: Node<NodeData>[] = [
 			size: "md",
 		},
 	},
+
 	// Row 2 -- fleet metadata
 	{
 		id: "fleet",
 		type: "box",
-		position: { x: 600, y: 250 },
+		position: { x: 540, y: 320 },
 		data: {
 			eyebrow: "fleet state",
 			title: "Clerk UserConfig",
@@ -262,95 +277,60 @@ const INITIAL_NODES: Node<NodeData>[] = [
 			size: "md",
 		},
 	},
-	// Row 3 -- provider tier (3 sisters)
+
+	// Row 3 -- provider tier (collapsed: one node with sub-providers as bullets)
 	{
-		id: "provider-dedalus",
+		id: "providers",
 		type: "box",
-		position: { x: 200, y: 400 },
+		position: { x: 540, y: 480 },
 		data: {
-			eyebrow: "provider",
-			title: "Dedalus Machines",
-			subtitle: "default microVM provider",
-			body: "Provisions, wakes, sleeps, executes commands. Second-billed; ~30s cold boot, <5s warm.",
+			eyebrow: "provider tier",
+			title: "MachineProvider",
+			subtitle: "Dedalus live . Vercel/Fly shaped",
+			body: "One interface, three providers. Dedalus is wired today; Vercel Sandbox + Fly Machines accept credentials and return explicit not_supported errors until their provisioners land. Providers are interchangeable -- the agent doesn't care which microVM hosts it.",
 			bullets: [
-				"provision / wake / sleep",
-				"state / exec / destroy",
-				"second-billed microVM",
+				"Dedalus Machines  --  live",
+				"Vercel Sandbox  --  shaped",
+				"Fly Machines  --  shaped",
 			],
 			mark: "dedalus",
+			services: ["vercel"],
 			tone: "provider",
-			size: "md",
+			size: "lg",
 			status: "live",
 		},
 	},
-	{
-		id: "provider-vercel",
-		type: "box",
-		position: { x: 555, y: 400 },
-		data: {
-			eyebrow: "provider",
-			title: "Vercel Sandbox",
-			subtitle: "Firecracker microVM",
-			body: "Same MachineProvider contract, accepted by the schema and setup UI; provisioner returns explicit not_supported until wired.",
-			bullets: [
-				"per-team scoped sandbox",
-				"agent-browser-friendly runtime",
-				"contract-only today",
-			],
-			services: ["vercel"],
-			tone: "provider",
-			size: "md",
-			status: "stub",
-		},
-	},
-	{
-		id: "provider-fly",
-		type: "box",
-		position: { x: 905, y: 400 },
-		data: {
-			eyebrow: "provider",
-			title: "Fly Machines",
-			subtitle: "regional microVM",
-			body: "Region-pinned alternative. Org slug + token captured in setup; provisioner returns explicit not_supported until wired.",
-			bullets: [
-				"region pinning",
-				"per-org isolation",
-				"contract-only today",
-			],
-			tone: "provider",
-			size: "md",
-			status: "stub",
-		},
-	},
-	// Row 4 -- the machine itself (the product boundary)
+
+	// Row 4 -- the machine (product boundary)
 	{
 		id: "machine",
 		type: "box",
-		position: { x: 540, y: 565 },
+		position: { x: 540, y: 660 },
 		data: {
 			eyebrow: "active runtime",
 			title: "persistent Linux machine",
 			subtitle: "/home/machine is the durable volume",
-			body: "This is the important object: a resumable microVM with persistent disk. Sleep stops compute; the filesystem survives. Everything below this row lives on this machine.",
+			body: "The important object: a resumable microVM with persistent disk. Sleep stops compute; the filesystem survives. Everything below this row lives on this machine.",
 			bullets: [
 				"1 vCPU / 2 GiB / 10 GiB default",
-				"sleep/wake lifecycle",
-				"gateway + agent + tools + state run here",
+				"sleep / wake by the second",
+				"gateway + agent + tools + state on disk",
 			],
 			tone: "machine",
 			size: "lg",
 		},
 	},
+
 	// Row 5 -- gateway
 	{
 		id: "gateway",
 		type: "box",
-		position: { x: 570, y: 745 },
+		position: { x: 540, y: 850 },
 		data: {
 			eyebrow: "public api",
-			title: "agent gateway",
-			subtitle: ":8642 . OpenAI-compatible /v1",
-			body: "The machine exposes the chat API through a Dedalus preview URL or a Cloudflare quick tunnel. The browser proxies through Next.js so bearer tokens stay server-side.",
+			title: "agent gateway :8642",
+			subtitle: "OpenAI-compatible /v1",
+			body: "Exposed via Dedalus preview URL or a Cloudflare quick tunnel. The browser proxies through Next.js so bearer tokens stay server-side.",
 			bullets: [
 				"SSE chat streaming",
 				"server-side bearer proxy",
@@ -361,207 +341,83 @@ const INITIAL_NODES: Node<NodeData>[] = [
 			size: "md",
 		},
 	},
-	// Row 6 -- agent runtimes (sisters)
+
+	// Row 6 -- agent runtimes (collapsed: one node with both as bullets)
 	{
-		id: "agent-hermes",
+		id: "agent",
 		type: "box",
-		position: { x: 240, y: 720 },
-		sourcePosition: Position.Right,
-		targetPosition: Position.Top,
+		position: { x: 540, y: 1010 },
 		data: {
 			eyebrow: "agent runtime",
-			title: "Hermes",
-			subtitle: "memory + cron + sessions + MCP",
-			body: "Default runtime. Brings the dashboard, FTS5 sessions, MEMORY.md, USER.md, cron, and MCP server registry. Owns ~/.hermes; survives sleep.",
+			title: "Hermes or OpenClaw",
+			subtitle: "swap any time, same gateway port",
+			body: "Hermes (Nous Research) brings the dashboard, FTS5 sessions, MEMORY.md, USER.md, cron, and MCP server registry. OpenClaw (openclaw/openclaw) brings the Anthropic computer-use loop with browser, screenshot, click_xy, type_text. Both expose the same OpenAI-compatible /v1.",
 			bullets: [
-				"~/.hermes/ (skills, crons, sessions)",
-				"MEMORY.md / USER.md",
-				"OpenAI-compatible /v1",
+				"Hermes  --  memory + cron + MCP",
+				"OpenClaw  --  computer-use + browser",
+				"both speak /v1/chat/completions",
 			],
-			mark: "nous",
+			mark: "agent",
 			tone: "agent",
-			size: "md",
+			size: "lg",
 			status: "live",
 		},
 	},
+
+	// Row 7 -- filesystem layout (collapsed: one node with 4 paths as bullets)
 	{
-		id: "agent-openclaw",
+		id: "filesystem",
 		type: "box",
-		position: { x: 920, y: 720 },
+		position: { x: 540, y: 1190 },
+		data: {
+			eyebrow: "on-disk layout",
+			title: "/home/machine/",
+			subtitle: "four roots, no overlap",
+			body: "Product data, agent runtime, and the git checkout each get their own root so upgrading one never owns the others. Survives every sleep cycle.",
+			bullets: [
+				".agent-machines/  --  app data (chats, artifacts, indexes)",
+				".hermes/  --  Hermes runtime (skills, crons, sessions)",
+				".openclaw/  --  OpenClaw runtime (state, screenshots)",
+				"agent-machines/  --  git checkout for reloads",
+			],
+			tone: "state",
+			size: "lg",
+		},
+	},
+
+	// Row 8 -- tools (left) + delegation (right)
+	{
+		id: "tools",
+		type: "box",
+		position: { x: 180, y: 1380 },
+		targetPosition: Position.Top,
+		sourcePosition: Position.Right,
+		data: {
+			eyebrow: "tool surface",
+			title: "Tools + skills",
+			subtitle: "23 built-ins . 17 services . 95 skills",
+			body: "Layered loadout. Built-ins are first-class and called directly. MCP services mount per-service tool catalogs (Vercel, Stripe, Supabase, Linear, GitHub, Slack, PostHog, Sentry, ...). Skills are SKILL.md files that load by intent match.",
+			bullets: [
+				"23 built-in tools  --  shell, fs, browser, vision",
+				"17 MCP services  --  branded integrations",
+				"95 SKILL.md files  --  load on demand",
+			],
+			services: ["vercel", "stripe", "supabase", "github", "linear", "slack"],
+			tone: "tools",
+			size: "lg",
+		},
+	},
+	{
+		id: "cursor",
+		type: "box",
+		position: { x: 940, y: 1380 },
+		targetPosition: Position.Top,
 		sourcePosition: Position.Left,
-		targetPosition: Position.Top,
-		data: {
-			eyebrow: "agent runtime",
-			title: "OpenClaw",
-			subtitle: "Anthropic computer-use loop",
-			body: "Alternative runtime. Anthropic-style computer use with browser, screenshot, click_xy, type_text. Owns ~/.openclaw; same gateway port.",
-			bullets: [
-				"~/.openclaw/ (state, screenshots)",
-				"X server + browser",
-				"OpenAI-compatible /v1",
-			],
-			mark: "openclaw",
-			tone: "agent",
-			size: "md",
-			status: "live",
-		},
-	},
-	// Row 7 -- on-disk paths (sisters)
-	{
-		id: "path-app",
-		type: "box",
-		position: { x: 30, y: 905 },
-		sourcePosition: Position.Right,
-		targetPosition: Position.Top,
-		data: {
-			eyebrow: "on-disk path",
-			title: "~/.agent-machines/",
-			subtitle: "app data: chats, artifacts, indexes",
-			body: "Product data lives separately from agent runtime state so Hermes/OpenClaw upgrades never own user files.",
-			bullets: [
-				"chats/*.json",
-				"artifacts/<id>/",
-				"machine-readable indexes",
-			],
-			tone: "state",
-			size: "md",
-		},
-	},
-	{
-		id: "path-hermes",
-		type: "box",
-		position: { x: 280, y: 905 },
-		sourcePosition: Position.Right,
-		targetPosition: Position.Top,
-		data: {
-			eyebrow: "on-disk path",
-			title: "~/.hermes/",
-			subtitle: "Hermes runtime, NOT app data",
-			body: "Footgun defused: ~/.hermes is the Hermes runtime root. Skills, crons, sessions, gateway logs, model config. Not the app data root.",
-			bullets: [
-				"skills/ + crons/",
-				"sessions.db (FTS5)",
-				"gateway log + config",
-			],
-			mark: "nous",
-			tone: "state",
-			size: "md",
-		},
-	},
-	{
-		id: "path-repo",
-		type: "box",
-		position: { x: 540, y: 905 },
-		sourcePosition: Position.Right,
-		targetPosition: Position.Top,
-		data: {
-			eyebrow: "on-disk path",
-			title: "/home/machine/agent-machines/",
-			subtitle: "git checkout for reloads",
-			body: "Just the repo checkout used by reload-from-git.sh. Not ~/.hermes and not the agent runtime.",
-			bullets: [
-				"git fetch origin/main",
-				"sync knowledge/ into ~/.hermes",
-				"used by Reload Knowledge",
-			],
-			tone: "state",
-			size: "md",
-		},
-	},
-	{
-		id: "path-openclaw",
-		type: "box",
-		position: { x: 800, y: 905 },
-		sourcePosition: Position.Right,
-		targetPosition: Position.Top,
-		data: {
-			eyebrow: "on-disk path",
-			title: "~/.openclaw/",
-			subtitle: "OpenClaw runtime state",
-			body: "Only present when OpenClaw is installed. Gateway log, screenshots, computer-use cache, model config.",
-			bullets: [
-				"screenshots/",
-				"gateway log + config",
-				"X server scratch",
-			],
-			mark: "openclaw",
-			tone: "state",
-			size: "md",
-		},
-	},
-	// Row 8 -- tool layer (loadout cluster)
-	{
-		id: "loadout-builtins",
-		type: "box",
-		position: { x: 60, y: 1095 },
-		targetPosition: Position.Top,
-		sourcePosition: Position.Bottom,
-		data: {
-			eyebrow: "tool surface",
-			title: "23 built-in tools",
-			subtitle: "agent calls these directly",
-			body: "Terminal, filesystem, browser (Playwright), vision, image generation, code execution, web search, memory, schedule, subagent delegation.",
-			bullets: [
-				"terminal . fs_read/write",
-				"browser_* . vision",
-				"execute_code . delegate",
-			],
-			tone: "tools",
-			size: "md",
-		},
-	},
-	{
-		id: "loadout-services",
-		type: "box",
-		position: { x: 350, y: 1095 },
-		targetPosition: Position.Top,
-		sourcePosition: Position.Bottom,
-		data: {
-			eyebrow: "tool surface",
-			title: "17 MCP services",
-			subtitle: "branded tool integrations",
-			body: "Each service mounts as an MCP server with its own tool catalog. The agent picks a service interface (MCP > CLI > skill) per service.",
-			bullets: [
-				"Vercel . Stripe . Supabase",
-				"Linear . GitHub . Slack . Sentry",
-				"PostHog . Figma . Shopify ...",
-			],
-			services: ["vercel", "stripe", "supabase", "linear", "github", "slack"],
-			tone: "service",
-			size: "md",
-		},
-	},
-	{
-		id: "loadout-skills",
-		type: "box",
-		position: { x: 660, y: 1095 },
-		targetPosition: Position.Top,
-		sourcePosition: Position.Bottom,
-		data: {
-			eyebrow: "behavior packs",
-			title: "95 SKILL.md files",
-			subtitle: "load on demand by intent",
-			body: "Behavior packs that activate when a prompt matches the skill description. Reload from GitHub via the dashboard.",
-			bullets: [
-				"design + code review",
-				"security + perf + content",
-				"reload via git pull",
-			],
-			tone: "tools",
-			size: "md",
-		},
-	},
-	{
-		id: "loadout-cursor",
-		type: "box",
-		position: { x: 970, y: 1095 },
-		targetPosition: Position.Top,
-		sourcePosition: Position.Bottom,
 		data: {
 			eyebrow: "delegation",
 			title: "cursor-bridge",
 			subtitle: "MCP server wrapping @cursor/sdk",
-			body: "Optional delegation surface. When CURSOR_API_KEY is set, Hermes can spawn Cursor coding agents for code edits.",
+			body: "Optional. When CURSOR_API_KEY is set, the agent can spawn Cursor coding agents for code edits with the rig's skills injected as .cursor/rules.",
 			bullets: [
 				"cursor_agent",
 				"cursor_resume",
@@ -573,18 +429,19 @@ const INITIAL_NODES: Node<NodeData>[] = [
 			status: "optional",
 		},
 	},
+
 	// Row 9 -- inference router
 	{
 		id: "router",
 		type: "box",
-		position: { x: 540, y: 1280 },
+		position: { x: 540, y: 1560 },
 		targetPosition: Position.Top,
 		sourcePosition: Position.Bottom,
 		data: {
 			eyebrow: "inference router",
 			title: "Dedalus AI router",
 			subtitle: "api.dedaluslabs.ai/v1",
-			body: "OpenAI-compatible router that fronts 200+ models. Hermes is configured via model.base_url; swap DEDALUS_CHAT_BASE_URL to target a different OpenAI-compatible endpoint.",
+			body: "Fronts 200+ models. Hermes is configured via model.base_url; swap DEDALUS_CHAT_BASE_URL to target a different OpenAI-compatible endpoint.",
 			bullets: [
 				"single key, 200+ models",
 				"model slug per machine",
@@ -595,99 +452,55 @@ const INITIAL_NODES: Node<NodeData>[] = [
 			size: "lg",
 		},
 	},
-	// Row 10 -- model providers (sisters)
+
+	// Row 10 -- model providers (collapsed: one node with 3 catalogs as bullets)
 	{
-		id: "model-anthropic",
+		id: "models",
 		type: "box",
-		position: { x: 220, y: 1455 },
+		position: { x: 540, y: 1745 },
 		targetPosition: Position.Top,
 		sourcePosition: Position.Bottom,
 		data: {
-			eyebrow: "model provider",
-			title: "Anthropic",
-			subtitle: "Claude family",
-			body: "Default Hermes model is anthropic/claude-sonnet-4-6. OpenClaw uses anthropic-prefixed models for the computer-use loop.",
-			bullets: ["claude-sonnet-4-6", "computer-use", "tool-use"],
-			services: ["anthropic"],
-			tone: "model",
-			size: "md",
-		},
-	},
-	{
-		id: "model-openai",
-		type: "box",
-		position: { x: 540, y: 1455 },
-		targetPosition: Position.Top,
-		sourcePosition: Position.Bottom,
-		data: {
-			eyebrow: "model provider",
-			title: "OpenAI",
-			subtitle: "GPT family",
-			body: "Routed through the same OpenAI-compatible gateway. Set the model slug on the machine record to switch.",
-			bullets: ["gpt-4o family", "structured output", "OpenAI-compatible"],
-			services: ["openai"],
-			tone: "model",
-			size: "md",
-		},
-	},
-	{
-		id: "model-others",
-		type: "box",
-		position: { x: 860, y: 1455 },
-		targetPosition: Position.Top,
-		sourcePosition: Position.Bottom,
-		data: {
-			eyebrow: "model provider",
-			title: "Other catalogs",
-			subtitle: "Mistral . Together . Groq . xAI . ...",
-			body: "Anything the Dedalus router lists. Or point DEDALUS_CHAT_BASE_URL at an alternative gateway.",
+			eyebrow: "model catalogs",
+			title: "OpenAI-compatible models",
+			subtitle: "Anthropic . OpenAI . others via the router",
+			body: "Anything the Dedalus router lists, plus alternatives via DEDALUS_CHAT_BASE_URL. Default Hermes model is anthropic/claude-sonnet-4-6; OpenClaw uses Anthropic for the computer-use loop.",
 			bullets: [
-				"200+ slugs via the router",
-				"swap base_url to use another gateway",
-				"per-machine model choice",
+				"Anthropic  --  Claude family",
+				"OpenAI  --  GPT family",
+				"200+ slugs via the router (Mistral, Together, Groq, ...)",
 			],
+			services: ["anthropic", "openai"],
 			tone: "model",
-			size: "md",
+			size: "lg",
 		},
 	},
 ];
 
 const EDGES: Edge[] = [
 	// Operator -> control plane
-	{ id: "e-operator-web", source: "operator", target: "web", label: "browser" },
-	{ id: "e-operator-cli", source: "operator", target: "cli", label: "terminal" },
+	{ id: "e-op-web", source: "operator", target: "web", label: "browser" },
+	{ id: "e-op-cli", source: "operator", target: "cli", label: "terminal" },
 	// Control plane -> fleet
 	{ id: "e-web-fleet", source: "web", target: "fleet", label: "auth + config" },
-	// Fleet -> providers (3-way fan-out)
+	// Fleet -> providers
 	{
-		id: "e-fleet-dedalus",
+		id: "e-fleet-providers",
 		source: "fleet",
-		target: "provider-dedalus",
+		target: "providers",
 		label: "active provider",
 	},
+	// CLI -> providers (deploy path)
 	{
-		id: "e-fleet-vercel",
-		source: "fleet",
-		target: "provider-vercel",
-		label: "alt",
-	},
-	{
-		id: "e-fleet-fly",
-		source: "fleet",
-		target: "provider-fly",
-		label: "alt",
-	},
-	// CLI -> Dedalus (root path)
-	{
-		id: "e-cli-dedalus",
+		id: "e-cli-providers",
 		source: "cli",
-		target: "provider-dedalus",
-		label: "deploy/wake",
+		target: "providers",
+		label: "deploy / wake",
 	},
-	// Providers -> machine (Dedalus is the live one)
+	// Providers -> machine
 	{
-		id: "e-dedalus-machine",
-		source: "provider-dedalus",
+		id: "e-providers-machine",
+		source: "providers",
 		target: "machine",
 		label: "provision / exec",
 	},
@@ -698,130 +511,52 @@ const EDGES: Edge[] = [
 		target: "gateway",
 		label: "serve :8642",
 	},
-	// Gateway -> agents (2-way fan-out)
+	// Gateway -> agent
 	{
-		id: "e-gateway-hermes",
+		id: "e-gateway-agent",
 		source: "gateway",
-		target: "agent-hermes",
+		target: "agent",
 		label: "turn loop",
 	},
+	// Agent -> filesystem
 	{
-		id: "e-gateway-openclaw",
-		source: "gateway",
-		target: "agent-openclaw",
-		label: "turn loop",
+		id: "e-agent-fs",
+		source: "agent",
+		target: "filesystem",
+		label: "reads / writes",
 	},
-	// Agents -> on-disk paths
+	// Agent -> tools (filesystem column splits left)
 	{
-		id: "e-hermes-app",
-		source: "agent-hermes",
-		target: "path-app",
-		label: "writes",
-	},
-	{
-		id: "e-hermes-runtime",
-		source: "agent-hermes",
-		target: "path-hermes",
-		label: "owns",
-	},
-	{
-		id: "e-hermes-repo",
-		source: "agent-hermes",
-		target: "path-repo",
-		label: "reload sync",
-	},
-	{
-		id: "e-openclaw-app",
-		source: "agent-openclaw",
-		target: "path-app",
-		label: "writes",
-	},
-	{
-		id: "e-openclaw-runtime",
-		source: "agent-openclaw",
-		target: "path-openclaw",
-		label: "owns",
-	},
-	// Agents -> tool surface
-	{
-		id: "e-hermes-builtins",
-		source: "agent-hermes",
-		target: "loadout-builtins",
+		id: "e-fs-tools",
+		source: "filesystem",
+		target: "tools",
 		label: "calls",
 	},
+	// Agent -> cursor (filesystem column splits right)
 	{
-		id: "e-hermes-services",
-		source: "agent-hermes",
-		target: "loadout-services",
-		label: "MCP",
-	},
-	{
-		id: "e-hermes-skills",
-		source: "agent-hermes",
-		target: "loadout-skills",
-		label: "load",
-	},
-	{
-		id: "e-hermes-cursor",
-		source: "agent-hermes",
-		target: "loadout-cursor",
+		id: "e-fs-cursor",
+		source: "filesystem",
+		target: "cursor",
 		label: "spawn",
 	},
+	// Tools + cursor -> router
 	{
-		id: "e-openclaw-builtins",
-		source: "agent-openclaw",
-		target: "loadout-builtins",
-		label: "calls",
-	},
-	{
-		id: "e-openclaw-services",
-		source: "agent-openclaw",
-		target: "loadout-services",
-		label: "MCP",
-	},
-	// Tool surface -> inference router (gateway too for first-class chat)
-	{
-		id: "e-builtins-router",
-		source: "loadout-builtins",
-		target: "router",
-		label: "tool-backed inference",
-	},
-	{
-		id: "e-services-router",
-		source: "loadout-services",
+		id: "e-tools-router",
+		source: "tools",
 		target: "router",
 		label: "tool-backed inference",
 	},
 	{
 		id: "e-cursor-router",
-		source: "loadout-cursor",
+		source: "cursor",
 		target: "router",
 		label: "model fan-in",
 	},
-	// Gateway -> router (the chat path)
-	{
-		id: "e-gateway-router",
-		source: "gateway",
-		target: "router",
-		label: "chat completions",
-	},
 	// Router -> models
 	{
-		id: "e-router-anthropic",
+		id: "e-router-models",
 		source: "router",
-		target: "model-anthropic",
-		label: "claude-*",
-	},
-	{
-		id: "e-router-openai",
-		source: "router",
-		target: "model-openai",
-		label: "gpt-*",
-	},
-	{
-		id: "e-router-others",
-		source: "router",
-		target: "model-others",
+		target: "models",
 		label: "200+ slugs",
 	},
 ];
@@ -837,9 +572,10 @@ export function ArchitectureFlow() {
 				const isActive =
 					edge.source === activeNodeId || edge.target === activeNodeId;
 				const isHero =
-					edge.id === "e-dedalus-machine" ||
+					edge.id === "e-providers-machine" ||
 					edge.id === "e-machine-gateway" ||
-					edge.id === "e-gateway-router";
+					edge.id === "e-gateway-agent" ||
+					edge.id === "e-router-models";
 				return {
 					...edge,
 					type: "smoothstep",
@@ -866,7 +602,7 @@ export function ArchitectureFlow() {
 					},
 					labelBgStyle: {
 						fill: "var(--ret-bg)",
-						fillOpacity: 0.92,
+						fillOpacity: 0.95,
 					},
 					labelBgPadding: [5, 2] as [number, number],
 					labelBgBorderRadius: 0,
@@ -884,12 +620,10 @@ export function ArchitectureFlow() {
 						The machine is the product boundary.
 					</h2>
 					<p className="mt-3 max-w-[78ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)]">
-						Agent Machines is not a thin wrapper around Cursor or one model
-						gateway. The diagram below shows everything the rig actually has:
-						three providers, two agent runtimes, four on-disk path roots, the
-						full tool surface (built-ins + 17 services + 95 skills + optional
-						cursor delegation), and a configurable inference router that
-						fronts 200+ models. Click any node to inspect; drag to rearrange.
+						Eleven nodes, top-down. The persistent Linux machine in the
+						middle is the product boundary -- everything above provisions
+						and routes to it, everything below runs inside it. Click any
+						node to inspect the full body; drag to rearrange the layout.
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
@@ -908,7 +642,7 @@ export function ArchitectureFlow() {
 				<MachineNote
 					label="path split"
 					value="four roots, no overlap"
-					body="~/.agent-machines (app), ~/.hermes (runtime), ~/.openclaw, repo checkout."
+					body=".agent-machines (app), .hermes (runtime), .openclaw, repo checkout."
 				/>
 				<MachineNote
 					label="providers"
@@ -922,13 +656,13 @@ export function ArchitectureFlow() {
 				/>
 			</div>
 
-			<div className="architecture-canvas relative mt-4 h-[860px] overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)] md:h-[940px]">
+			<div className="architecture-canvas relative mt-4 h-[920px] overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-bg)] md:h-[1000px]">
 				<div
 					aria-hidden="true"
 					className="pointer-events-none absolute inset-0"
 					style={{
 						background:
-							"radial-gradient(circle at 50% 36%, var(--ret-purple-glow), transparent 24%), radial-gradient(circle at 50% 73%, rgba(34,197,94,0.08), transparent 22%), radial-gradient(circle at 24% 14%, rgba(245,158,11,0.06), transparent 20%), radial-gradient(circle at 78% 86%, rgba(170,165,230,0.10), transparent 22%)",
+							"radial-gradient(circle at 50% 38%, var(--ret-purple-glow), transparent 22%), radial-gradient(circle at 50% 80%, rgba(34,197,94,0.08), transparent 20%), radial-gradient(circle at 18% 12%, rgba(245,158,11,0.06), transparent 18%), radial-gradient(circle at 82% 88%, rgba(170,165,230,0.10), transparent 20%)",
 					}}
 				/>
 				<ReactFlow
@@ -939,7 +673,7 @@ export function ArchitectureFlow() {
 					onNodeClick={(_, node) => setActiveNodeId(node.id)}
 					onPaneClick={() => setActiveNodeId("machine")}
 					fitView
-					fitViewOptions={{ padding: 0.12 }}
+					fitViewOptions={{ padding: 0.10 }}
 					defaultViewport={{ x: 0, y: 0, zoom: 0.78 }}
 					minZoom={0.32}
 					maxZoom={1.6}
