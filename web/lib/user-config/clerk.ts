@@ -1,23 +1,24 @@
 /**
- * Clerk-backed multi-tenant user config store.
+ * Clerk-backed user config store with multi-provider, multi-machine support.
  *
- * Each signed-in user's `UserConfig` is stored in their Clerk private
- * metadata. Secrets (Dedalus API key, Cursor API key, Hermes bearer
- * token) live in `privateMetadata`; everything else (agent kind,
- * provider, machine spec, setup step, machine ID, bootstrap progress)
- * lives in `publicMetadata` so the client can read it without a separate
- * API roundtrip.
+ * Layout:
+ *   publicMetadata.providers   -- { dedalus: { configured }, ... } (no secrets)
+ *   publicMetadata.machines    -- MachineRef[] minus apiKey
+ *   publicMetadata.activeMachineId
+ *   publicMetadata.setupStep
+ *   publicMetadata.draft*      -- wizard scratch
+ *   privateMetadata.providers  -- ProviderCredentials with API keys
+ *   privateMetadata.machineApiKeys -- Record<machineId, gateway bearer>
+ *   privateMetadata.cursorApiKey
  *
- * Resolution rule: when a request arrives, we read the user's config.
- * If a field is missing on the user (new sign-up, partial wizard), we
- * fall through to the env var equivalent. This keeps the existing
- * single-tenant behavior alive for the project owner who already wired
- * `DEDALUS_API_KEY` + `HERMES_MACHINE_ID` into Vercel env, while letting
- * fresh users provision their own machine through the wizard.
+ * Splitting machine bearer tokens out of `MachineRef` and into a sibling
+ * private map keeps publicMetadata lean (Clerk caps each metadata field
+ * at 8KB) while still letting server code call `getUserConfig()` and
+ * receive a fully-populated config in one round-trip.
  *
- * The Clerk private metadata payload is small (4 strings + 1 enum), so
- * we don't bother chunking. The 8KB Clerk metadata limit applies to
- * each metadata field independently.
+ * Backward-compat: legacy single-machine configs (`dedalusApiKey`,
+ * `machineId`, `apiUrl`, `apiKey`) are migrated on first read into the
+ * new shape and persisted back, so deployed users keep their state.
  */
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -28,31 +29,17 @@ import {
 	DEFAULT_MODEL,
 	DEFAULT_USER_CONFIG,
 	INITIAL_BOOTSTRAP_STATE,
+	activeMachine,
 	type AgentKind,
 	type BootstrapPhaseId,
 	type BootstrapState,
+	type MachineRef,
 	type MachineSpec,
+	type ProviderCredentials,
 	type ProviderKind,
 	type SetupStep,
 	type UserConfig,
 } from "./schema";
-
-type RawPublicMeta = {
-	agentKind?: unknown;
-	providerKind?: unknown;
-	machineSpec?: unknown;
-	model?: unknown;
-	setupStep?: unknown;
-	machineId?: unknown;
-	apiUrl?: unknown;
-	bootstrapState?: unknown;
-};
-
-type RawPrivateMeta = {
-	dedalusApiKey?: unknown;
-	cursorApiKey?: unknown;
-	apiKey?: unknown;
-};
 
 const KNOWN_AGENTS: ReadonlySet<AgentKind> = new Set(["hermes", "openclaw"]);
 const KNOWN_PROVIDERS: ReadonlySet<ProviderKind> = new Set([
@@ -70,21 +57,21 @@ const KNOWN_STEPS: ReadonlySet<SetupStep> = new Set([
 ]);
 const KNOWN_PHASES: ReadonlySet<BootstrapPhaseId> = new Set(BOOTSTRAP_PHASES);
 
-function asString(value: unknown, fallback?: string): string | undefined {
+function asString(value: unknown): string | undefined {
 	if (typeof value === "string" && value.trim().length > 0) return value.trim();
-	return fallback;
+	return undefined;
 }
 
-function asAgent(value: unknown): AgentKind {
+function asAgent(value: unknown, fallback: AgentKind = "hermes"): AgentKind {
 	const v = asString(value);
-	return v && KNOWN_AGENTS.has(v as AgentKind) ? (v as AgentKind) : "hermes";
+	return v && KNOWN_AGENTS.has(v as AgentKind) ? (v as AgentKind) : fallback;
 }
 
-function asProvider(value: unknown): ProviderKind {
+function asProvider(value: unknown, fallback: ProviderKind = "dedalus"): ProviderKind {
 	const v = asString(value);
 	return v && KNOWN_PROVIDERS.has(v as ProviderKind)
 		? (v as ProviderKind)
-		: "dedalus";
+		: fallback;
 }
 
 function asStep(value: unknown): SetupStep {
@@ -101,13 +88,9 @@ function asSpec(value: unknown): MachineSpec {
 	return {
 		vcpu: Number.isFinite(vcpu) && vcpu > 0 ? vcpu : DEFAULT_MACHINE_SPEC.vcpu,
 		memoryMib:
-			Number.isFinite(mem) && mem > 0
-				? mem
-				: DEFAULT_MACHINE_SPEC.memoryMib,
+			Number.isFinite(mem) && mem > 0 ? mem : DEFAULT_MACHINE_SPEC.memoryMib,
 		storageGib:
-			Number.isFinite(stor) && stor > 0
-				? stor
-				: DEFAULT_MACHINE_SPEC.storageGib,
+			Number.isFinite(stor) && stor > 0 ? stor : DEFAULT_MACHINE_SPEC.storageGib,
 	};
 }
 
@@ -115,16 +98,15 @@ function asBootstrapState(value: unknown): BootstrapState {
 	if (!value || typeof value !== "object") return INITIAL_BOOTSTRAP_STATE;
 	const raw = value as Record<string, unknown>;
 	const phase = asString(raw.phase);
-	const allowedPhases = new Set(["idle", "running", "succeeded", "failed"]);
+	const allowed = new Set(["idle", "running", "succeeded", "failed"]);
 	const completed: BootstrapPhaseId[] = Array.isArray(raw.completed)
 		? raw.completed
 				.map((entry) => asString(entry))
 				.filter(
-					(entry): entry is string =>
+					(entry): entry is BootstrapPhaseId =>
 						typeof entry === "string" &&
 						KNOWN_PHASES.has(entry as BootstrapPhaseId),
 				)
-				.map((entry) => entry as BootstrapPhaseId)
 		: [];
 	const currentRaw = asString(raw.current);
 	const current =
@@ -132,7 +114,7 @@ function asBootstrapState(value: unknown): BootstrapState {
 			? (currentRaw as BootstrapPhaseId)
 			: null;
 	return {
-		phase: allowedPhases.has(phase ?? "")
+		phase: allowed.has(phase ?? "")
 			? (phase as BootstrapState["phase"])
 			: "idle",
 		current,
@@ -143,97 +125,193 @@ function asBootstrapState(value: unknown): BootstrapState {
 	};
 }
 
-/**
- * Default values pulled from Vercel env. Used as fallbacks when a user
- * hasn't filled in a wizard field yet, and as initial values when
- * pre-populating the wizard for the project owner.
- *
- * `hermes-agent` is the literal model id the deployed gateway exposes,
- * not anthropic/claude-sonnet. Keep it in sync with the bootstrap step
- * that writes Hermes config on the VM.
- */
-export function getEnvDefaults(): Partial<UserConfig> {
-	const env = process.env;
-	const defaults: Partial<UserConfig> = {};
-	if (env.DEDALUS_API_KEY) defaults.dedalusApiKey = env.DEDALUS_API_KEY.trim();
-	if (env.CURSOR_API_KEY) defaults.cursorApiKey = env.CURSOR_API_KEY.trim();
-	if (env.HERMES_MACHINE_ID)
-		defaults.machineId = env.HERMES_MACHINE_ID.trim();
-	if (env.HERMES_API_URL) defaults.apiUrl = env.HERMES_API_URL.trim();
-	if (env.HERMES_API_KEY) defaults.apiKey = env.HERMES_API_KEY.trim();
-	if (env.HERMES_MODEL) defaults.model = env.HERMES_MODEL.trim();
-	const vcpu = Number(env.HERMES_VCPU);
-	const mem = Number(env.HERMES_MEMORY_MIB);
-	const stor = Number(env.HERMES_STORAGE_GIB);
-	if (Number.isFinite(vcpu) || Number.isFinite(mem) || Number.isFinite(stor)) {
-		defaults.machineSpec = {
+function asMachineRefShallow(value: unknown): Omit<MachineRef, "apiKey"> | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	return {
+		id,
+		providerKind: asProvider(v.providerKind),
+		agentKind: asAgent(v.agentKind),
+		name: asString(v.name) ?? id.slice(0, 12),
+		spec: asSpec(v.spec),
+		model: asString(v.model) ?? DEFAULT_MODEL,
+		createdAt: asString(v.createdAt) ?? new Date().toISOString(),
+		apiUrl: asString(v.apiUrl) ?? null,
+		bootstrapState: asBootstrapState(v.bootstrapState),
+		archived: v.archived === true,
+	};
+}
+
+type RawPublic = Record<string, unknown>;
+type RawPrivate = Record<string, unknown>;
+
+function readEnvProviderCreds(): ProviderCredentials {
+	const out: ProviderCredentials = {};
+	const dedalusKey = process.env.DEDALUS_API_KEY?.trim();
+	if (dedalusKey) out.dedalus = { apiKey: dedalusKey };
+	return out;
+}
+
+function envFallbackMachine(): MachineRef | null {
+	const machineId = process.env.HERMES_MACHINE_ID?.trim();
+	const apiUrl = process.env.HERMES_API_URL?.trim() ?? null;
+	const apiKey = process.env.HERMES_API_KEY?.trim() ?? null;
+	const model = process.env.HERMES_MODEL?.trim() || DEFAULT_MODEL;
+	if (!machineId) return null;
+	const vcpu = Number(process.env.HERMES_VCPU);
+	const mem = Number(process.env.HERMES_MEMORY_MIB);
+	const stor = Number(process.env.HERMES_STORAGE_GIB);
+	return {
+		id: machineId,
+		providerKind: "dedalus",
+		agentKind: "hermes",
+		name: "owner-default",
+		spec: {
 			vcpu: Number.isFinite(vcpu) && vcpu > 0 ? vcpu : DEFAULT_MACHINE_SPEC.vcpu,
 			memoryMib:
-				Number.isFinite(mem) && mem > 0
-					? mem
-					: DEFAULT_MACHINE_SPEC.memoryMib,
+				Number.isFinite(mem) && mem > 0 ? mem : DEFAULT_MACHINE_SPEC.memoryMib,
 			storageGib:
 				Number.isFinite(stor) && stor > 0
 					? stor
 					: DEFAULT_MACHINE_SPEC.storageGib,
-		};
-	}
-	return defaults;
+		},
+		model,
+		createdAt: new Date(0).toISOString(),
+		apiUrl,
+		apiKey,
+		bootstrapState: { ...INITIAL_BOOTSTRAP_STATE, phase: "succeeded" },
+	};
 }
 
 /**
- * Render the owner-only seed values for the wizard. Returns a frozen
- * `UserConfig`-shaped object; the caller patches per-user choices on
- * top of it. Anyone signed in can call this -- there's no owner check
- * because the values come from the deployment's own env, not from
- * another user's account.
+ * Construct a `UserConfig` from the raw Clerk metadata payload.
+ *
+ * Migrates legacy fields (`dedalusApiKey`, single `machineId`, etc.)
+ * into the new shape so old users don't lose state. Migration is read-
+ * only here -- callers can persist back via `setUserConfig` if they
+ * want to harden the migration on disk.
+ */
+function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig {
+	const providers: ProviderCredentials = {};
+	const privateProviders =
+		(privateMeta.providers as ProviderCredentials | undefined) ?? {};
+	if (privateProviders.dedalus?.apiKey) {
+		providers.dedalus = { apiKey: privateProviders.dedalus.apiKey };
+	}
+	if (privateProviders["vercel-sandbox"]?.apiKey) {
+		providers["vercel-sandbox"] = {
+			apiKey: privateProviders["vercel-sandbox"].apiKey,
+			teamId: privateProviders["vercel-sandbox"].teamId,
+		};
+	}
+	if (privateProviders.fly?.apiKey) {
+		providers.fly = {
+			apiKey: privateProviders.fly.apiKey,
+			orgSlug: privateProviders.fly.orgSlug,
+		};
+	}
+	// Legacy single-key field.
+	const legacyDedalusKey = asString(privateMeta.dedalusApiKey);
+	if (legacyDedalusKey && !providers.dedalus) {
+		providers.dedalus = { apiKey: legacyDedalusKey };
+	}
+	// Owner env fallback (project owner who hasn't typed in the wizard).
+	const envCreds = readEnvProviderCreds();
+	if (!providers.dedalus && envCreds.dedalus) {
+		providers.dedalus = envCreds.dedalus;
+	}
+
+	const machineApiKeys =
+		(privateMeta.machineApiKeys as Record<string, string> | undefined) ?? {};
+
+	const rawMachines = Array.isArray(publicMeta.machines) ? publicMeta.machines : [];
+	const machines: MachineRef[] = rawMachines
+		.map((entry) => asMachineRefShallow(entry))
+		.filter((entry): entry is Omit<MachineRef, "apiKey"> => entry !== null)
+		.map((entry) => ({
+			...entry,
+			apiKey: machineApiKeys[entry.id] ?? null,
+		}));
+
+	// Legacy single-machine fields -- migrate into machines[].
+	const legacyMachineId = asString(publicMeta.machineId);
+	if (legacyMachineId && !machines.some((m) => m.id === legacyMachineId)) {
+		const legacyApiUrl = asString(publicMeta.apiUrl) ?? null;
+		const legacyApiKey =
+			asString(privateMeta.apiKey) ?? machineApiKeys[legacyMachineId] ?? null;
+		const legacyModel = asString(publicMeta.model) ?? DEFAULT_MODEL;
+		const legacySpec = asSpec(publicMeta.machineSpec);
+		const legacyAgent = asAgent(publicMeta.agentKind);
+		const legacyProvider = asProvider(publicMeta.providerKind);
+		machines.push({
+			id: legacyMachineId,
+			providerKind: legacyProvider,
+			agentKind: legacyAgent,
+			name: `${legacyAgent} (legacy)`,
+			spec: legacySpec,
+			model: legacyModel,
+			createdAt: new Date(0).toISOString(),
+			apiUrl: legacyApiUrl,
+			apiKey: legacyApiKey,
+			bootstrapState: { ...INITIAL_BOOTSTRAP_STATE, phase: "succeeded" },
+		});
+	}
+
+	// Owner env fallback as a virtual machine if user has none yet.
+	if (machines.length === 0) {
+		const envMachine = envFallbackMachine();
+		if (envMachine) machines.push(envMachine);
+	}
+
+	const activeFromMeta = asString(publicMeta.activeMachineId);
+	const activeMachineId = (() => {
+		if (activeFromMeta && machines.some((m) => m.id === activeFromMeta)) {
+			return activeFromMeta;
+		}
+		const live = machines.find((m) => !m.archived);
+		return live?.id ?? machines[0]?.id ?? null;
+	})();
+
+	const cursorApiKey =
+		asString(privateMeta.cursorApiKey) ??
+		process.env.CURSOR_API_KEY?.trim() ??
+		null;
+
+	return {
+		providers,
+		machines,
+		activeMachineId,
+		cursorApiKey,
+		setupStep: asStep(publicMeta.setupStep),
+		draftAgentKind: asAgent(
+			publicMeta.draftAgentKind ?? publicMeta.agentKind,
+		),
+		draftProviderKind: asProvider(
+			publicMeta.draftProviderKind ?? publicMeta.providerKind,
+		),
+		draftSpec: asSpec(publicMeta.draftSpec ?? publicMeta.machineSpec),
+		draftModel: asString(publicMeta.draftModel ?? publicMeta.model) ?? DEFAULT_MODEL,
+	};
+}
+
+/**
+ * Defaults exposed to the wizard's first-mount hydration. Shows the
+ * project owner's env-derived seed values when present, so the owner
+ * doesn't have to retype keys they already wired into Vercel.
  */
 export function getOwnerDefaults(): UserConfig {
 	return {
 		...DEFAULT_USER_CONFIG,
-		...getEnvDefaults(),
-		bootstrapState: { ...INITIAL_BOOTSTRAP_STATE },
-		machineSpec: getEnvDefaults().machineSpec ?? DEFAULT_MACHINE_SPEC,
-		model: getEnvDefaults().model ?? DEFAULT_MODEL,
+		providers: readEnvProviderCreds(),
+		machines: (() => {
+			const env = envFallbackMachine();
+			return env ? [env] : [];
+		})(),
 	};
 }
 
-function buildConfig(
-	publicMeta: RawPublicMeta,
-	privateMeta: RawPrivateMeta,
-): UserConfig {
-	const envDefaults = getEnvDefaults();
-	const machineId =
-		asString(publicMeta.machineId) ?? asString(envDefaults.machineId) ?? null;
-	const apiUrl =
-		asString(publicMeta.apiUrl) ?? asString(envDefaults.apiUrl) ?? null;
-	return {
-		agentKind: asAgent(publicMeta.agentKind),
-		providerKind: asProvider(publicMeta.providerKind),
-		machineSpec: publicMeta.machineSpec
-			? asSpec(publicMeta.machineSpec)
-			: envDefaults.machineSpec ?? DEFAULT_MACHINE_SPEC,
-		model:
-			asString(publicMeta.model) ?? envDefaults.model ?? DEFAULT_MODEL,
-		setupStep: asStep(publicMeta.setupStep),
-		machineId,
-		apiUrl,
-		dedalusApiKey:
-			asString(privateMeta.dedalusApiKey) ?? envDefaults.dedalusApiKey,
-		cursorApiKey:
-			asString(privateMeta.cursorApiKey) ??
-			envDefaults.cursorApiKey ??
-			null,
-		apiKey: asString(privateMeta.apiKey) ?? envDefaults.apiKey ?? null,
-		bootstrapState: asBootstrapState(publicMeta.bootstrapState),
-	};
-}
-
-/**
- * Read the current signed-in user's effective config. Throws if no user
- * is on the request -- the route should already have rejected via the
- * Clerk middleware, so this is a defensive double-check.
- */
 export async function getUserConfig(): Promise<UserConfig> {
 	const { userId } = await auth();
 	if (!userId) throw new Error("getUserConfig called without an authenticated user");
@@ -243,21 +321,43 @@ export async function getUserConfig(): Promise<UserConfig> {
 export async function getUserConfigById(userId: string): Promise<UserConfig> {
 	const client = await clerkClient();
 	const user = await client.users.getUser(userId);
-	const publicMeta = (user.publicMetadata ?? {}) as RawPublicMeta;
-	const privateMeta = (user.privateMetadata ?? {}) as RawPrivateMeta;
+	const publicMeta = (user.publicMetadata ?? {}) as RawPublic;
+	const privateMeta = (user.privateMetadata ?? {}) as RawPrivate;
 	return buildConfig(publicMeta, privateMeta);
 }
 
-/**
- * Persist a partial config update. Anything in `patch` that's a known
- * secret moves into `privateMetadata`; everything else lands in
- * `publicMetadata`. We always write both halves rather than `null` out
- * fields the caller didn't pass -- the existing Clerk metadata is
- * merged with the patch.
- */
-export async function setUserConfig(
-	patch: Partial<UserConfig>,
-): Promise<UserConfig> {
+/* ------------------------------------------------------------------ */
+/* Mutators                                                           */
+/* ------------------------------------------------------------------ */
+
+type ConfigPatch = {
+	providers?: ProviderCredentials;
+	cursorApiKey?: string | null;
+	setupStep?: SetupStep;
+	draftAgentKind?: AgentKind;
+	draftProviderKind?: ProviderKind;
+	draftSpec?: MachineSpec;
+	draftModel?: string;
+	activeMachineId?: string | null;
+	upsertMachine?: MachineRef;
+	patchMachine?: { id: string; patch: Partial<MachineRef> };
+	removeMachine?: string;
+	archiveMachine?: string;
+};
+
+function publicShape(machines: MachineRef[]): Array<Omit<MachineRef, "apiKey">> {
+	return machines.map(({ apiKey, ...rest }) => rest);
+}
+
+function machineKeyMap(machines: MachineRef[]): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const m of machines) {
+		if (m.apiKey) out[m.id] = m.apiKey;
+	}
+	return out;
+}
+
+export async function setUserConfig(patch: ConfigPatch): Promise<UserConfig> {
 	const { userId } = await auth();
 	if (!userId) throw new Error("setUserConfig called without an authenticated user");
 	return setUserConfigById(userId, patch);
@@ -265,44 +365,154 @@ export async function setUserConfig(
 
 export async function setUserConfigById(
 	userId: string,
-	patch: Partial<UserConfig>,
+	patch: ConfigPatch,
 ): Promise<UserConfig> {
 	const client = await clerkClient();
 	const user = await client.users.getUser(userId);
-	const existingPublic = (user.publicMetadata ?? {}) as Record<string, unknown>;
-	const existingPrivate = (user.privateMetadata ?? {}) as Record<string, unknown>;
+	const existingPublic = { ...(user.publicMetadata ?? {}) } as RawPublic;
+	const existingPrivate = { ...(user.privateMetadata ?? {}) } as RawPrivate;
 
-	const nextPublic: Record<string, unknown> = { ...existingPublic };
-	const nextPrivate: Record<string, unknown> = { ...existingPrivate };
+	const current = buildConfig(existingPublic, existingPrivate);
 
-	if (patch.agentKind !== undefined) nextPublic.agentKind = patch.agentKind;
-	if (patch.providerKind !== undefined) nextPublic.providerKind = patch.providerKind;
-	if (patch.machineSpec !== undefined) nextPublic.machineSpec = patch.machineSpec;
-	if (patch.model !== undefined) nextPublic.model = patch.model;
-	if (patch.setupStep !== undefined) nextPublic.setupStep = patch.setupStep;
-	if (patch.machineId !== undefined) nextPublic.machineId = patch.machineId;
-	if (patch.apiUrl !== undefined) nextPublic.apiUrl = patch.apiUrl;
-	if (patch.bootstrapState !== undefined)
-		nextPublic.bootstrapState = patch.bootstrapState;
+	// Providers (privateMetadata.providers).
+	const nextProviders: ProviderCredentials = { ...current.providers };
+	if (patch.providers) {
+		for (const kind of Object.keys(patch.providers) as ProviderKind[]) {
+			const value = patch.providers[kind];
+			if (value === undefined) continue;
+			if (value === null) {
+				delete nextProviders[kind];
+			} else {
+				nextProviders[kind] = value;
+			}
+		}
+	}
 
-	if (patch.dedalusApiKey !== undefined)
-		nextPrivate.dedalusApiKey = patch.dedalusApiKey;
-	if (patch.cursorApiKey !== undefined)
-		nextPrivate.cursorApiKey = patch.cursorApiKey;
-	if (patch.apiKey !== undefined) nextPrivate.apiKey = patch.apiKey;
+	// Machines (publicMetadata.machines + privateMetadata.machineApiKeys).
+	let nextMachines: MachineRef[] = [...current.machines];
+	if (patch.upsertMachine) {
+		const upsert = patch.upsertMachine;
+		const idx = nextMachines.findIndex((m) => m.id === upsert.id);
+		if (idx >= 0) nextMachines[idx] = upsert;
+		else nextMachines = [upsert, ...nextMachines];
+	}
+	if (patch.patchMachine) {
+		const { id, patch: mp } = patch.patchMachine;
+		nextMachines = nextMachines.map((m) =>
+			m.id === id ? { ...m, ...mp } : m,
+		);
+	}
+	if (patch.removeMachine) {
+		const id = patch.removeMachine;
+		nextMachines = nextMachines.filter((m) => m.id !== id);
+	}
+	if (patch.archiveMachine) {
+		const id = patch.archiveMachine;
+		nextMachines = nextMachines.map((m) =>
+			m.id === id ? { ...m, archived: true } : m,
+		);
+	}
+
+	let nextActive = current.activeMachineId;
+	if (patch.activeMachineId !== undefined) {
+		nextActive = patch.activeMachineId;
+	}
+	if (
+		nextActive &&
+		!nextMachines.some((m) => m.id === nextActive && !m.archived)
+	) {
+		nextActive = nextMachines.find((m) => !m.archived)?.id ?? null;
+	}
+	if (!nextActive) {
+		nextActive = nextMachines.find((m) => !m.archived)?.id ?? null;
+	}
+
+	const nextCursor =
+		patch.cursorApiKey !== undefined ? patch.cursorApiKey : current.cursorApiKey;
+
+	const nextStep = patch.setupStep ?? current.setupStep;
+	const nextDraftAgent = patch.draftAgentKind ?? current.draftAgentKind;
+	const nextDraftProvider = patch.draftProviderKind ?? current.draftProviderKind;
+	const nextDraftSpec = patch.draftSpec ?? current.draftSpec;
+	const nextDraftModel = patch.draftModel ?? current.draftModel;
+
+	const nextPublic: RawPublic = {
+		...existingPublic,
+		machines: publicShape(nextMachines),
+		activeMachineId: nextActive,
+		setupStep: nextStep,
+		draftAgentKind: nextDraftAgent,
+		draftProviderKind: nextDraftProvider,
+		draftSpec: nextDraftSpec,
+		draftModel: nextDraftModel,
+	};
+	// Tear down legacy single-machine fields once we've migrated them
+	// into machines[]. Leave keys we don't own untouched.
+	delete nextPublic.machineId;
+	delete nextPublic.apiUrl;
+	delete nextPublic.machineSpec;
+	delete nextPublic.model;
+	delete nextPublic.agentKind;
+	delete nextPublic.providerKind;
+
+	const nextPrivate: RawPrivate = {
+		...existingPrivate,
+		providers: nextProviders,
+		machineApiKeys: machineKeyMap(nextMachines),
+	};
+	if (nextCursor === null) {
+		delete nextPrivate.cursorApiKey;
+	} else {
+		nextPrivate.cursorApiKey = nextCursor;
+	}
+	// Drop the legacy single-key field once we've absorbed it.
+	delete nextPrivate.dedalusApiKey;
+	delete nextPrivate.apiKey;
 
 	await client.users.updateUserMetadata(userId, {
 		publicMetadata: nextPublic,
 		privateMetadata: nextPrivate,
 	});
 
-	return buildConfig(nextPublic as RawPublicMeta, nextPrivate as RawPrivateMeta);
+	return buildConfig(nextPublic, nextPrivate);
+}
+
+/* ------------------------------------------------------------------ */
+/* Resolvers used by API routes                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Resolve the env-shape needed to talk to a specific machine's
+ * Dedalus host. Only Dedalus machines have a Dedalus API call surface;
+ * Vercel Sandbox + Fly use their own SDKs so this throws if you call
+ * it on a non-Dedalus machine. The caller picks the right API per kind.
+ */
+export async function getDedalusEnvForMachine(machine: MachineRef): Promise<{
+	apiKey: string;
+	baseUrl: string;
+	machineId: string;
+}> {
+	const config = await getUserConfig();
+	if (machine.providerKind !== "dedalus") {
+		throw new Error(
+			`getDedalusEnvForMachine called on a ${machine.providerKind} machine`,
+		);
+	}
+	const apiKey = config.providers.dedalus?.apiKey;
+	if (!apiKey) {
+		throw new Error(
+			"DEDALUS_API_KEY is not set on this user. Add it in /dashboard/setup.",
+		);
+	}
+	const baseUrl = (process.env.DEDALUS_BASE_URL ?? "https://dcs.dedaluslabs.ai")
+		.trim()
+		.replace(/\/$/, "");
+	return { apiKey, baseUrl, machineId: machine.id };
 }
 
 /**
- * Resolve the effective Dedalus environment for a user. The dashboard
- * read endpoints call this to get `{ apiKey, baseUrl, machineId }` --
- * one place to change if we ever switch storage backends.
+ * Convenience wrapper -- resolve env for the user's currently-active
+ * machine. Most dashboard read paths call this.
  */
 export async function getDedalusEnvForUser(): Promise<{
 	apiKey: string;
@@ -310,27 +520,18 @@ export async function getDedalusEnvForUser(): Promise<{
 	machineId: string;
 }> {
 	const config = await getUserConfig();
-	const apiKey = config.dedalusApiKey;
-	const machineId = config.machineId;
-	const baseUrl = (process.env.DEDALUS_BASE_URL ?? "https://dcs.dedaluslabs.ai")
-		.trim()
-		.replace(/\/$/, "");
-	if (!apiKey) {
+	const machine = activeMachine(config);
+	if (!machine) {
 		throw new Error(
-			"DEDALUS_API_KEY is not set on this user. Complete /dashboard/setup first.",
+			"No machine selected. Provision one via /dashboard/setup or pick one in /dashboard/machines.",
 		);
 	}
-	if (!machineId) {
-		throw new Error(
-			"HERMES_MACHINE_ID is not set on this user. Complete /dashboard/setup -> provision first.",
-		);
-	}
-	return { apiKey, baseUrl, machineId };
+	return getDedalusEnvForMachine(machine);
 }
 
 /**
- * Resolve the effective Hermes gateway env for a user. Returns the
- * fields needed to call the OpenAI-compatible API.
+ * Resolve the gateway env (URL + bearer + model) for the user's
+ * currently-active machine. Used by the chat route + gateway probe.
  */
 export async function getGatewayEnvForUser(): Promise<{
 	apiUrl: string;
@@ -338,19 +539,25 @@ export async function getGatewayEnvForUser(): Promise<{
 	model: string;
 }> {
 	const config = await getUserConfig();
-	const apiUrl = config.apiUrl;
-	const apiKey = config.apiKey;
-	if (!apiUrl) {
+	const machine = activeMachine(config);
+	if (!machine) {
 		throw new Error(
-			"HERMES_API_URL is not set on this user. Run /dashboard/setup -> provision and wait for bootstrap to finish.",
+			"No machine selected. Pick one in /dashboard/machines or provision via /dashboard/setup.",
 		);
 	}
-	if (!apiKey) {
-		throw new Error("HERMES_API_KEY is not set on this user.");
+	if (!machine.apiUrl) {
+		throw new Error(
+			`Machine ${machine.id} has no gateway URL on file yet -- finish bootstrap first.`,
+		);
+	}
+	if (!machine.apiKey) {
+		throw new Error(
+			`Machine ${machine.id} has no gateway bearer on file. Save one via /dashboard/machines.`,
+		);
 	}
 	return {
-		apiUrl: apiUrl.replace(/\/$/, ""),
-		apiKey,
-		model: config.model,
+		apiUrl: machine.apiUrl.replace(/\/$/, ""),
+		apiKey: machine.apiKey,
+		model: machine.model,
 	};
 }

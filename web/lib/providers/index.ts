@@ -1,0 +1,66 @@
+/**
+ * Provider factory.
+ *
+ * `getProvider(kind, creds)` returns a `MachineProvider` bound to a
+ * user's credentials. Routes call this once per request rather than
+ * holding instances long-lived; provider classes are stateless so the
+ * cost is just the (cheap) constructor call.
+ */
+
+import type {
+	ProviderCredentials,
+	ProviderKind,
+} from "@/lib/user-config/schema";
+
+import { DedalusProvider } from "./dedalus";
+import { FlyProvider } from "./fly";
+import { MachineProviderError, type MachineProvider } from "./types";
+import { VercelSandboxProvider } from "./vercel-sandbox";
+
+export function getProvider(
+	kind: ProviderKind,
+	credentials: ProviderCredentials,
+): MachineProvider {
+	switch (kind) {
+		case "dedalus": {
+			const creds = credentials.dedalus;
+			if (!creds?.apiKey) {
+				throw new MachineProviderError(
+					"dedalus",
+					"missing_credentials",
+					"No Dedalus API key on file. Add one via /dashboard/setup step 1.",
+				);
+			}
+			return new DedalusProvider(creds);
+		}
+		case "vercel-sandbox": {
+			const creds = credentials["vercel-sandbox"];
+			if (!creds?.apiKey) {
+				throw new MachineProviderError(
+					"vercel-sandbox",
+					"missing_credentials",
+					"No Vercel API token on file. Add one via /dashboard/setup step 1.",
+				);
+			}
+			return new VercelSandboxProvider(creds);
+		}
+		case "fly": {
+			const creds = credentials.fly;
+			if (!creds?.apiKey) {
+				throw new MachineProviderError(
+					"fly",
+					"missing_credentials",
+					"No Fly.io API token on file. Add one via /dashboard/setup step 1.",
+				);
+			}
+			return new FlyProvider(creds);
+		}
+		default: {
+			const exhaustive: never = kind;
+			throw new Error(`Unknown provider kind: ${String(exhaustive)}`);
+		}
+	}
+}
+
+export type { MachineProvider, MachineState, ProviderMachineSummary } from "./types";
+export { MachineProviderError } from "./types";

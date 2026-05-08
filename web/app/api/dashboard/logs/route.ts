@@ -59,7 +59,8 @@ export async function GET(request: Request): Promise<Response> {
 		: DEFAULT_N;
 
 	const config = await getUserConfig();
-	if (!config.dedalusApiKey || !config.machineId) {
+	const active = config.machines.find((m) => m.id === config.activeMachineId);
+	if (!active || !config.providers.dedalus?.apiKey) {
 		const envelope: LiveDataEnvelope<LogsPayload> = {
 			ok: false,
 			reason: "config_missing",

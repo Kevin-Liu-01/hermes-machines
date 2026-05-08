@@ -33,12 +33,13 @@ export async function POST(): Promise<Response> {
 	}
 
 	const config = await getUserConfig();
-	if (!config.dedalusApiKey || !config.machineId) {
+	const active = config.machines.find((m) => m.id === config.activeMachineId);
+	if (!active || !config.providers.dedalus?.apiKey) {
 		return Response.json(
 			{
 				error: "not_provisioned",
 				message:
-					"No machine configured for this user. Complete /dashboard/setup first.",
+					"No active machine configured. Complete /dashboard/setup first.",
 			},
 			{ status: 404 },
 		);

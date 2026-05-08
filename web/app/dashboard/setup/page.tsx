@@ -6,25 +6,23 @@ import { toPublicConfig } from "@/lib/user-config/schema";
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
-	const [config, defaults] = await Promise.all([
-		getUserConfig(),
-		Promise.resolve(getOwnerDefaults()),
-	]);
+	const config = await getUserConfig();
+	const defaults = getOwnerDefaults();
 	return (
 		<div className="flex flex-col">
 			<PageHeader
 				kicker="SETUP"
 				title="Provision your agent"
-				description="Five steps. Bring a Dedalus API key, pick an agent + provider, size the box, then provision. Your config persists across sessions in Clerk metadata."
+				description="Bring an API key for any supported provider, pick an agent, size the box, and provision. Each user gets their own machine; secrets persist in Clerk private metadata."
 			/>
 			<SetupWizard
 				initialConfig={toPublicConfig(config)}
 				defaults={{
-					machineSpec: defaults.machineSpec,
-					model: defaults.model,
-					hasOwnerDedalusKey: Boolean(defaults.dedalusApiKey),
+					machineSpec: defaults.draftSpec,
+					model: defaults.draftModel,
+					hasOwnerDedalusKey: Boolean(defaults.providers.dedalus?.apiKey),
 					hasOwnerCursorKey: Boolean(defaults.cursorApiKey),
-					hasOwnerMachine: Boolean(defaults.machineId),
+					hasOwnerMachine: defaults.machines.length > 0,
 				}}
 			/>
 		</div>

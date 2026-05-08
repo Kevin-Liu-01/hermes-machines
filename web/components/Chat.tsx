@@ -77,14 +77,36 @@ async function* readSseDeltas(
 	}
 }
 
-export function Chat() {
-	const [messages, setMessages] = useState<Array<Message>>([]);
+export type ChatProps = {
+	messages: Message[];
+	onMessagesChange: (next: Message[]) => void;
+	onTurnComplete?: (final: Message[]) => void;
+	disabled?: boolean;
+	disabledReason?: string;
+};
+
+/**
+ * Controlled chat component. Parent owns the message buffer; this
+ * component owns the streaming state, the textarea, and SSE plumbing.
+ *
+ * `onTurnComplete` fires after the assistant finishes a stream so the
+ * parent can persist the new turn (chat sidebar in dashboard chat).
+ */
+export function Chat({
+	messages,
+	onMessagesChange,
+	onTurnComplete,
+	disabled,
+	disabledReason,
+}: ChatProps) {
 	const [input, setInput] = useState("");
 	const [state, setState] = useState<StreamState>("idle");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [health, setHealth] = useState<HealthInfo | null>(null);
 	const transcriptRef = useRef<HTMLDivElement>(null);
 	const abortRef = useRef<AbortController | null>(null);
+	const messagesRef = useRef(messages);
+	messagesRef.current = messages;
 
 	useEffect(() => {
 		fetch("/api/health")
@@ -102,7 +124,7 @@ export function Chat() {
 	const send = useCallback(
 		async (text: string) => {
 			const trimmed = text.trim();
-			if (!trimmed || state === "streaming") return;
+			if (!trimmed || state === "streaming" || disabled) return;
 
 			setErrorMessage(null);
 			const userMsg: Message = {
@@ -117,8 +139,9 @@ export function Chat() {
 				content: "",
 				createdAt: Date.now(),
 			};
-			const next = [...messages, userMsg, assistantMsg];
-			setMessages(next);
+			const next = [...messagesRef.current, userMsg, assistantMsg];
+			onMessagesChange(next);
+			messagesRef.current = next;
 			setInput("");
 			setState("streaming");
 
@@ -147,16 +170,14 @@ export function Chat() {
 				let acc = "";
 				for await (const delta of readSseDeltas(response.body)) {
 					acc += delta;
-					setMessages((prev) => {
-						const copy = [...prev];
-						const last = copy[copy.length - 1];
-						if (last && last.id === assistantMsg.id) {
-							copy[copy.length - 1] = { ...last, content: acc };
-						}
-						return copy;
-					});
+					const updated = messagesRef.current.map((m) =>
+						m.id === assistantMsg.id ? { ...m, content: acc } : m,
+					);
+					messagesRef.current = updated;
+					onMessagesChange(updated);
 				}
 				setState("idle");
+				onTurnComplete?.(messagesRef.current);
 			} catch (err) {
 				if (ctrl.signal.aborted) {
 					setState("idle");
@@ -165,30 +186,21 @@ export function Chat() {
 				const message = err instanceof Error ? err.message : "unknown_error";
 				setErrorMessage(message);
 				setState("error");
-				setMessages((prev) => {
-					const copy = [...prev];
-					const last = copy[copy.length - 1];
-					if (last && last.role === "assistant" && last.content === "") {
-						copy.pop();
-					}
-					return copy;
-				});
+				const trimmedMessages = messagesRef.current.filter(
+					(m) => !(m.id === assistantMsg.id && m.content === ""),
+				);
+				messagesRef.current = trimmedMessages;
+				onMessagesChange(trimmedMessages);
 			} finally {
 				abortRef.current = null;
 			}
 		},
-		[messages, state],
+		[disabled, onMessagesChange, onTurnComplete, state],
 	);
 
 	const stop = useCallback(() => {
 		abortRef.current?.abort();
 		abortRef.current = null;
-		setState("idle");
-	}, []);
-
-	const reset = useCallback(() => {
-		setMessages([]);
-		setErrorMessage(null);
 		setState("idle");
 	}, []);
 
@@ -210,7 +222,7 @@ export function Chat() {
 		[input, send],
 	);
 
-	const showStarters = messages.length === 0;
+	const showStarters = messages.length === 0 && !disabled;
 	const statusBadge = useMemo(() => {
 		if (!health) return <ReticleBadge>probing…</ReticleBadge>;
 		if (health.ok) {
@@ -242,11 +254,6 @@ export function Chat() {
 							Stop
 						</ReticleButton>
 					) : null}
-					{messages.length > 0 ? (
-						<ReticleButton variant="ghost" size="sm" onClick={reset}>
-							New session
-						</ReticleButton>
-					) : null}
 				</div>
 			</header>
 
@@ -255,6 +262,11 @@ export function Chat() {
 					ref={transcriptRef}
 					className="flex max-h-[60vh] min-h-[420px] flex-col gap-5 overflow-y-auto p-5 md:p-7"
 				>
+					{disabled && disabledReason ? (
+						<div className="border border-[var(--ret-amber)]/40 bg-[var(--ret-amber)]/5 p-4 font-mono text-[12px] text-[var(--ret-amber)]">
+							{disabledReason}
+						</div>
+					) : null}
 					{showStarters ? <StarterGrid onPick={send} /> : null}
 					{messages.map((m) => (
 						<MessageRow key={m.id} message={m} streaming={state === "streaming"} />
@@ -279,18 +291,22 @@ export function Chat() {
 							"focus:border-[var(--ret-purple)] focus:outline-none",
 							"font-mono",
 						)}
-						placeholder="Ask Hermes something. Shift+Enter for newline."
+						placeholder={
+							disabled
+								? "Pick or provision a machine first."
+								: "Ask the agent something. Shift+Enter for newline."
+						}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={onTextareaKey}
 						rows={1}
-						disabled={state === "streaming"}
+						disabled={state === "streaming" || disabled}
 					/>
 					<ReticleButton
 						type="submit"
 						variant="primary"
 						size="md"
-						disabled={state === "streaming" || !input.trim()}
+						disabled={state === "streaming" || disabled || !input.trim()}
 					>
 						Send
 					</ReticleButton>
@@ -332,8 +348,7 @@ function MessageRow({
 	streaming: boolean;
 }) {
 	const isUser = message.role === "user";
-	const isStreaming =
-		streaming && !isUser && message.content === "";
+	const isStreaming = streaming && !isUser && message.content === "";
 	return (
 		<div
 			className={cn(
@@ -342,7 +357,7 @@ function MessageRow({
 			)}
 		>
 			<span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)]">
-				{isUser ? "you" : "hermes"}
+				{isUser ? "you" : "agent"}
 			</span>
 			<div
 				className={cn(

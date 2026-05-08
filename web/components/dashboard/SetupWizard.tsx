@@ -35,31 +35,21 @@ type Props = {
 	defaults: WizardDefaults;
 };
 
-type StepDef = {
-	id: SetupStep;
-	label: string;
-	hint: string;
-};
+type StepDef = { id: SetupStep; label: string; hint: string };
 
 const STEPS: ReadonlyArray<StepDef> = [
-	{ id: "api-key", label: "API key", hint: "dedalus" },
-	{ id: "agent", label: "Agent", hint: "hermes / openclaw" },
+	{ id: "api-key", label: "Credentials", hint: "provider key(s)" },
+	{ id: "agent", label: "Agent", hint: "personality" },
 	{ id: "provider", label: "Provider", hint: "where it runs" },
-	{ id: "spec", label: "Spec", hint: "vcpu . mem . disk" },
+	{ id: "spec", label: "Spec", hint: "size + model" },
 	{ id: "review", label: "Review", hint: "confirm" },
-	{ id: "provisioned", label: "Provisioned", hint: "machine live" },
+	{ id: "provisioned", label: "Done", hint: "machine live" },
 ];
 
-const NEXT_OF: Record<SetupStep, SetupStep | null> = {
-	"api-key": "agent",
-	agent: "provider",
-	provider: "spec",
-	spec: "review",
-	review: "provisioned",
-	provisioned: null,
-};
-
-const AGENTS_DESC: Record<AgentKind, { name: string; tagline: string; logo: "nous" | "dedalus" }> = {
+const AGENTS_DESC: Record<
+	AgentKind,
+	{ name: string; tagline: string; logo: "nous" | "dedalus" }
+> = {
 	hermes: {
 		name: "Hermes",
 		tagline:
@@ -76,35 +66,31 @@ const AGENTS_DESC: Record<AgentKind, { name: string; tagline: string; logo: "nou
 
 const PROVIDERS_DESC: Record<
 	ProviderKind,
-	{ name: string; tagline: string; ready: boolean }
+	{ name: string; tagline: string; ready: boolean; keyHint: string }
 > = {
 	dedalus: {
 		name: "Dedalus Machines",
 		tagline:
-			"Firecracker microVMs with sleep/wake, persistent /home/machine volume, cloudflared previews. The original.",
+			"Firecracker microVMs with sleep/wake, persistent /home/machine, cloudflared previews. The original.",
 		ready: true,
+		keyHint: "dsk-live-...",
 	},
 	"vercel-sandbox": {
 		name: "Vercel Sandbox",
 		tagline:
-			"Ephemeral Firecracker microVMs from Vercel. No sleep/wake; each run is a fresh box. Lands in PR4.",
+			"Ephemeral Firecracker microVMs from Vercel. Max 45 minute runtime, fresh each session. Provider key accepted now; install lands in PR4.",
 		ready: false,
+		keyHint: "Vercel API token",
 	},
 	fly: {
 		name: "Fly Machines",
 		tagline:
-			"Fly.io's Firecracker microVMs. Global placement, autostart on connect. Lands in PR4.",
+			"Fly.io persistent microVMs with autostart on connect. Provider key accepted now; install lands in PR4.",
 		ready: false,
+		keyHint: "fly_pat_... or FlyV1 ...",
 	},
 };
 
-/**
- * Multi-step wizard for provisioning a per-user agent. Each step is a
- * standalone POST to `/api/dashboard/admin/setup`, so a refresh resumes
- * at the same step instead of starting over. The "review" step's
- * "Provision" button hits the dedicated provision endpoint and saves
- * the resulting machine ID into the user's config.
- */
 export function SetupWizard({ initialConfig, defaults }: Props) {
 	const router = useRouter();
 	const [config, setConfig] = useState<PublicUserConfig>(initialConfig);
@@ -183,11 +169,12 @@ export function SetupWizard({ initialConfig, defaults }: Props) {
 				return;
 			}
 			setActiveStep("provisioned");
-			setConfig((prev) => ({
-				...prev,
-				machineId: body.machineId ?? prev.machineId,
-				setupStep: "provisioned",
-			}));
+			// Refresh config to pick up the new machine.
+			const fresh = await fetch("/api/dashboard/admin/setup");
+			if (fresh.ok) {
+				const json = (await fresh.json()) as { config: PublicUserConfig };
+				setConfig(json.config);
+			}
 			router.refresh();
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "network error");
@@ -213,53 +200,52 @@ export function SetupWizard({ initialConfig, defaults }: Props) {
 			) : null}
 
 			{activeStep === "api-key" ? (
-				<ApiKeyStep
-					hasKey={config.hasDedalusKey}
-					hasOwnerKey={defaults.hasOwnerDedalusKey}
-					hasCursorKey={config.hasCursorKey}
-					hasOwnerCursorKey={defaults.hasOwnerCursorKey}
+				<CredentialsStep
+					config={config}
+					hasOwnerDedalusKey={defaults.hasOwnerDedalusKey}
 					busy={busy}
-					onSave={async (dedalusApiKey, cursorApiKey) => {
+					onSave={async (creds, cursorApiKey) => {
 						const patch: Record<string, unknown> = {
 							setupStep: "agent",
+							providerCredentials: creds,
 						};
-						if (dedalusApiKey) patch.dedalusApiKey = dedalusApiKey;
-						if (cursorApiKey !== undefined)
-							patch.cursorApiKey = cursorApiKey;
+						if (cursorApiKey !== undefined) patch.cursorApiKey = cursorApiKey;
 						const ok = await submitPatch(patch);
 						if (ok) setActiveStep("agent");
 					}}
-					onSkip={() => advanceTo("agent")}
 				/>
 			) : null}
 
 			{activeStep === "agent" ? (
 				<AgentStep
-					value={config.agentKind}
+					value={config.draftAgentKind}
 					busy={busy}
-					onSelect={async (agentKind) => advanceTo("provider", { agentKind })}
+					onSelect={async (agentKind) =>
+						advanceTo("provider", { draftAgentKind: agentKind })
+					}
 				/>
 			) : null}
 
 			{activeStep === "provider" ? (
 				<ProviderStep
-					value={config.providerKind}
+					value={config.draftProviderKind}
+					configured={config.providers}
 					busy={busy}
 					onSelect={async (providerKind) =>
-						advanceTo("spec", { providerKind })
+						advanceTo("spec", { draftProviderKind: providerKind })
 					}
 				/>
 			) : null}
 
 			{activeStep === "spec" ? (
 				<SpecStep
-					value={config.machineSpec}
+					value={config.draftSpec}
 					defaults={defaults.machineSpec}
-					model={config.model}
+					model={config.draftModel}
 					defaultModel={defaults.model}
 					busy={busy}
-					onSave={async (machineSpec, model) =>
-						advanceTo("review", { machineSpec, model })
+					onSave={async (spec, model) =>
+						advanceTo("review", { draftSpec: spec, draftModel: model })
 					}
 				/>
 			) : null}
@@ -277,7 +263,7 @@ export function SetupWizard({ initialConfig, defaults }: Props) {
 				<ProvisionedStep
 					config={config}
 					onChat={() => router.push("/dashboard/chat")}
-					onOverview={() => router.push("/dashboard")}
+					onMachines={() => router.push("/dashboard/machines")}
 				/>
 			) : null}
 		</div>
@@ -368,79 +354,149 @@ function StepShell({
 	);
 }
 
-function ApiKeyStep({
-	hasKey,
-	hasOwnerKey,
-	hasCursorKey,
-	hasOwnerCursorKey,
+type CredsState = {
+	dedalus: string;
+	vercelSandbox: string;
+	vercelSandboxTeam: string;
+	fly: string;
+	flyOrg: string;
+	cursor: string;
+};
+
+function CredentialsStep({
+	config,
+	hasOwnerDedalusKey,
 	busy,
 	onSave,
-	onSkip,
 }: {
-	hasKey: boolean;
-	hasOwnerKey: boolean;
-	hasCursorKey: boolean;
-	hasOwnerCursorKey: boolean;
+	config: PublicUserConfig;
+	hasOwnerDedalusKey: boolean;
 	busy: boolean;
-	onSave: (dedalus: string, cursor: string | undefined) => Promise<void>;
-	onSkip: () => void;
+	onSave: (
+		creds: {
+			dedalus?: { apiKey: string };
+			"vercel-sandbox"?: { apiKey: string; teamId?: string };
+			fly?: { apiKey: string; orgSlug?: string };
+		},
+		cursorApiKey: string | undefined,
+	) => Promise<void>;
 }) {
-	const [dedalus, setDedalus] = useState("");
-	const [cursor, setCursor] = useState("");
+	const [state, setState] = useState<CredsState>({
+		dedalus: "",
+		vercelSandbox: "",
+		vercelSandboxTeam: "",
+		fly: "",
+		flyOrg: "",
+		cursor: "",
+	});
+
+	const dedalusOnFile = config.providers.dedalus.configured;
+	const vercelOnFile = config.providers["vercel-sandbox"].configured;
+	const flyOnFile = config.providers.fly.configured;
+	const cursorOnFile = config.hasCursorKey;
+	const anyConfigured =
+		dedalusOnFile || vercelOnFile || flyOnFile || hasOwnerDedalusKey;
+
+	function buildPatch() {
+		const creds: Parameters<typeof onSave>[0] = {};
+		if (state.dedalus.trim()) {
+			creds.dedalus = { apiKey: state.dedalus.trim() };
+		}
+		if (state.vercelSandbox.trim()) {
+			creds["vercel-sandbox"] = {
+				apiKey: state.vercelSandbox.trim(),
+				teamId: state.vercelSandboxTeam.trim() || undefined,
+			};
+		}
+		if (state.fly.trim()) {
+			creds.fly = {
+				apiKey: state.fly.trim(),
+				orgSlug: state.flyOrg.trim() || undefined,
+			};
+		}
+		const cursor = state.cursor.trim();
+		return { creds, cursor: cursor.length > 0 ? cursor : undefined };
+	}
 
 	return (
 		<StepShell
-			title="Bring your Dedalus API key"
-			description="Get one at dcs.dedaluslabs.ai. Stored in your Clerk private metadata, never sent to the browser. Cursor key is optional -- only needed if you plan to use the cursor-bridge MCP for code generation."
+			title="Bring API keys for the providers you'll use"
+			description="One per provider. Each is stored in your Clerk private metadata, never exposed to the browser. You can add more later from /dashboard/setup. At least one provider key is required to provision; Cursor is optional and only needed for the cursor-bridge MCP."
 		>
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid gap-4 lg:grid-cols-3">
 				<KeyField
 					label="Dedalus API key"
 					placeholder="dsk-live-..."
-					value={dedalus}
-					onChange={setDedalus}
+					value={state.dedalus}
+					onChange={(v) => setState((s) => ({ ...s, dedalus: v }))}
 					hint={
-						hasKey
-							? "On file. Leave blank to keep the existing key."
-							: hasOwnerKey
+						dedalusOnFile
+							? "On file. Leave blank to keep."
+							: hasOwnerDedalusKey
 								? "Owner default exists. Leave blank to inherit."
-								: "Required to provision a machine."
+								: "Required for the Dedalus provider."
 					}
-					required={!hasKey && !hasOwnerKey}
 				/>
 				<KeyField
-					label="Cursor API key (optional)"
-					placeholder="cursor-..."
-					value={cursor}
-					onChange={setCursor}
+					label="Vercel API token"
+					placeholder="Vercel API token"
+					value={state.vercelSandbox}
+					onChange={(v) => setState((s) => ({ ...s, vercelSandbox: v }))}
 					hint={
-						hasCursorKey
-							? "On file. Leave blank to keep."
-							: hasOwnerCursorKey
-								? "Owner default exists. Leave blank to inherit."
-								: "Optional. Skip for now if you don't have one."
+						vercelOnFile ? "On file. Leave blank to keep." : "Optional. Vercel Sandbox provider (PR4)."
 					}
+					secondary={{
+						label: "Vercel team id (optional)",
+						placeholder: "team_...",
+						value: state.vercelSandboxTeam,
+						onChange: (v) =>
+							setState((s) => ({ ...s, vercelSandboxTeam: v })),
+					}}
+				/>
+				<KeyField
+					label="Fly.io token"
+					placeholder="fly_pat_... or FlyV1 ..."
+					value={state.fly}
+					onChange={(v) => setState((s) => ({ ...s, fly: v }))}
+					hint={
+						flyOnFile ? "On file. Leave blank to keep." : "Optional. Fly Machines provider (PR4)."
+					}
+					secondary={{
+						label: "Fly org slug (optional)",
+						placeholder: "personal",
+						value: state.flyOrg,
+						onChange: (v) => setState((s) => ({ ...s, flyOrg: v })),
+					}}
 				/>
 			</div>
+			<KeyField
+				label="Cursor API key (optional)"
+				placeholder="cursor-..."
+				value={state.cursor}
+				onChange={(v) => setState((s) => ({ ...s, cursor: v }))}
+				hint={
+					cursorOnFile
+						? "On file. Leave blank to keep."
+						: "Optional. Enables cursor-bridge MCP for code work."
+				}
+			/>
 			<div className="flex flex-wrap items-center justify-end gap-2">
 				<ReticleButton
 					variant="ghost"
 					size="sm"
-					onClick={onSkip}
-					disabled={busy || (!hasKey && !hasOwnerKey)}
+					onClick={() => onSave({}, undefined)}
+					disabled={busy || !anyConfigured}
 				>
-					Skip
+					Skip (use existing)
 				</ReticleButton>
 				<ReticleButton
 					variant="primary"
 					size="sm"
-					disabled={busy || (!dedalus && !hasKey && !hasOwnerKey)}
-					onClick={() =>
-						onSave(
-							dedalus.trim(),
-							cursor.trim() === "" ? undefined : cursor.trim(),
-						)
-					}
+					disabled={busy}
+					onClick={() => {
+						const { creds, cursor } = buildPatch();
+						return onSave(creds, cursor);
+					}}
 				>
 					{busy ? "Saving..." : "Save and continue"}
 				</ReticleButton>
@@ -455,33 +511,54 @@ function KeyField({
 	value,
 	onChange,
 	hint,
-	required,
+	secondary,
 }: {
 	label: string;
 	placeholder: string;
 	value: string;
 	onChange: (v: string) => void;
 	hint: string;
-	required?: boolean;
+	secondary?: {
+		label: string;
+		placeholder: string;
+		value: string;
+		onChange: (v: string) => void;
+	};
 }) {
 	return (
-		<label className="flex flex-col gap-1.5">
-			<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
-				{label}
-				{required ? <span className="ml-1 text-[var(--ret-red)]">*</span> : null}
-			</span>
-			<input
-				type="password"
-				autoComplete="off"
-				placeholder={placeholder}
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className="border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)] placeholder:text-[var(--ret-text-muted)] focus:border-[var(--ret-purple)] focus:outline-none"
-			/>
-			<span className="font-mono text-[10px] text-[var(--ret-text-muted)]">
-				{hint}
-			</span>
-		</label>
+		<div className="flex flex-col gap-2">
+			<label className="flex flex-col gap-1.5">
+				<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+					{label}
+				</span>
+				<input
+					type="password"
+					autoComplete="off"
+					placeholder={placeholder}
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					className="border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)] placeholder:text-[var(--ret-text-muted)] focus:border-[var(--ret-purple)] focus:outline-none"
+				/>
+				<span className="font-mono text-[10px] text-[var(--ret-text-muted)]">
+					{hint}
+				</span>
+			</label>
+			{secondary ? (
+				<label className="flex flex-col gap-1.5">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+						{secondary.label}
+					</span>
+					<input
+						type="text"
+						autoComplete="off"
+						placeholder={secondary.placeholder}
+						value={secondary.value}
+						onChange={(e) => secondary.onChange(e.target.value)}
+						className="border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)] placeholder:text-[var(--ret-text-muted)] focus:border-[var(--ret-purple)] focus:outline-none"
+					/>
+				</label>
+			) : null}
+		</div>
 	);
 }
 
@@ -497,7 +574,7 @@ function AgentStep({
 	return (
 		<StepShell
 			title="Pick your agent"
-			description="The personality and toolset baked into the gateway. You can switch later from the navbar; switching after provisioning rewrites ~/.hermes/SOUL.md and restarts the gateway."
+			description="The personality and toolset baked into the gateway. You can switch later from the navbar; switching after provisioning rewrites SOUL.md and restarts the gateway."
 		>
 			<div className="grid gap-4 md:grid-cols-2">
 				{AGENT_KINDS.map((kind) => {
@@ -543,34 +620,36 @@ function AgentStep({
 
 function ProviderStep({
 	value,
+	configured,
 	busy,
 	onSelect,
 }: {
 	value: ProviderKind;
+	configured: PublicUserConfig["providers"];
 	busy: boolean;
 	onSelect: (kind: ProviderKind) => Promise<void>;
 }) {
 	return (
 		<StepShell
 			title="Pick the provider"
-			description="Where the agent's microVM lives. Dedalus is the only provider wired end-to-end today. Vercel Sandbox and Fly land in PR4 once we have a clean machine-provider abstraction."
+			description="Where the agent's microVM lives. Dedalus is wired end-to-end today. Vercel Sandbox + Fly accept credentials and feed the same multi-tenant pipeline; full provisioning lands in PR4."
 		>
 			<div className="grid gap-4 md:grid-cols-3">
 				{PROVIDER_KINDS.map((kind) => {
 					const meta = PROVIDERS_DESC[kind];
 					const selected = value === kind;
+					const hasCreds = configured[kind].configured;
 					return (
 						<button
 							key={kind}
 							type="button"
-							disabled={busy || !meta.ready}
+							disabled={busy}
 							onClick={() => void onSelect(kind)}
 							className={cn(
 								"flex flex-col gap-3 border bg-[var(--ret-bg)] p-4 text-left transition-colors",
 								selected
 									? "border-[var(--ret-purple)] bg-[var(--ret-purple-glow)]"
 									: "border-[var(--ret-border)] hover:border-[var(--ret-border-hover)]",
-								!meta.ready ? "cursor-not-allowed opacity-50" : "",
 							)}
 						>
 							<div className="flex items-center justify-between gap-3">
@@ -588,9 +667,19 @@ function ProviderStep({
 							<p className="text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
 								{meta.tagline}
 							</p>
-							<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
-								provider: {kind}
-							</span>
+							<div className="flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+								<span>provider: {kind}</span>
+								<span
+									className={cn(
+										"px-1.5 py-px",
+										hasCreds
+											? "border border-[var(--ret-green)]/40 text-[var(--ret-green)]"
+											: "border border-[var(--ret-amber)]/40 text-[var(--ret-amber)]",
+									)}
+								>
+									{hasCreds ? "key on file" : "no key"}
+								</span>
+							</div>
 						</button>
 					);
 				})}
@@ -617,12 +706,14 @@ function SpecStep({
 	const [vcpu, setVcpu] = useState(value.vcpu);
 	const [memory, setMemory] = useState(value.memoryMib);
 	const [storage, setStorage] = useState(value.storageGib);
-	const [chosenModel, setChosenModel] = useState(model || defaultModel || DEFAULT_MODEL);
+	const [chosenModel, setChosenModel] = useState(
+		model || defaultModel || DEFAULT_MODEL,
+	);
 
 	return (
 		<StepShell
 			title="Size the box"
-			description="Defaults are tuned for Hermes + cursor-bridge: 1 vCPU, 2 GiB RAM, 10 GiB disk. Most plans cap at 4 vCPU / 8 GiB. Hermes uses ~600 MiB at idle; double the RAM if you plan to schedule heavy crons."
+			description="Defaults: 1 vCPU, 2 GiB RAM, 10 GiB disk -- enough for Hermes + cursor-bridge at idle. Bump RAM if you plan to schedule heavy crons."
 		>
 			<div className="grid gap-4 md:grid-cols-4">
 				<NumField
@@ -754,33 +845,37 @@ function ReviewStep({
 	onProvision: () => Promise<void>;
 	onBack: () => void;
 }) {
-	const memGib = (config.machineSpec.memoryMib / 1024).toFixed(1);
+	const memGib = (config.draftSpec.memoryMib / 1024).toFixed(1);
+	const providerKind = config.draftProviderKind;
+	const providerHasKey = config.providers[providerKind].configured;
 	return (
 		<StepShell
 			title="Confirm and provision"
-			description="Provisioning hits Dedalus and creates a fresh machine. The machine ID is saved into your Clerk metadata. Bootstrap (Hermes install + cloudflared tunnel) lands in PR2; for PR1 you finish the install with `npm run deploy` locally against your new machine."
+			description="Provisioning hits the chosen provider and saves the new machine ID into your Clerk metadata. Bootstrap (agent install) ships in PR2; for now finish the install with the matching CLI command after this step."
 		>
 			<dl className="grid gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-2">
-				<Row label="agent" value={config.agentKind} />
-				<Row label="provider" value={config.providerKind} />
+				<Row label="agent" value={config.draftAgentKind} />
+				<Row label="provider" value={providerKind} />
 				<Row
 					label="spec"
-					value={`${config.machineSpec.vcpu} vCPU . ${memGib} GiB RAM . ${config.machineSpec.storageGib} GiB disk`}
+					value={`${config.draftSpec.vcpu} vCPU . ${memGib} GiB RAM . ${config.draftSpec.storageGib} GiB disk`}
 				/>
-				<Row label="model" value={config.model} />
+				<Row label="model" value={config.draftModel} />
 				<Row
-					label="dedalus key"
-					value={config.hasDedalusKey ? "on file" : "missing"}
-					tone={config.hasDedalusKey ? "ok" : "warn"}
+					label={`${providerKind} key`}
+					value={providerHasKey ? "on file" : "missing"}
+					tone={providerHasKey ? "ok" : "warn"}
 				/>
 				<Row
 					label="cursor key"
 					value={config.hasCursorKey ? "on file" : "not provided"}
 					tone="muted"
 				/>
-				{config.machineId ? (
-					<Row label="existing machine" value={config.machineId} tone="muted" />
-				) : null}
+				<Row
+					label="existing machines"
+					value={String(config.machines.length)}
+					tone="muted"
+				/>
 			</dl>
 			<div className="flex flex-wrap items-center justify-end gap-2">
 				<ReticleButton variant="ghost" size="sm" onClick={onBack} disabled={busy}>
@@ -790,9 +885,13 @@ function ReviewStep({
 					variant="primary"
 					size="sm"
 					onClick={() => void onProvision()}
-					disabled={busy || !config.hasDedalusKey}
+					disabled={busy || !providerHasKey}
 				>
-					{busy ? "Provisioning..." : config.machineId ? "Re-provision" : "Provision machine"}
+					{busy
+						? "Provisioning..."
+						: providerHasKey
+							? "Provision machine"
+							: `No ${providerKind} key on file`}
 				</ReticleButton>
 			</div>
 		</StepShell>
@@ -827,38 +926,47 @@ function Row({
 function ProvisionedStep({
 	config,
 	onChat,
-	onOverview,
+	onMachines,
 }: {
 	config: PublicUserConfig;
 	onChat: () => void;
-	onOverview: () => void;
+	onMachines: () => void;
 }) {
+	const active = config.machines.find((m) => m.id === config.activeMachineId);
 	return (
 		<StepShell
 			title="Machine provisioned"
-			description="Your Dedalus machine is up. Bootstrap (Hermes install) ships in PR2; for now run `npm run deploy` locally against this machine ID to finish the install."
+			description="Saved to your Clerk metadata. The dashboard will poll its state. To finish the agent install, run the matching CLI command locally against the new machine ID."
 		>
 			<div className="space-y-3">
 				<dl className="grid gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-2">
-					<Row label="machine id" value={config.machineId ?? "--"} tone="ok" />
-					<Row label="agent" value={config.agentKind} />
-					<Row label="provider" value={config.providerKind} />
+					<Row
+						label="active machine id"
+						value={active?.id ?? config.activeMachineId ?? "--"}
+						tone="ok"
+					/>
+					<Row label="agent" value={active?.agentKind ?? config.draftAgentKind} />
+					<Row label="provider" value={active?.providerKind ?? config.draftProviderKind} />
+					<Row label="total machines" value={String(config.machines.length)} />
 				</dl>
 				<div className="space-y-1.5 border border-dashed border-[var(--ret-border)] bg-[var(--ret-surface)] p-3 font-mono text-[11px] text-[var(--ret-text-dim)]">
 					<p className="text-[var(--ret-text-muted)]">next steps:</p>
 					<p>
-						{`$ HERMES_MACHINE_ID=${config.machineId ?? "<id>"} DEDALUS_API_KEY=... npm run deploy`}
+						{`$ HERMES_MACHINE_ID=${active?.id ?? "<id>"} DEDALUS_API_KEY=... npm run deploy`}
+						<span className="ml-2 text-[var(--ret-text-muted)]">
+							(or `npm run deploy:openclaw`)
+						</span>
 					</p>
 					<p className="text-[var(--ret-text-muted)]">
 						after deploy:
 						<span className="ml-2 text-[var(--ret-text)]">
-							open /dashboard/chat to talk to it
+							save the printed gateway URL + key to /dashboard/machines, then open chat
 						</span>
 					</p>
 				</div>
 				<div className="flex flex-wrap justify-end gap-2">
-					<ReticleButton variant="secondary" size="sm" onClick={onOverview}>
-						Open overview
+					<ReticleButton variant="secondary" size="sm" onClick={onMachines}>
+						Open machines
 					</ReticleButton>
 					<ReticleButton variant="primary" size="sm" onClick={onChat}>
 						Open chat

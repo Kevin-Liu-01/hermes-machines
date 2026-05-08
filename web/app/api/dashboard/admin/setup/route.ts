@@ -1,16 +1,15 @@
 /**
  * GET / POST /api/dashboard/admin/setup
  *
- * The wizard's read-and-write endpoint. GET returns the caller's current
- * config (with secrets stripped). POST applies a partial patch.
+ * GET  -- returns the user's `PublicUserConfig` + the project owner's
+ *         env-derived defaults. The wizard hydrates from this.
+ * POST -- applies a partial wizard patch:
+ *         { providerCredentials, cursorApiKey,
+ *           draftAgentKind, draftProviderKind, draftSpec, draftModel,
+ *           setupStep }
  *
- * The wizard is multi-step but every step is its own POST -- we never
- * batch the wizard state on the client. That way a refresh during step 3
- * resumes from step 3 instead of restarting at step 1.
- *
- * Validation lives here (not in `setUserConfig`) so the wire-shape errors
- * surface as 400s with a useful message. `setUserConfig` is the storage
- * layer; this endpoint is the entry guard.
+ * Validation lives here so wire-shape errors land as 400s with a
+ * useful message; storage is `setUserConfig` in clerk.ts.
  */
 
 import { auth } from "@clerk/nextjs/server";
@@ -27,9 +26,9 @@ import {
 	toPublicConfig,
 	type AgentKind,
 	type MachineSpec,
+	type ProviderCredentials,
 	type ProviderKind,
 	type SetupStep,
-	type UserConfig,
 } from "@/lib/user-config/schema";
 
 export const runtime = "nodejs";
@@ -62,15 +61,50 @@ function asSpec(value: unknown): MachineSpec | null {
 	return { vcpu, memoryMib: mem, storageGib: stor };
 }
 
+type CredsBody = {
+	dedalus?: { apiKey?: string };
+	"vercel-sandbox"?: { apiKey?: string; teamId?: string };
+	fly?: { apiKey?: string; orgSlug?: string };
+};
+
 type SetupBody = {
-	dedalusApiKey?: string;
+	providerCredentials?: CredsBody;
 	cursorApiKey?: string;
-	agentKind?: AgentKind;
-	providerKind?: ProviderKind;
-	machineSpec?: MachineSpec;
-	model?: string;
+	draftAgentKind?: AgentKind;
+	draftProviderKind?: ProviderKind;
+	draftSpec?: MachineSpec;
+	draftModel?: string;
 	setupStep?: SetupStep;
 };
+
+function validateCreds(input: CredsBody): {
+	ok: true;
+	value: ProviderCredentials;
+} | { ok: false; error: string; message: string } {
+	const out: ProviderCredentials = {};
+	if (input.dedalus) {
+		const k = (input.dedalus.apiKey ?? "").trim();
+		if (k && !k.startsWith("dsk-")) {
+			return {
+				ok: false,
+				error: "invalid_dedalus_key",
+				message: "Dedalus keys start with 'dsk-'.",
+			};
+		}
+		if (k) out.dedalus = { apiKey: k };
+	}
+	if (input["vercel-sandbox"]) {
+		const k = (input["vercel-sandbox"].apiKey ?? "").trim();
+		const team = (input["vercel-sandbox"].teamId ?? "").trim() || undefined;
+		if (k) out["vercel-sandbox"] = { apiKey: k, teamId: team };
+	}
+	if (input.fly) {
+		const k = (input.fly.apiKey ?? "").trim();
+		const org = (input.fly.orgSlug ?? "").trim() || undefined;
+		if (k) out.fly = { apiKey: k, orgSlug: org };
+	}
+	return { ok: true, value: out };
+}
 
 export async function GET(): Promise<Response> {
 	const { userId } = await auth();
@@ -82,11 +116,11 @@ export async function GET(): Promise<Response> {
 	return Response.json({
 		config: toPublicConfig(config),
 		defaults: {
-			machineSpec: defaults.machineSpec,
-			model: defaults.model,
-			hasOwnerDedalusKey: Boolean(defaults.dedalusApiKey),
+			machineSpec: defaults.draftSpec,
+			model: defaults.draftModel,
+			hasOwnerDedalusKey: Boolean(defaults.providers.dedalus?.apiKey),
 			hasOwnerCursorKey: Boolean(defaults.cursorApiKey),
-			hasOwnerMachine: Boolean(defaults.machineId),
+			hasOwnerMachine: defaults.machines.length > 0,
 		},
 	});
 }
@@ -104,50 +138,36 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ error: "invalid_json" }, { status: 400 });
 	}
 
-	const patch: Partial<UserConfig> = {};
+	const patch: Parameters<typeof setUserConfig>[0] = {};
 
-	if (body.dedalusApiKey !== undefined) {
-		const v = String(body.dedalusApiKey).trim();
-		if (v.length > 0 && !v.startsWith("dsk-")) {
+	if (body.providerCredentials) {
+		const validated = validateCreds(body.providerCredentials);
+		if (!validated.ok) {
 			return Response.json(
-				{ error: "invalid_dedalus_key", message: "Dedalus keys start with 'dsk-'" },
+				{ error: validated.error, message: validated.message },
 				{ status: 400 },
 			);
 		}
-		patch.dedalusApiKey = v.length > 0 ? v : undefined;
+		patch.providers = validated.value;
 	}
-
 	if (body.cursorApiKey !== undefined) {
 		const v = String(body.cursorApiKey).trim();
 		patch.cursorApiKey = v.length > 0 ? v : null;
 	}
-
-	if (body.agentKind !== undefined) {
-		if (!isAgent(body.agentKind)) {
+	if (body.draftAgentKind !== undefined) {
+		if (!isAgent(body.draftAgentKind)) {
 			return Response.json({ error: "invalid_agent_kind" }, { status: 400 });
 		}
-		patch.agentKind = body.agentKind;
+		patch.draftAgentKind = body.draftAgentKind;
 	}
-
-	if (body.providerKind !== undefined) {
-		if (!isProvider(body.providerKind)) {
+	if (body.draftProviderKind !== undefined) {
+		if (!isProvider(body.draftProviderKind)) {
 			return Response.json({ error: "invalid_provider_kind" }, { status: 400 });
 		}
-		// PR1 only wires Dedalus end-to-end; reject the others until PR4.
-		if (body.providerKind !== "dedalus") {
-			return Response.json(
-				{
-					error: "provider_unsupported",
-					message: `Provider '${body.providerKind}' lands in PR4. Pick 'dedalus' for now.`,
-				},
-				{ status: 400 },
-			);
-		}
-		patch.providerKind = body.providerKind;
+		patch.draftProviderKind = body.draftProviderKind;
 	}
-
-	if (body.machineSpec !== undefined) {
-		const spec = asSpec(body.machineSpec);
+	if (body.draftSpec !== undefined) {
+		const spec = asSpec(body.draftSpec);
 		if (!spec) {
 			return Response.json(
 				{
@@ -158,14 +178,12 @@ export async function POST(request: Request): Promise<Response> {
 				{ status: 400 },
 			);
 		}
-		patch.machineSpec = spec;
+		patch.draftSpec = spec;
 	}
-
-	if (body.model !== undefined) {
-		const m = String(body.model).trim();
-		if (m.length > 0) patch.model = m;
+	if (body.draftModel !== undefined) {
+		const m = String(body.draftModel).trim();
+		if (m.length > 0) patch.draftModel = m;
 	}
-
 	if (body.setupStep !== undefined) {
 		if (!isStep(body.setupStep)) {
 			return Response.json({ error: "invalid_setup_step" }, { status: 400 });
