@@ -10,6 +10,7 @@ import {
 } from "@/components/ComponentShowcase";
 import { Footer } from "@/components/Footer";
 import { HeroBlock } from "@/components/HeroBlock";
+import { LoadoutPreview } from "@/components/LoadoutPreview";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleNavbar } from "@/components/reticle/ReticleNavbar";
 import { ReticlePageGrid } from "@/components/reticle/ReticlePageGrid";
@@ -33,6 +34,12 @@ export default function HomePage() {
 							className="hidden hover:text-[var(--ret-text)] md:inline"
 						>
 							capabilities
+						</a>
+						<a
+							href="#loadout"
+							className="hidden hover:text-[var(--ret-text)] md:inline"
+						>
+							loadout
 						</a>
 						<a
 							href="#components"
@@ -90,6 +97,10 @@ export default function HomePage() {
 
 				<ReticleSection id="capabilities">
 					<CapabilityGrid />
+				</ReticleSection>
+
+				<ReticleSection id="loadout">
+					<LoadoutPreview />
 				</ReticleSection>
 
 				<ReticleSection id="components">

@@ -14,23 +14,26 @@ export function HeroBlock() {
 					<ReticleBadge>hermes . openclaw</ReticleBadge>
 				</div>
 				<h1 className="ret-display mt-4 text-3xl md:text-[44px]">
-					Bring any agent
+					An agent's loadout,
 					<br />
 					<span className="text-[var(--ret-text-dim)]">
-						to any provider.
+						in one machine.
 					</span>
 				</h1>
 				<p className="mt-4 max-w-[58ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)] md:text-sm">
-					Pick <strong className="text-[var(--ret-text)]">Hermes</strong>{" "}
-					(Nous Research) or{" "}
-					<strong className="text-[var(--ret-text)]">OpenClaw</strong>{" "}
-					(Dedalus). Plug in a Dedalus, Vercel Sandbox, or Fly key. Per-user
-					fleets, persistent chats and artifacts on Vercel Blob, and Cursor
-					SDK delegation wired in as{" "}
+					A rig with everything wired in:{" "}
+					<strong className="text-[var(--ret-text)]">23 built-in tools</strong>{" "}
+					(shell, browser, vision, cron, memory),{" "}
+					<strong className="text-[var(--ret-text)]">95 SKILL.md files</strong>{" "}
+					that auto-load by intent,{" "}
+					<strong className="text-[var(--ret-text)]">17 services</strong>{" "}
+					ranked by interface (Vercel, Stripe, Supabase, Linear, ...), and
+					Cursor SDK delegation
+					through{" "}
 					<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
 						.cursor/rules
 					</code>
-					.
+					. Pick Hermes or OpenClaw; plug in any provider key.
 				</p>
 				<div className="mt-5 flex flex-wrap gap-2">
 					<SignedIn>

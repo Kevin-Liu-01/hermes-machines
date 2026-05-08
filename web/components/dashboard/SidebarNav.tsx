@@ -22,6 +22,7 @@ type Props = {
 const BASE_NAV: ReadonlyArray<NavItem> = [
 	{ href: "/dashboard", label: "Overview", hint: "machine + counters", icon: IconGrid },
 	{ href: "/dashboard/chat", label: "Chat", hint: "talk to agent", icon: IconChat },
+	{ href: "/dashboard/loadout", label: "Loadout", hint: "every tool + skill", icon: IconLoadout },
 	{ href: "/dashboard/machines", label: "Machines", hint: "your fleet", icon: IconStack },
 	{ href: "/dashboard/artifacts", label: "Artifacts", hint: "files", icon: IconBox },
 	{ href: "/dashboard/skills", label: "Skills", hint: "bundled", icon: IconScroll },
@@ -201,6 +202,18 @@ function IconBox(props: SVGProps<SVGSVGElement>) {
 		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
 			<path d="M2 5 L8 2 L14 5 V11 L8 14 L2 11 Z" />
 			<path d="M2 5 L8 8 L14 5 M8 8 V14" />
+		</svg>
+	);
+}
+
+function IconLoadout(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+			<rect x="2" y="2" width="4" height="4" />
+			<rect x="10" y="2" width="4" height="4" />
+			<rect x="2" y="10" width="4" height="4" />
+			<rect x="10" y="10" width="4" height="4" />
+			<path d="M6 4 H10 M6 12 H10 M4 6 V10 M12 6 V10" />
 		</svg>
 	);
 }

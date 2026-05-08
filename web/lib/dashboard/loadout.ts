@@ -1,0 +1,690 @@
+/**
+ * Loadout registry for the rig.
+ *
+ * Mirrors the wiki's `config/cursor/rules/tool-hierarchy.mdc` -- the
+ * always-applied tool registry that ranks interfaces per service and
+ * tools per task. Surfaced on `/dashboard/loadout` so the user can see
+ * exactly what's available to their agent at a glance, with each entry
+ * tagged for which agent (Hermes / OpenClaw / both) can call it.
+ *
+ * Three layers, ordered from most to least concrete:
+ *
+ *   1. Built-in agent tools (`BUILTIN_TOOLS`) -- ship with the agent
+ *      install itself. The agent calls these directly without any
+ *      MCP roundtrip.
+ *
+ *   2. MCP servers (in `mcps.ts`) -- stdio/http servers the agent
+ *      starts during bootstrap. Each exposes its own tool catalog
+ *      (cursor_agent, etc.).
+ *
+ *   3. Services + tasks (`SERVICES` + `TASKS`) -- the wiki-level
+ *      service/task hierarchy. Each entry ranks the available
+ *      interfaces (MCP, CLI, plugin skills) so the agent picks the
+ *      right one for the job.
+ *
+ * Plus skills (in `skills.ts`) -- 95 SKILL.md files that load on
+ * demand to nudge the agent's behavior on a specific task type.
+ */
+
+import type { Mark } from "@/components/Logo";
+
+export type AgentSupport = "hermes" | "openclaw" | "both";
+
+export type ToolCategory =
+	| "shell"
+	| "filesystem"
+	| "browser"
+	| "vision"
+	| "code"
+	| "memory"
+	| "schedule"
+	| "search"
+	| "audio"
+	| "image"
+	| "delegate";
+
+export type BuiltinTool = {
+	name: string;
+	title: string;
+	description: string;
+	category: ToolCategory;
+	agent: AgentSupport;
+	provider: Mark | "rig";
+};
+
+/**
+ * Native tools the running agent can invoke without going through an
+ * MCP server. Hermes ships its catalog as part of the
+ * `hermes-agent` install; OpenClaw ships its catalog as part of
+ * `openclaw@latest`. Tools tagged `agent: "both"` are available
+ * regardless of which agent is currently active on the user's machine.
+ */
+export const BUILTIN_TOOLS: ReadonlyArray<BuiltinTool> = [
+	{
+		name: "terminal",
+		title: "Shell terminal",
+		description:
+			"Run any shell command in the VM. Streams stdout/stderr back to the chat. Used for git, tests, build pipelines, package installs, system inspection.",
+		category: "shell",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "read_file",
+		title: "Read file",
+		description:
+			"Read a file from the VM filesystem with optional offset/limit. Bounded output to keep the agent's context window healthy.",
+		category: "filesystem",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "write_file",
+		title: "Write file",
+		description:
+			"Write or overwrite a file on the VM. Strict path checks keep writes inside ~/work and ~/.hermes by default.",
+		category: "filesystem",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "patch",
+		title: "Patch file",
+		description:
+			"Apply a unified diff to an existing file. Cheaper than full rewrites for surgical edits.",
+		category: "filesystem",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "search",
+		title: "Repo search",
+		description:
+			"ripgrep over the working directory. Supports regex, glob filters, multiline matches.",
+		category: "filesystem",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "browser_navigate",
+		title: "Navigate browser",
+		description:
+			"Drive a Playwright browser inside the VM. Navigate to a URL, wait for load, return the rendered DOM.",
+		category: "browser",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "browser_click",
+		title: "Click element",
+		description:
+			"Click an element by accessible selector. Pairs with browser_snapshot to find the right ref.",
+		category: "browser",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "browser_type",
+		title: "Type text",
+		description:
+			"Type into a focused input. Handles complex IME and shift-modifier sequences.",
+		category: "browser",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "browser_snapshot",
+		title: "Page snapshot",
+		description:
+			"Returns a YAML-shaped accessibility snapshot of the current page. Refs from this snapshot drive subsequent click/type calls.",
+		category: "browser",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "browser_screenshot",
+		title: "Screenshot page",
+		description:
+			"PNG screenshot of the viewport or a specific element. Stored as an artifact under ~/.agent-machines/artifacts/.",
+		category: "browser",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "computer_use",
+		title: "Computer-use macro",
+		description:
+			"Mouse + keyboard automation against a virtual display. The Anthropic computer-use loop, drives a real X server inside the VM.",
+		category: "browser",
+		agent: "openclaw",
+		provider: "openclaw",
+	},
+	{
+		name: "vision_analyze",
+		title: "Vision analysis",
+		description:
+			"Send a screenshot or image file to the LLM with a vision-capable model. Returns a structured description.",
+		category: "vision",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "image_generate",
+		title: "Generate image",
+		description:
+			"Generate images with FLUX via FAL. Optional. Requires FAL_KEY in ~/.hermes/.env when used.",
+		category: "image",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "tts",
+		title: "Text-to-speech",
+		description:
+			"Synthesize speech from text. Edge TTS by default; ElevenLabs if ELEVENLABS_API_KEY is set.",
+		category: "audio",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "execute_code",
+		title: "Execute Python",
+		description:
+			"Sandboxed Python that can call other tools via internal RPC. Best for analysis, math, data wrangling, multi-step scripts.",
+		category: "code",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "delegate_task",
+		title: "Delegate to subagent",
+		description:
+			"Spawn a subagent for parallel work. Subagent inherits parent's tools + skills; returns a final message back to the parent.",
+		category: "delegate",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "cronjob",
+		title: "Schedule cron",
+		description:
+			"Create / list / edit / remove scheduled tasks. Persisted across machine sleep/wake; the cron runner wakes the machine when due.",
+		category: "schedule",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "skills_list",
+		title: "List skills",
+		description:
+			"Enumerate the SKILL.md files in ~/.hermes/skills. The agent inspects this when picking which skill conventions to load.",
+		category: "memory",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "skill_view",
+		title: "View skill",
+		description:
+			"Read a single SKILL.md body to load its conventions into the active turn.",
+		category: "memory",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "memory",
+		title: "Persistent memory",
+		description:
+			"Read / update USER.md and MEMORY.md so future conversations have context without re-explaining.",
+		category: "memory",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "session_search",
+		title: "FTS5 session search",
+		description:
+			"Full-text search over every prior conversation stored in ~/.hermes/sessions/*.db. Surfaces past tool outputs as context.",
+		category: "search",
+		agent: "hermes",
+		provider: "nous",
+	},
+	{
+		name: "web_search",
+		title: "Web search",
+		description:
+			"Live web search. Returns ranked results with snippets. Used as the first move for any 'what's the latest on X' question.",
+		category: "search",
+		agent: "both",
+		provider: "rig",
+	},
+	{
+		name: "web_extract",
+		title: "Extract page",
+		description:
+			"Pull the readable content from a URL with images + metadata. Defuddle-style cleanup before the LLM sees the bytes.",
+		category: "search",
+		agent: "both",
+		provider: "rig",
+	},
+];
+
+/* ------------------------------------------------------------------ */
+/* Service registry (mirrors tool-hierarchy.mdc)                       */
+/* ------------------------------------------------------------------ */
+
+export type InterfaceKind = "mcp" | "cli" | "plugin-skill" | "personal-skill";
+
+export type ServiceInterface = {
+	rank: 1 | 2 | 3 | 4;
+	kind: InterfaceKind;
+	label: string;
+	use: string;
+};
+
+export type ServiceEntry = {
+	id: string;
+	name: string;
+	tagline: string;
+	icon: ToolCategory;
+	color?: string;
+	interfaces: ServiceInterface[];
+};
+
+export const SERVICES: ReadonlyArray<ServiceEntry> = [
+	{
+		id: "vercel",
+		name: "Vercel",
+		tagline: "Deployments, env vars, logs, project config, domains",
+		icon: "code",
+		color: "#fff",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-vercel-vercel", use: "deploys, env, logs, project config, domains" },
+			{ rank: 2, kind: "cli", label: "vercel", use: "vercel dev, vercel deploy, env pull, link" },
+			{ rank: 3, kind: "plugin-skill", label: "28 skills", use: "Next.js patterns, AI SDK, caching, middleware, functions, storage, shadcn, Turbopack" },
+		],
+	},
+	{
+		id: "stripe",
+		name: "Stripe",
+		tagline: "Customers, subscriptions, payments, invoices, products",
+		icon: "search",
+		color: "#635bff",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-stripe-stripe", use: "read customers, subscriptions, payments, invoices, products" },
+			{ rank: 2, kind: "cli", label: "stripe", use: "listen, trigger, fixtures, logs tail" },
+			{ rank: 3, kind: "personal-skill", label: "stripe", use: "query Stripe via .env keys (write ops blocked on live keys)" },
+			{ rank: 4, kind: "plugin-skill", label: "2 skills", use: "stripe-best-practices, upgrade-stripe" },
+		],
+	},
+	{
+		id: "supabase",
+		name: "Supabase",
+		tagline: "Schema, RLS, queries, auth, migrations",
+		icon: "filesystem",
+		color: "#3ecf8e",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-supabase-supabase", use: "schema, read-only queries, RLS policies, auth config" },
+			{ rank: 2, kind: "cli", label: "supabase", use: "db diff, db push, init, migration new, gen types" },
+			{ rank: 3, kind: "personal-skill", label: "db, db-write", use: "read-only SQL via scripts; db-write for mutations + migrations + seed" },
+			{ rank: 4, kind: "plugin-skill", label: "2 skills", use: "supabase, supabase-postgres-best-practices" },
+		],
+	},
+	{
+		id: "clerk",
+		name: "Clerk",
+		tagline: "Auth, user mgmt, orgs, webhooks",
+		icon: "memory",
+		color: "#6c47ff",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-clerk-clerk", use: "auth mgmt, user lookup, org management" },
+			{ rank: 2, kind: "plugin-skill", label: "7 skills", use: "setup, orgs, webhooks, testing, nextjs-patterns, custom-ui, clerk router" },
+		],
+	},
+	{
+		id: "firebase",
+		name: "Firebase",
+		tagline: "Auth, Firestore, hosting, App Hosting, Genkit",
+		icon: "filesystem",
+		color: "#ffcb2b",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-firebase-firebase", use: "project config, deploys, auth, Firestore" },
+			{ rank: 2, kind: "plugin-skill", label: "11 skills", use: "auth, Firestore, hosting, App Hosting, Genkit, Data Connect, AI Logic" },
+		],
+	},
+	{
+		id: "figma",
+		name: "Figma",
+		tagline: "Read files, inspect designs, generate components",
+		icon: "vision",
+		color: "#f24e1e",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-figma-figma", use: "read files, inspect designs, get component specs" },
+			{ rank: 2, kind: "plugin-skill", label: "9 skills", use: "always load figma-use first; design systems, implement-design, code-connect, diagrams" },
+		],
+	},
+	{
+		id: "posthog",
+		name: "PostHog",
+		tagline: "HogQL, events, replays, flags",
+		icon: "search",
+		color: "#f9bd2b",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-posthog-posthog", use: "HogQL queries, event data, session replays, feature flags" },
+			{ rank: 2, kind: "plugin-skill", label: "16 skills", use: "instrumentation (analytics, errors, flags, logs, LLM), experiments, autocapture, traces, query examples" },
+		],
+	},
+	{
+		id: "sentry",
+		name: "Sentry",
+		tagline: "Issues, alerts, error details, perf",
+		icon: "search",
+		color: "#362d59",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-sentry-sentry", use: "issues, alerts, error details, performance data" },
+			{ rank: 2, kind: "plugin-skill", label: "26 skills", use: "SDK setup (15+ platforms), workflow, feature setup, code review, AI monitoring" },
+		],
+	},
+	{
+		id: "datadog",
+		name: "Datadog",
+		tagline: "Logs, metrics, traces, dashboards, monitors",
+		icon: "search",
+		color: "#632ca6",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-datadog-datadog", use: "logs, metrics, traces, dashboards, monitors (run ddsetup if MCP not responding)" },
+			{ rank: 2, kind: "plugin-skill", label: "3 skills", use: "ddsetup, ddconfig, ddtoolsets" },
+		],
+	},
+	{
+		id: "linear",
+		name: "Linear",
+		tagline: "Issues, projects, team workflows",
+		icon: "code",
+		color: "#5e6ad2",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-linear-linear", use: "issues, projects, team workflows" },
+			{ rank: 2, kind: "personal-skill", label: "linear", use: "workflow automation via MCP" },
+		],
+	},
+	{
+		id: "slack",
+		name: "Slack",
+		tagline: "Messages, channels, search",
+		icon: "memory",
+		color: "#4a154b",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-slack-slack", use: "messages, channels, search" },
+			{ rank: 2, kind: "personal-skill", label: "slack", use: "browser-based automation via agent-browser" },
+		],
+	},
+	{
+		id: "shopify",
+		name: "Shopify",
+		tagline: "Admin API, Hydrogen, Liquid, Polaris, POS",
+		icon: "code",
+		color: "#95bf47",
+		interfaces: [
+			{ rank: 1, kind: "plugin-skill", label: "20+ skills", use: "Admin API, Hydrogen, Liquid, Polaris, checkout, POS, customer accounts, Shopify Functions, custom data" },
+		],
+	},
+	{
+		id: "clickhouse",
+		name: "ClickHouse",
+		tagline: "Query execution, schema inspection",
+		icon: "search",
+		color: "#fc0",
+		interfaces: [
+			{ rank: 1, kind: "mcp", label: "plugin-clickhouse", use: "query execution, schema inspection" },
+			{ rank: 2, kind: "plugin-skill", label: "1 skill", use: "clickhouse-best-practices (28 rules, MUST check before writing queries)" },
+		],
+	},
+	{
+		id: "github",
+		name: "GitHub",
+		tagline: "PRs, issues, checks, releases, API calls",
+		icon: "code",
+		color: "#fff",
+		interfaces: [
+			{ rank: 1, kind: "cli", label: "gh", use: "PRs, issues, checks, releases, API calls" },
+			{ rank: 2, kind: "personal-skill", label: "9 skills", use: "issue, pr, yeet, pr-review, gh-fix-ci, gh-address-comments, split-to-prs, babysit, hotfix-preview" },
+			{ rank: 3, kind: "mcp", label: "GitLens MCP", use: "git history, blame, diff" },
+		],
+	},
+	{
+		id: "aws",
+		name: "AWS",
+		tagline: "S3, ECS, SSM, ECR via SSO profiles",
+		icon: "code",
+		color: "#ff9900",
+		interfaces: [
+			{ rank: 1, kind: "cli", label: "aws", use: "SSO profiles: dcs (dev/preview), admin (prod), dcs-prod. S3, ECS, SSM, ECR." },
+		],
+	},
+	{
+		id: "cloudflare",
+		name: "Cloudflare",
+		tagline: "Tunnels (cloudflared)",
+		icon: "browser",
+		color: "#f38020",
+		interfaces: [
+			{ rank: 1, kind: "cli", label: "cloudflared", use: "Quick tunnels expose the agent's gateway publicly without a stable hostname. We fall back to *.trycloudflare.com when Dedalus previews aren't configured for the org." },
+		],
+	},
+	{
+		id: "browser",
+		name: "Browser",
+		tagline: "Automation, scraping, frontend verification",
+		icon: "browser",
+		color: "#fff",
+		interfaces: [
+			{ rank: 1, kind: "cli", label: "agent-browser", use: "ad-hoc browsing, frontend verification, scraping, computer use" },
+			{ rank: 2, kind: "mcp", label: "Chrome DevTools MCP", use: "inspect user's existing browser session" },
+			{ rank: 3, kind: "mcp", label: "cursor-ide-browser", use: "Cursor's built-in vision pipeline" },
+			{ rank: 4, kind: "plugin-skill", label: "Playwright", use: "deterministic E2E in CI only" },
+		],
+	},
+];
+
+/* ------------------------------------------------------------------ */
+/* Task hierarchy (mirrors tool-hierarchy.mdc Task Hierarchy)          */
+/* ------------------------------------------------------------------ */
+
+export type TaskTool = {
+	rank: 1 | 2 | 3 | 4 | 5;
+	label: string;
+	use: string;
+	skill?: string;
+};
+
+export type TaskEntry = {
+	id: string;
+	name: string;
+	tagline: string;
+	tools: TaskTool[];
+};
+
+export const TASKS: ReadonlyArray<TaskEntry> = [
+	{
+		id: "browser-automation",
+		name: "Browser automation",
+		tagline: "Snapshots, visual diff, React introspection, batch commands",
+		tools: [
+			{ rank: 1, label: "agent-browser", use: "ref-based snapshots, visual diff, React introspection, Web Vitals, batch commands", skill: "agent-browser" },
+			{ rank: 2, label: "Chrome DevTools MCP", use: "inspect user's existing browser session" },
+			{ rank: 3, label: "cursor-ide-browser", use: "Cursor's built-in vision pipeline" },
+			{ rank: 4, label: "Playwright", use: "deterministic E2E in CI only" },
+		],
+	},
+	{
+		id: "frontend-verification",
+		name: "Frontend verification",
+		tagline: "Diff snapshots, screenshots, vitals, React renders",
+		tools: [
+			{ rank: 1, label: "agent-browser diff", use: "diff snapshot + diff screenshot + vitals + react renders", skill: "agent-browser" },
+			{ rank: 2, label: "agent-browser screenshot --annotate", use: "visual inspection" },
+			{ rank: 3, label: "Playwright", use: "regression test suites in CI only" },
+		],
+	},
+	{
+		id: "generative-ui",
+		name: "Generative UI",
+		tagline: "Catalog-constrained UI generation",
+		tools: [
+			{ rank: 1, label: "json-render", use: "@json-render/core + shadcn + directives, catalog-constrained" },
+			{ rank: 2, label: "AI SDK structured output", use: "when json-render not installed" },
+		],
+	},
+	{
+		id: "code-review",
+		name: "Code review",
+		tagline: "Find bugs that pass CI but blow up in prod",
+		tools: [
+			{ rank: 1, label: "code-review", use: "staff-engineer review, production bugs", skill: "code-review" },
+			{ rank: 2, label: "counterfactual", use: "compare against minimal correct algorithm", skill: "counterfactual" },
+			{ rank: 3, label: "cross-modal-review", use: "second opinion from different model", skill: "cross-modal-review" },
+		],
+	},
+	{
+		id: "design-review",
+		name: "Design review",
+		tagline: "6-phase audit + animation + art direction",
+		tools: [
+			{ rank: 1, label: "design-review", use: "6-phase audit, 80-item checklist, letter grades", skill: "design-review" },
+			{ rank: 2, label: "design-engineering", use: "animation decisions, component polish, performance rules", skill: "design-engineering" },
+			{ rank: 3, label: "frontend-design-taste", use: "anti-slop enforcement, art direction", skill: "frontend-design-taste" },
+			{ rank: 4, label: "frontend-design", use: "building new UI", skill: "frontend-design" },
+			{ rank: 5, label: "web-design-guidelines", use: "Vercel Web Interface Guidelines", skill: "web-design-guidelines" },
+		],
+	},
+	{
+		id: "qa",
+		name: "QA + testing",
+		tagline: "Real-browser testing, regression tests, invariants",
+		tools: [
+			{ rank: 1, label: "qa", use: "exploratory QA with real browser", skill: "qa" },
+			{ rank: 2, label: "dogfood", use: "systematic app exploration, structured bug reports" },
+			{ rank: 3, label: "invariant-first-testing", use: "tests as invariants", skill: "invariant-first-testing" },
+			{ rank: 4, label: "test-writing", use: "terse Unix-tradition harnesses", skill: "test-writing" },
+			{ rank: 5, label: "Playwright", use: "deterministic E2E in CI only" },
+		],
+	},
+	{
+		id: "research",
+		name: "Research",
+		tagline: "Multi-platform social search, page extraction",
+		tools: [
+			{ rank: 1, label: "last30days", use: "multi-platform social search (Reddit, X, YouTube, TikTok, IG, HN)", skill: "last30days" },
+			{ rank: 2, label: "agent-reach", use: "17 platforms via CLI", skill: "agent-reach" },
+			{ rank: 3, label: "web_search", use: "fallback for general web queries" },
+		],
+	},
+	{
+		id: "content",
+		name: "Content creation",
+		tagline: "Drafts, strategy, conversion copy",
+		tools: [
+			{ rank: 1, label: "social-draft", use: "platform-optimized drafting (X, LinkedIn)", skill: "social-draft" },
+			{ rank: 2, label: "social-content", use: "strategy, repurposing, engagement", skill: "social-content" },
+			{ rank: 3, label: "copywriting", use: "conversion copy, CTAs, headlines", skill: "copywriting" },
+			{ rank: 4, label: "content-strategy", use: "positioning arcs, calendars", skill: "content-strategy" },
+		],
+	},
+	{
+		id: "seo",
+		name: "SEO + GEO",
+		tagline: "AI-search optimization + traditional SEO + audits",
+		tools: [
+			{ rank: 1, label: "seo-geo-optimization", use: "GEO for AI search + traditional SEO", skill: "seo-geo-optimization" },
+			{ rank: 2, label: "seo-audit", use: "technical SEO audit", skill: "seo-audit" },
+			{ rank: 3, label: "og-metadata-audit", use: "OpenGraph, Twitter cards", skill: "og-metadata-audit" },
+		],
+	},
+	{
+		id: "security",
+		name: "Security",
+		tagline: "Vuln scans, CTF-style review, threat modeling",
+		tools: [
+			{ rank: 1, label: "deepsec", use: "agent-powered vulnerability scanner", skill: "deepsec" },
+			{ rank: 2, label: "bugs", use: "CTF-style adversarial review", skill: "bugs" },
+			{ rank: 3, label: "security-best-practices", use: "language-specific secure coding" },
+			{ rank: 4, label: "security-threat-model", use: "trust boundaries, abuse paths" },
+		],
+	},
+	{
+		id: "animation",
+		name: "Animation",
+		tagline: "Scroll, component, physics, AE",
+		tools: [
+			{ rank: 1, label: "GSAP + ScrollTrigger", use: "scroll-driven narratives, pinned sections" },
+			{ rank: 2, label: "Motion (Framer Motion)", use: "component entrances, layout, gestures" },
+			{ rank: 3, label: "React Spring", use: "physics-based spring dynamics" },
+			{ rank: 4, label: "Lottie", use: "After Effects JSON animations" },
+		],
+	},
+	{
+		id: "three-d",
+		name: "3D",
+		tagline: "WebGL / WebGPU rendering",
+		tools: [
+			{ rank: 1, label: "React Three Fiber + drei", use: "declarative 3D in React" },
+			{ rank: 2, label: "Three.js", use: "outside React or no abstraction needed" },
+			{ rank: 3, label: "OGL / custom GLSL", use: "shader IS the idea" },
+			{ rank: 4, label: "Babylon.js", use: "game engine features" },
+		],
+	},
+];
+
+/* ------------------------------------------------------------------ */
+/* Aggregate counts                                                    */
+/* ------------------------------------------------------------------ */
+
+export type LoadoutCounts = {
+	skills: number;
+	mcpServers: number;
+	mcpTools: number;
+	builtinTools: number;
+	services: number;
+	tasks: number;
+	total: number;
+};
+
+export function computeCounts(args: {
+	skills: number;
+	mcpServers: number;
+	mcpTools: number;
+}): LoadoutCounts {
+	const builtinTools = BUILTIN_TOOLS.length;
+	const services = SERVICES.length;
+	const tasks = TASKS.length;
+	return {
+		skills: args.skills,
+		mcpServers: args.mcpServers,
+		mcpTools: args.mcpTools,
+		builtinTools,
+		services,
+		tasks,
+		total: args.skills + args.mcpTools + builtinTools,
+	};
+}
+
+export const CATEGORY_LABEL: Record<ToolCategory, string> = {
+	shell: "Shell",
+	filesystem: "Filesystem",
+	browser: "Browser",
+	vision: "Vision",
+	code: "Code",
+	memory: "Memory",
+	schedule: "Schedule",
+	search: "Search",
+	audio: "Audio",
+	image: "Image",
+	delegate: "Delegate",
+};
+
+export const INTERFACE_LABEL: Record<InterfaceKind, string> = {
+	mcp: "MCP",
+	cli: "CLI",
+	"plugin-skill": "Plugin skill",
+	"personal-skill": "Personal skill",
+};
