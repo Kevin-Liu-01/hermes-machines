@@ -46,6 +46,7 @@ export async function PublicNavbar({
 		{ href: "#components", label: "ui", icon: IconUi },
 		{ href: "#skills", label: "skills", icon: IconSkills },
 		{ href: "#architecture", label: "stack", icon: IconStack },
+		{ href: "#faq", label: "faq", icon: IconFaq },
 	];
 	return (
 		<ReticleNavbar>
@@ -160,6 +161,16 @@ function IconStack(props: SVGProps<SVGSVGElement>) {
 			<path d="M8 2L2 5l6 3 6-3z" />
 			<path d="M2 11l6 3 6-3" />
 			<path d="M2 8l6 3 6-3" />
+		</svg>
+	);
+}
+
+function IconFaq(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<path d="M5.5 6a2.5 2.5 0 1 1 4 2c-.7.5-1 1-1 2" />
+			<line x1="8.5" y1="12.5" x2="8.5" y2="12.5" />
+			<rect x="2" y="2" width="12" height="12" rx="0" />
 		</svg>
 	);
 }

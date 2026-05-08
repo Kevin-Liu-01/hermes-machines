@@ -1,8 +1,11 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Instrument_Serif } from "next/font/google";
 import type { ReactNode } from "react";
+
+import { SITE } from "@/lib/seo/config";
+import { buildRootJsonLd } from "@/lib/seo/json-ld";
 
 import "./globals.css";
 
@@ -38,21 +41,67 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-	title: "Agent Machines -- a persistent machine for your agent",
-	description:
-		"One stateful microVM per Clerk account. Boot in 30 seconds, sleep on idle, wake on the first prompt. Chat history, files, learned skills, and cron all persist on /home/machine. Hermes or OpenClaw, any provider key, 95 skills + 17 MCP services.",
+	metadataBase: new URL(SITE.url),
+	title: {
+		default: `${SITE.name} -- ${SITE.tagline}`,
+		template: `%s -- ${SITE.name}`,
+	},
+	description: SITE.description,
+	applicationName: SITE.name,
+	authors: [{ name: SITE.authorName, url: SITE.authorUrl }],
+	creator: SITE.authorName,
+	publisher: SITE.name,
+	keywords: [...SITE.keywords],
+	category: "technology",
+	alternates: { canonical: "/" },
+	robots: {
+		index: true,
+		follow: true,
+		googleBot: {
+			index: true,
+			follow: true,
+			"max-image-preview": "large",
+			"max-snippet": -1,
+			"max-video-preview": -1,
+		},
+	},
 	openGraph: {
-		title: "Agent Machines",
-		description:
-			"A persistent machine for your agent. One per account, stateful filesystem, sleep/wake by the second. Bring Hermes or OpenClaw, any provider key, any skill.",
+		title: SITE.name,
+		description: SITE.description,
+		url: SITE.url,
+		siteName: SITE.name,
 		type: "website",
+		locale: "en_US",
+		// Image is registered automatically by app/opengraph-image.tsx
+		// (Next.js convention) -- explicit images: [] would be overridden
+		// anyway, so we omit it here to avoid duplicate <meta og:image>.
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Agent Machines",
-		description:
-			"A persistent machine for your agent. Stateful filesystem, per-account fleet, sleep/wake by the second.",
+		site: SITE.twitterHandle,
+		creator: SITE.twitterHandle,
+		title: SITE.name,
+		description: SITE.description,
 	},
+	icons: {
+		icon: [
+			{ url: "/icon.svg", type: "image/svg+xml" },
+			{ url: "/icon.png", sizes: "512x512", type: "image/png" },
+		],
+		apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+		shortcut: "/favicon.ico",
+	},
+	formatDetection: { email: false, address: false, telephone: false },
+};
+
+export const viewport: Viewport = {
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "#ffffff" },
+		{ media: "(prefers-color-scheme: dark)", color: "#09090b" },
+	],
+	colorScheme: "light dark",
+	width: "device-width",
+	initialScale: 1,
 };
 
 const CLERK_CONFIGURED = Boolean(
@@ -71,6 +120,7 @@ const CLERK_CONFIGURED = Boolean(
 const THEME_BOOT = `(function(){try{var t=localStorage.getItem("agent-machines.theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+	const jsonLd = buildRootJsonLd();
 	const tree = (
 		<html
 			lang="en"
@@ -79,6 +129,21 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 		>
 			<head>
 				<script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+				{/*
+				  JSON-LD @graph injected directly in <head> (not via
+				  client-side script) so AI crawlers like GPTBot, ClaudeBot,
+				  PerplexityBot can resolve the schema in their first fetch
+				  pass without executing JavaScript. One graph block keeps
+				  Organization / Person / WebSite / SoftwareApplication /
+				  FAQPage / BreadcrumbList in the same JSON-LD island and
+				  cross-referenced via @id.
+				*/}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(jsonLd),
+					}}
+				/>
 			</head>
 			<body>
 				{children}

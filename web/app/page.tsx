@@ -5,6 +5,7 @@ import {
 	ComponentShowcase,
 	ShowcaseAttribution,
 } from "@/components/ComponentShowcase";
+import { FaqSection } from "@/components/FaqSection";
 import { Footer } from "@/components/Footer";
 import { HeroBlock } from "@/components/HeroBlock";
 import { LoadoutPreview } from "@/components/LoadoutPreview";
@@ -64,6 +65,12 @@ export default function HomePage() {
 
 				<ReticleSection id="architecture" background="wing-nyx-waves" borderTop={false}>
 					<ArchitectureFlow />
+				</ReticleSection>
+
+				<ReticleSpacer />
+
+				<ReticleSection id="faq" borderTop={false}>
+					<FaqSection />
 				</ReticleSection>
 			</main>
 
