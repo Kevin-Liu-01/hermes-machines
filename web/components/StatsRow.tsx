@@ -1,5 +1,6 @@
 import { Logo } from "@/components/Logo";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { ServiceIcon, type ServiceSlug } from "@/components/ServiceIcon";
 import { ToolIcon } from "@/components/ToolIcon";
 import type { ToolCategory } from "@/lib/dashboard/loadout";
 
@@ -17,8 +18,13 @@ const STATS: ReadonlyArray<{
 	{ label: "fleet", value: "per-account", hint: "Clerk-tied", icon: "delegate" },
 ];
 
+type StackIcon =
+	| { kind: "logo"; mark: "dedalus" | "agent" | "cursor" | "nous" | "openclaw" }
+	| { kind: "service"; slug: ServiceSlug };
+
 type StackEntry = {
-	mark: "dedalus" | "agent" | "cursor";
+	id: string;
+	icon: StackIcon;
 	name: string;
 	role: string;
 } & (
@@ -34,13 +40,15 @@ type StackEntry = {
 
 const STACK: ReadonlyArray<StackEntry> = [
 	{
-		mark: "dedalus",
+		id: "dedalus",
+		icon: { kind: "logo", mark: "dedalus" },
 		name: "Dedalus Machines",
 		role: "runtime",
 		href: "https://docs.dedaluslabs.ai/dcs",
 	},
 	{
-		mark: "agent",
+		id: "agent",
+		icon: { kind: "logo", mark: "agent" },
 		name: "Hermes / OpenClaw",
 		role: "agent",
 		links: [
@@ -49,12 +57,55 @@ const STACK: ReadonlyArray<StackEntry> = [
 		],
 	},
 	{
-		mark: "cursor",
+		id: "cursor",
+		icon: { kind: "logo", mark: "cursor" },
 		name: "Cursor SDK",
 		role: "codework",
 		href: "https://cursor.com/docs/sdk/typescript",
 	},
+	{
+		id: "vercel",
+		icon: { kind: "service", slug: "vercel" },
+		name: "Vercel",
+		role: "web + ai gateway",
+		href: "https://vercel.com",
+	},
+	{
+		id: "clerk",
+		icon: { kind: "service", slug: "clerk" },
+		name: "Clerk",
+		role: "auth + fleet metadata",
+		href: "https://clerk.com",
+	},
+	{
+		id: "cloudflare",
+		icon: { kind: "service", slug: "cloudflare" },
+		name: "Cloudflare",
+		role: "public tunnel",
+		href: "https://www.cloudflare.com/products/tunnel/",
+	},
+	{
+		id: "anthropic",
+		icon: { kind: "service", slug: "anthropic" },
+		name: "Anthropic",
+		role: "model provider",
+		href: "https://www.anthropic.com/",
+	},
+	{
+		id: "openai",
+		icon: { kind: "service", slug: "openai" },
+		name: "OpenAI",
+		role: "model provider",
+		href: "https://openai.com",
+	},
 ];
+
+function StackIconView({ icon }: { icon: StackIcon }) {
+	if (icon.kind === "logo") {
+		return <Logo mark={icon.mark} size={20} />;
+	}
+	return <ServiceIcon slug={icon.slug} size={20} />;
+}
 
 /**
  * Two strips one above the other, both rendered with the chanhdai
@@ -89,16 +140,16 @@ export function StatsRow() {
 				))}
 			</div>
 
-			<div className="mt-px grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] border-t-0 bg-[var(--ret-border)] md:grid-cols-3">
+			<div className="mt-px grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] border-t-0 bg-[var(--ret-border)] sm:grid-cols-2 lg:grid-cols-4">
 				{STACK.map((s) => {
 					const inner = (
 						<>
-							<Logo mark={s.mark} size={20} />
+							<StackIconView icon={s.icon} />
 							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold tracking-tight text-[var(--ret-text)] group-hover:text-[var(--ret-purple)]">
+								<p className="truncate text-sm font-semibold tracking-tight text-[var(--ret-text)] group-hover:text-[var(--ret-purple)]">
 									{s.name}
 								</p>
-								<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+								<p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 									{s.role} layer
 								</p>
 							</div>
@@ -107,7 +158,7 @@ export function StatsRow() {
 					if (s.href) {
 						return (
 							<a
-								key={s.mark}
+								key={s.id}
 								href={s.href}
 								target="_blank"
 								rel="noreferrer"
@@ -123,7 +174,7 @@ export function StatsRow() {
 					const links = s.links ?? [];
 					return (
 						<div
-							key={s.mark}
+							key={s.id}
 							className="group flex items-center gap-3 bg-[var(--ret-bg)] px-4 py-3"
 						>
 							{inner}
