@@ -5,7 +5,12 @@ import { useMemo, useState } from "react";
 import { Logo, type Mark } from "@/components/Logo";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
-import { ServiceIcon, isServiceSlug } from "@/components/ServiceIcon";
+import {
+	ServiceIcon,
+	SERVICE_LABEL,
+	isServiceSlug,
+	type ServiceSlug,
+} from "@/components/ServiceIcon";
 import { ToolIcon } from "@/components/ToolIcon";
 import { cn } from "@/lib/cn";
 import {
@@ -67,6 +72,38 @@ const KIND_LABEL: Record<ContributionEvent["kind"], string> = {
 	compute: "compute",
 	browser: "browser",
 };
+
+function BrandChip({
+	slug,
+	days,
+	events,
+	active,
+	onClick,
+}: {
+	slug: ServiceSlug;
+	days: number;
+	events: number;
+	active: boolean;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			title={`${SERVICE_LABEL[slug]} . ${days} days . ${events} events`}
+			className={cn(
+				"flex items-center gap-1 border px-1.5 py-0.5 font-mono text-[10px] transition-colors",
+				active
+					? "border-[var(--ret-purple)]/50 bg-[var(--ret-purple-glow)] text-[var(--ret-purple)]"
+					: "border-[var(--ret-border)] bg-[var(--ret-bg-soft)] text-[var(--ret-text-dim)] hover:border-[var(--ret-border-hover)] hover:text-[var(--ret-text)]",
+			)}
+		>
+			<ServiceIcon slug={slug} size={11} />
+			<span className="text-[var(--ret-text)]">{SERVICE_LABEL[slug]}</span>
+			<span className="text-[var(--ret-text-muted)] tabular-nums">{events}</span>
+		</button>
+	);
+}
 
 function EventRow({ event }: { event: ContributionEvent }) {
 	// Resolve which icon to render: brand mark (partner / service) wins,
@@ -220,6 +257,7 @@ export function ContributionGrid() {
 		[...allDays].reverse().find((d) => d.events.length > 0) ?? allDays[allDays.length - 1];
 	const [selected, setSelected] = useState<ContributionDay>(initial);
 	const [filter, setFilter] = useState<ContributionDay["partner"] | "all">("all");
+	const [brandFilter, setBrandFilter] = useState<ServiceSlug | null>(null);
 
 	const partnerCounts = useMemo(() => {
 		const counts: Record<ContributionDay["partner"], number> = {
@@ -233,6 +271,31 @@ export function ContributionGrid() {
 			if (day.intensity > 0) counts[day.partner] += 1;
 		}
 		return counts;
+	}, [allDays]);
+
+	// Per-service-brand activity rolled up across every event in the
+	// 6-month window. A day "uses" a brand if any event on that day
+	// carries that brand. Powers the brand-strip filter beneath the
+	// partner swatches so users can see e.g. "20 days touched Vercel"
+	// and click to narrow the grid to only those days.
+	const brandStats = useMemo(() => {
+		const eventCount = new Map<ServiceSlug, number>();
+		const dayCount = new Map<ServiceSlug, number>();
+		for (const day of allDays) {
+			const seen = new Set<ServiceSlug>();
+			for (const ev of day.events) {
+				if (!ev.brand || !isServiceSlug(ev.brand)) continue;
+				eventCount.set(ev.brand, (eventCount.get(ev.brand) ?? 0) + 1);
+				if (!seen.has(ev.brand)) {
+					seen.add(ev.brand);
+					dayCount.set(ev.brand, (dayCount.get(ev.brand) ?? 0) + 1);
+				}
+			}
+		}
+		const slugs: ServiceSlug[] = Array.from(eventCount.keys()).sort(
+			(a, b) => (eventCount.get(b) ?? 0) - (eventCount.get(a) ?? 0),
+		);
+		return { slugs, eventCount, dayCount };
 	}, [allDays]);
 
 	const totalActive = allDays.filter((d) => d.intensity > 0).length;
@@ -273,8 +336,12 @@ export function ContributionGrid() {
 											/>
 										);
 									}
-									const dimmed =
+									const partnerDim =
 										filter !== "all" && day.partner !== filter;
+									const brandDim =
+										brandFilter !== null &&
+										!day.events.some((e) => e.brand === brandFilter);
+									const dimmed = partnerDim || brandDim;
 									return (
 										<div
 											key={day.date}
@@ -322,6 +389,50 @@ export function ContributionGrid() {
 							<span>more</span>
 						</div>
 					</div>
+
+					{/*
+					  Per-service brand strip. Aggregates every event across
+					  every day, ranks services by event count, and renders
+					  them as compact filter chips. Click one to narrow the
+					  grid to days that touched that service. Click again
+					  (or the "clear" pill) to reset.
+					*/}
+					{brandStats.slugs.length > 0 ? (
+						<div className="flex flex-col gap-1.5 pt-1">
+							<div className="flex items-baseline justify-between gap-2">
+								<p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
+									services touched . {brandStats.slugs.length}
+								</p>
+								{brandFilter ? (
+									<button
+										type="button"
+										onClick={() => setBrandFilter(null)}
+										className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--ret-purple)] hover:underline"
+									>
+										clear filter
+									</button>
+								) : (
+									<p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+										click to filter
+									</p>
+								)}
+							</div>
+							<div className="flex flex-wrap gap-1">
+								{brandStats.slugs.map((slug) => (
+									<BrandChip
+										key={slug}
+										slug={slug}
+										days={brandStats.dayCount.get(slug) ?? 0}
+										events={brandStats.eventCount.get(slug) ?? 0}
+										active={brandFilter === slug}
+										onClick={() =>
+											setBrandFilter((cur) => (cur === slug ? null : slug))
+										}
+									/>
+								))}
+							</div>
+						</div>
+					) : null}
 				</div>
 
 				<DayDetail day={selected} />
