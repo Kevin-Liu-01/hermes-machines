@@ -68,6 +68,7 @@ export function HeroBlock() {
 				</div>
 
 				<div className="mt-5 flex items-start gap-5 md:gap-7">
+					<HeroAgentPortrait />
 					<h1 className="ret-display text-3xl leading-[1.05] md:text-[44px]">
 						A persistent machine
 						<br />
@@ -75,7 +76,6 @@ export function HeroBlock() {
 							for your agent.
 						</span>
 					</h1>
-					<HeroAgentPortrait />
 				</div>
 
 				<p className="mt-5 max-w-[55ch] text-[14px] leading-relaxed text-[var(--ret-text-dim)]">
