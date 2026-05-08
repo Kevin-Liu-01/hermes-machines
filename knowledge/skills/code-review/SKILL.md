@@ -1,5 +1,5 @@
 ---
-name: gstack-review
+name: code-review
 version: 1.0.0
 description: |
   Staff engineer code review. Adapted from GStack's /review (Garry Tan,

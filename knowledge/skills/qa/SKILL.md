@@ -1,5 +1,5 @@
 ---
-name: gstack-qa
+name: qa
 version: 1.0.0
 description: |
   QA lead with real browser testing. Adapted from GStack's /qa (Garry Tan,
@@ -152,5 +152,5 @@ Every 5 fixes, evaluate:
 - Bundling multiple bug fixes into one commit
 - Testing only the happy path
 - Skipping responsive testing
-- Fixing design issues in a QA pass (that's gstack-design-review's job)
+- Fixing design issues in a QA pass (that's design-review's job)
 - Testing with developer tools open (users don't have dev tools)

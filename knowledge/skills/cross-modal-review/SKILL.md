@@ -44,7 +44,7 @@ Identify what needs review:
 ### Phase 2: Load the Contract
 
 Read the originating skill's Contract section. This is the grading rubric.
-Example: if the output came from `gstack-review`, load `gstack-review/SKILL.md`
+Example: if the output came from `code-review`, load `code-review/SKILL.md`
 and extract the Contract section.
 
 If no originating skill (ad-hoc work), construct a minimal contract:

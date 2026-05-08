@@ -64,7 +64,7 @@ const SKILL_NAMES = [
 	"torvalds",
 	"counterfactual",
 	"vercel-react-best-practices",
-	"gstack-review",
+	"code-review",
 	"reticle-design-system",
 	"automation-cron",
 	"cursor-coding",

@@ -1,5 +1,5 @@
 ---
-name: gstack-design-review
+name: design-review
 version: 1.0.0
 description: |
   Design audit with UX usability tests. Adapted from GStack's /design-review
