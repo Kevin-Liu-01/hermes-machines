@@ -1,24 +1,47 @@
 import Image from "next/image";
+import type { SVGProps } from "react";
 
 import { SignedIn, SignedOut } from "@/components/AuthSwitch";
 import { ContributionGrid } from "@/components/ContributionGrid";
+import { Logo } from "@/components/Logo";
+import { ServiceIcon } from "@/components/ServiceIcon";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 
+const PROOF_POINTS: ReadonlyArray<{
+	Icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
+	title: string;
+	body: string;
+}> = [
+	{
+		Icon: IconDisk,
+		title: "State on disk, not in RAM",
+		body: "Chats, files, USER.md, MEMORY.md, FTS5 sessions, cron, venv -- everything lives at /home/machine and survives every sleep.",
+	},
+	{
+		Icon: IconKey,
+		title: "Per-account fleet",
+		body: "Sign in once with Clerk; the same machine wakes on every device. Provider keys + agent choice persist in private metadata.",
+	},
+	{
+		Icon: IconStack,
+		title: "Bring any agent + tool",
+		body: "Hermes or OpenClaw, any provider key (Dedalus / Sandbox / Fly), any of 95 skills + 17 MCP services -- swap any time.",
+	},
+];
+
 export function HeroBlock() {
 	return (
-		<div className="relative grid items-stretch gap-8 md:grid-cols-[1fr_1.1fr] md:gap-10">
+		<div className="relative grid items-stretch gap-10 md:grid-cols-[1fr_1.05fr] md:gap-12">
 			{/*
 			  Faint wing watermark anchored to the top-right of the hero.
-			  Sits behind everything via z-0 / pointer-events-none. The
-			  wing is the brand mark; using it as ambient wallpaper here
-			  (instead of a tiny corner logo) makes the hero feel weighted
-			  to the brand without needing literal wordmarks.
+			  Sits behind everything via z-0 / pointer-events-none -- the
+			  wing as ambient wallpaper instead of a literal wordmark.
 			*/}
 			<div
 				aria-hidden="true"
-				className="pointer-events-none absolute -top-8 right-[-4%] hidden h-[420px] w-[420px] opacity-[0.07] md:block dark:opacity-[0.10]"
+				className="pointer-events-none absolute -top-8 right-[-4%] hidden h-[420px] w-[420px] opacity-[0.06] md:block dark:opacity-[0.10]"
 			>
 				<Image
 					src="/brand/wing-mark.png"
@@ -42,37 +65,61 @@ export function HeroBlock() {
 					<ReticleBadge variant="accent">stateful microVM</ReticleBadge>
 					<ReticleBadge>per-account fleet</ReticleBadge>
 				</div>
-				<h1 className="ret-display mt-4 text-3xl md:text-[44px]">
+
+				<h1 className="ret-display mt-5 text-3xl leading-[1.05] md:text-[44px]">
 					A persistent machine
 					<br />
 					<span className="text-[var(--ret-text-dim)]">
 						for your agent.
 					</span>
 				</h1>
-				<p className="mt-4 max-w-[58ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)] md:text-sm">
+
+				<p className="mt-5 max-w-[55ch] text-[14px] leading-relaxed text-[var(--ret-text-dim)]">
 					One stateful microVM per account.{" "}
 					<strong className="text-[var(--ret-text)]">
-						Boot in 30 seconds, sleep on idle, wake on the first prompt
+						Boot in 30 seconds, sleep on idle, wake on the first prompt.
 					</strong>
-					. Chat history, working files, learned skills, and cron jobs all
-					persist on the machine's filesystem at{" "}
-					<code className="border border-[var(--ret-border)] bg-[var(--ret-surface)] px-1 font-mono text-[0.85em]">
-						/home/machine
-					</code>
-					-- not in browser localStorage, not in a black-box memory service.
-					Sign in once with Clerk; your fleet follows you across devices.
-					Then pick Hermes or OpenClaw, attach any provider key, and load
-					any of 95 skills + 17 MCP services. Same machine.
 				</p>
-				<div className="mt-5 flex flex-wrap gap-2">
+
+				<ul className="mt-5 flex flex-col divide-y divide-[var(--ret-border)] border-y border-[var(--ret-border)]">
+					{PROOF_POINTS.map(({ Icon, title, body }) => (
+						<li key={title} className="flex items-start gap-3 py-3">
+							<span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] text-[var(--ret-purple)]">
+								<Icon className="h-3.5 w-3.5" />
+							</span>
+							<div className="min-w-0 flex-1">
+								<p className="text-[13px] font-semibold tracking-tight text-[var(--ret-text)]">
+									{title}
+								</p>
+								<p className="mt-0.5 text-[12px] leading-snug text-[var(--ret-text-dim)]">
+									{body}
+								</p>
+							</div>
+						</li>
+					))}
+				</ul>
+
+				<div className="mt-6 flex flex-wrap gap-2">
 					<SignedIn>
-						<ReticleButton as="a" href="/dashboard" variant="primary" size="sm">
+						<ReticleButton
+							as="a"
+							href="/dashboard"
+							variant="primary"
+							size="sm"
+						>
+							<IconArrowRight className="h-3.5 w-3.5" />
 							Open dashboard
 						</ReticleButton>
 					</SignedIn>
 					<SignedOut>
-						<ReticleButton as="a" href="/sign-in" variant="primary" size="sm">
-							Sign in to chat
+						<ReticleButton
+							as="a"
+							href="/sign-in"
+							variant="primary"
+							size="sm"
+						>
+							<IconLock className="h-3.5 w-3.5" />
+							Sign in
 						</ReticleButton>
 					</SignedOut>
 					<ReticleButton
@@ -82,7 +129,8 @@ export function HeroBlock() {
 						variant="secondary"
 						size="sm"
 					>
-						View on GitHub
+						<ServiceIcon slug="github" size={13} tone="mono" />
+						GitHub
 					</ReticleButton>
 					<ReticleButton
 						as="a"
@@ -91,7 +139,8 @@ export function HeroBlock() {
 						variant="ghost"
 						size="sm"
 					>
-						Hermes docs
+						<Logo mark="nous" size={13} />
+						Docs
 					</ReticleButton>
 					<ReticleButton
 						as="a"
@@ -100,14 +149,19 @@ export function HeroBlock() {
 						variant="ghost"
 						size="sm"
 					>
-						OpenClaw docs
+						<Logo mark="openclaw" size={13} />
+						Docs
 					</ReticleButton>
 				</div>
-				<p className="mt-5 max-w-[60ch] font-mono text-[11px] text-[var(--ret-text-muted)]">
-					{"->"} every cell on the right is one day this machine was awake.
-					hover to see what fired, click to pin. boots, sleeps, wakes,
-					checkpoints state to disk -- nothing lives in RAM that it can't
-					rebuild from /home/machine on restart.
+
+				<p className="mt-6 flex items-start gap-2 max-w-[55ch] font-mono text-[11px] leading-relaxed text-[var(--ret-text-muted)]">
+					<span className="mt-0.5 text-[var(--ret-purple)]">{"->"}</span>
+					<span>
+						Each cell on the right is one day this machine was awake. Hover
+						to peek, click to pin. Nothing lives in RAM that it can't rebuild
+						from <code className="text-[var(--ret-text-dim)]">/home/machine</code>{" "}
+						on restart.
+					</span>
 				</p>
 			</div>
 
@@ -115,5 +169,54 @@ export function HeroBlock() {
 				<ContributionGrid />
 			</div>
 		</div>
+	);
+}
+
+/* ------------------------------------------------------------------ */
+/* Inline proof-point + button icons (Lucide-shaped, currentColor)     */
+/* ------------------------------------------------------------------ */
+
+function IconDisk(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<ellipse cx="8" cy="4" rx="6" ry="2" />
+			<path d="M2 4v8c0 1.1 2.7 2 6 2s6-.9 6-2V4" />
+			<path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2" />
+		</svg>
+	);
+}
+
+function IconKey(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<circle cx="5" cy="11" r="2.5" />
+			<path d="M7 9l6.5-6.5M11 5l1.5 1.5M9.5 6.5L11 8" />
+		</svg>
+	);
+}
+
+function IconStack(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<path d="M8 2L2 5l6 3 6-3z" />
+			<path d="M2 11l6 3 6-3M2 8l6 3 6-3" />
+		</svg>
+	);
+}
+
+function IconArrowRight(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<path d="M3 8h10M9 4l4 4-4 4" />
+		</svg>
+	);
+}
+
+function IconLock(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<rect x="3" y="7" width="10" height="7" />
+			<path d="M5 7V5a3 3 0 0 1 6 0v2" />
+		</svg>
 	);
 }
