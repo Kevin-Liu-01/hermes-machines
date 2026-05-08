@@ -40,18 +40,18 @@ export async function PublicNavbar({
 	githubRepo: string;
 }) {
 	const items: ReadonlyArray<NavItem> = [
-		{ href: "#capabilities", label: "features", icon: IconFeatures },
-		{ href: "#runtime", label: "live", icon: IconLive },
-		{ href: "#loadout", label: "tools", icon: IconTools },
-		{ href: "#components", label: "ui", icon: IconUi },
-		{ href: "#skills", label: "skills", icon: IconSkills },
-		{ href: "#architecture", label: "stack", icon: IconStack },
-		{ href: "#faq", label: "faq", icon: IconFaq },
+		{ href: "/#capabilities", label: "features", icon: IconFeatures },
+		{ href: "/#runtime", label: "live", icon: IconLive },
+		{ href: "/#loadout", label: "tools", icon: IconTools },
+		{ href: "/#components", label: "ui", icon: IconUi },
+		{ href: "/#skills", label: "skills", icon: IconSkills },
+		{ href: "/#architecture", label: "stack", icon: IconStack },
+		{ href: "/faq", label: "faq", icon: IconFaq },
 	];
 	return (
 		<ReticleNavbar>
 			<div className="flex h-12 items-center justify-between gap-4 px-5">
-				<a href="#top" className="group flex items-center gap-2.5">
+				<a href="/" className="group flex items-center gap-2.5">
 					<BrandMark size={20} withLabel={false} />
 					<span
 						className="text-[20px] leading-none tracking-tight text-[var(--ret-text)] transition-colors group-hover:text-[var(--ret-purple)]"

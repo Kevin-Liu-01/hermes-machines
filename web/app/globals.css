@@ -204,6 +204,38 @@ body {
 	text-underline-offset: 2px;
 }
 
+/* React Flow controls inside the architecture map. The library ships
+ * opinionated white buttons; retheme them so the map keeps the Reticle
+ * instrument-panel rhythm in both themes. */
+.architecture-canvas .react-flow__controls {
+	box-shadow: none;
+	border: 1px solid var(--ret-border);
+	background: var(--ret-bg);
+}
+.architecture-canvas .react-flow__controls-button {
+	width: 28px;
+	height: 28px;
+	border: 0;
+	border-bottom: 1px solid var(--ret-border);
+	background: var(--ret-bg);
+	color: var(--ret-text);
+}
+.architecture-canvas .react-flow__controls-button:hover {
+	background: var(--ret-surface);
+}
+.architecture-canvas .react-flow__controls-button svg {
+	fill: currentColor;
+}
+.architecture-canvas .react-flow__controls-button:last-child {
+	border-bottom: 0;
+}
+.architecture-canvas .react-flow__minimap {
+	box-shadow: none;
+}
+.architecture-canvas .react-flow__edge.animated path {
+	stroke-dasharray: 5;
+}
+
 /* Subtle blink for the streaming caret */
 @keyframes ret-caret {
 	0%,

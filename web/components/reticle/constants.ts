@@ -7,8 +7,8 @@
  */
 export const RETICLE_SIZES = {
 	gridCell: 48,
-	crossArm: 10,
-	crossStroke: 1.5,
+	crossArm: 5,
+	crossStroke: 1,
 	railGap: 24,
 	contentMax: 1200,
 	/**

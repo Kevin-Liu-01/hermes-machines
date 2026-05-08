@@ -43,29 +43,29 @@ export function ReticleSpacer({
 					<ReticleCross
 						className="absolute z-20"
 						style={{
-							top: "-10px",
-							left: "calc(var(--ret-rail-offset) - 10px)",
+							top: "-5px",
+							left: "calc(var(--ret-rail-offset) - 5px)",
 						}}
 					/>
 					<ReticleCross
 						className="absolute z-20"
 						style={{
-							top: "-10px",
-							right: "calc(var(--ret-rail-offset) - 10px)",
+							top: "-5px",
+							right: "calc(var(--ret-rail-offset) - 5px)",
 						}}
 					/>
 					<ReticleCross
 						className="absolute z-20"
 						style={{
-							bottom: "-10px",
-							left: "calc(var(--ret-rail-offset) - 10px)",
+							bottom: "-5px",
+							left: "calc(var(--ret-rail-offset) - 5px)",
 						}}
 					/>
 					<ReticleCross
 						className="absolute z-20"
 						style={{
-							bottom: "-10px",
-							right: "calc(var(--ret-rail-offset) - 10px)",
+							bottom: "-5px",
+							right: "calc(var(--ret-rail-offset) - 5px)",
 						}}
 					/>
 				</>

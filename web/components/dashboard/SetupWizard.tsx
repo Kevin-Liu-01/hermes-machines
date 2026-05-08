@@ -78,14 +78,14 @@ const PROVIDERS_DESC: Record<
 	"vercel-sandbox": {
 		name: "Vercel Sandbox",
 		tagline:
-			"Ephemeral Firecracker microVMs from Vercel. Max 45 minute runtime, fresh each session. Provider key accepted now; install lands in PR4.",
+			"Ephemeral Firecracker microVMs from Vercel. Provider key accepted now; provisioning is not wired yet.",
 		ready: false,
 		keyHint: "Vercel API token",
 	},
 	fly: {
 		name: "Fly Machines",
 		tagline:
-			"Fly.io persistent microVMs with autostart on connect. Provider key accepted now; install lands in PR4.",
+			"Fly.io persistent microVMs with autostart on connect. Provider key accepted now; provisioning is not wired yet.",
 		ready: false,
 		keyHint: "fly_pat_... or FlyV1 ...",
 	},
@@ -443,7 +443,7 @@ function CredentialsStep({
 					value={state.vercelSandbox}
 					onChange={(v) => setState((s) => ({ ...s, vercelSandbox: v }))}
 					hint={
-						vercelOnFile ? "On file. Leave blank to keep." : "Optional. Vercel Sandbox provider (PR4)."
+						vercelOnFile ? "On file. Leave blank to keep." : "Optional. Provisioner not wired yet."
 					}
 					secondary={{
 						label: "Vercel team id (optional)",
@@ -459,7 +459,7 @@ function CredentialsStep({
 					value={state.fly}
 					onChange={(v) => setState((s) => ({ ...s, fly: v }))}
 					hint={
-						flyOnFile ? "On file. Leave blank to keep." : "Optional. Fly Machines provider (PR4)."
+						flyOnFile ? "On file. Leave blank to keep." : "Optional. Provisioner not wired yet."
 					}
 					secondary={{
 						label: "Fly org slug (optional)",
@@ -632,7 +632,7 @@ function ProviderStep({
 	return (
 		<StepShell
 			title="Pick the provider"
-			description="Where the agent's microVM lives. Dedalus is wired end-to-end today. Vercel Sandbox + Fly accept credentials and feed the same multi-tenant pipeline; full provisioning lands in PR4."
+			description="Where the agent's microVM lives. Dedalus is wired end-to-end today. Vercel Sandbox and Fly accept credentials and feed the same multi-tenant shape, but their provisioners are not wired yet."
 		>
 			<div className="grid gap-4 md:grid-cols-3">
 				{PROVIDER_KINDS.map((kind) => {
@@ -851,7 +851,7 @@ function ReviewStep({
 	return (
 		<StepShell
 			title="Confirm and provision"
-			description="Provisioning hits the chosen provider and saves the new machine ID into your Clerk metadata. Bootstrap (agent install) ships in PR2; for now finish the install with the matching CLI command after this step."
+			description="Provisioning hits the chosen provider and saves the new machine ID into your Clerk metadata. Browser-driven agent bootstrap is not wired yet; finish the install with the matching CLI command after this step."
 		>
 			<dl className="grid gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] sm:grid-cols-2">
 				<Row label="agent" value={config.draftAgentKind} />

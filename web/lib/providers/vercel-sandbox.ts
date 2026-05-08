@@ -33,7 +33,7 @@ const NOT_YET = (op: string): MachineProviderError =>
 	new MachineProviderError(
 		"vercel-sandbox",
 		"not_supported",
-		`Vercel Sandbox ${op} is not yet wired in this PR. The provider is accepted by the wizard so the multi-tenant plumbing works end-to-end; full provisioning ships in PR4.`,
+		`Vercel Sandbox ${op} is not wired yet. The provider is accepted by the wizard so the multi-tenant plumbing can store credentials and machine intent without pretending provisioning is live.`,
 	);
 
 export class VercelSandboxProvider implements MachineProvider {

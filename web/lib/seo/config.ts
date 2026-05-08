@@ -14,7 +14,7 @@ export const SITE = {
 	wordmark: "agent-machines",
 	url: "https://www.agent-machines.dev",
 	description:
-		"A persistent machine for your agent. One stateful microVM per Clerk account; chat history, files, learned skills, and cron all live on /home/machine. Hermes or OpenClaw, any provider key (Dedalus / Vercel Sandbox / Fly), 95 skills + 17 MCP services.",
+		"A persistent machine for your agent. One stateful microVM per Clerk account; chat history, files, learned skills, and cron live on /home/machine. Hermes or OpenClaw, Dedalus Machines today, provider abstraction for Vercel Sandbox and Fly, 95 skills, 23 built-ins, and 17 service routes.",
 	tagline: "A persistent machine for your agent",
 	ogImage: "/og.png",
 	twitterHandle: "@kevin_liu_01",
@@ -34,7 +34,7 @@ export const SITE = {
 		"agent fleet",
 		"per-account agent",
 		"MCP server",
-		"Cursor SDK delegation",
+		"optional Cursor SDK delegation",
 		"agent memory",
 		"agent sleep wake",
 		"stateful agent",
@@ -42,6 +42,8 @@ export const SITE = {
 		"AI agent runtime",
 	],
 } as const;
+
+export const LEGAL_EFFECTIVE_DATE = "May 8, 2026";
 
 export type SiteConfig = typeof SITE;
 
@@ -59,41 +61,56 @@ export const FAQ: ReadonlyArray<FaqEntry> = [
 	{
 		question: "What is Agent Machines?",
 		answer:
-			"Agent Machines is a per-account agent runtime. Each signed-in user provisions one persistent stateful microVM where the agent's chat history, working files, learned skills, and cron schedules all live on disk at /home/machine and survive every sleep cycle. The same machine wakes on every device the user signs in from.",
+			"Agent Machines is a per-account runtime for persistent agents. Each signed-in user can keep machines with durable Linux filesystems under /home/machine, so chats, working files, artifacts, learned skills, and cron schedules survive sleep and wake cycles.",
 	},
 	{
 		question: "How is this different from a regular chatbot?",
 		answer:
-			"A regular chatbot is stateless -- conversation memory either lives in your browser or in a vendor-controlled black-box memory service. Agent Machines persists everything to a real Linux filesystem the agent owns: chat .jsonl files, USER.md, MEMORY.md, an FTS5 sessions database, cron schedules, the Python venv, learned skills. The agent can read, write, search, and rebuild context from disk on every wake.",
+			"A regular chatbot usually stores memory in browser state or a vendor-owned memory layer. Agent Machines persists operational state to a real machine filesystem: chat records, artifacts, USER.md, MEMORY.md, Hermes sessions, cron schedules, skills, and the runtime venv.",
 	},
 	{
 		question: "Which agents can I run?",
 		answer:
-			"Two production-ready open-source agents today: Hermes (Nous Research, memory + cron + MCP-native) and OpenClaw (Dedalus Labs reference, Anthropic computer-use loop with browser + screenshot + click). Both expose the same OpenAI-compatible /v1/chat/completions endpoint, both run on the same machine, and you can swap between them from the navbar without losing state.",
+			"Hermes and OpenClaw are the two agent runtimes represented in the app. Hermes is the default memory, cron, sessions, and MCP-native runtime. OpenClaw is the computer-use runtime with browser, screenshot, click, shell, and file operations. Both sit behind the same machine/gateway concept.",
 	},
 	{
 		question: "Which providers can host the machine?",
 		answer:
-			"Dedalus Machines is the default runtime (microVM, second-billed, ~30s cold boot, ~5s warm). The MachineProvider interface also accepts Vercel Sandbox and Fly Machines; users attach their own credentials per provider. Same agent, same persistence, different hosts.",
+			"Dedalus Machines is wired end-to-end today. The MachineProvider abstraction, setup UI, and user config schema also include Vercel Sandbox and Fly Machines, but those provisioners currently return explicit not-supported responses until their provider implementations land.",
 	},
 	{
-		question: "How do I sign up and get my own machine?",
+		question: "How do I get my own machine today?",
 		answer:
-			"Sign in with Clerk at agent-machines.dev/sign-in. The five-step onboarding (agent / skills / tools / key / boot) provisions the machine end-to-end in 30-90 seconds. Bring a Dedalus API key from dedaluslabs.ai/dashboard/api-keys; the key authenticates both provisioning and inference.",
+			"Sign in with Clerk, add provider credentials in /dashboard/setup, pick the agent, provider, spec, and model, then provision the machine record. The browser flow creates the provider machine and stores it in your fleet; the reliable agent bootstrap path is still the matching root CLI deploy command until browser-driven bootstrap lands.",
 	},
 	{
 		question: "What tools and skills come pre-installed?",
 		answer:
-			"23 built-in tools (terminal, filesystem, browser via Playwright, vision, image generation, MCP servers, code execution, subagent delegation), 17 MCP service integrations (Vercel, Stripe, Supabase, Linear, GitHub, Slack, PostHog, Sentry, Clerk, Firebase, Figma, Shopify, ClickHouse, Datadog, AWS, Cloudflare, plus model providers), and 95 SKILL.md files that auto-load by intent.",
+			"The public loadout tracks 23 built-in tools, 17 service routes, and 95 SKILL.md files. The surface includes terminal, filesystem, browser automation, web search, vision, image generation, code execution, cron, memory, sessions, Vercel, Stripe, Supabase, Linear, GitHub, Slack, PostHog, Sentry, Clerk, Firebase, Figma, Shopify, ClickHouse, Datadog, AWS, Cloudflare, and model providers.",
 	},
 	{
-		question: "Where does my data live and who can see it?",
+		question: "Is Cursor required?",
 		answer:
-			"All conversation, file, memory, and skill data lives on the user's own machine disk under /home/machine/.agent-machines/. The web dashboard's UserConfig (provider keys, machine fleet, active agent) lives in Clerk private metadata, which is server-only and never sent to the browser. No third-party analytics or memory service holds your agent state.",
+			"No. Cursor is optional delegation for code edits through cursor-bridge and @cursor/sdk. Without CURSOR_API_KEY, the rest of the machine still runs: chat, files, browser automation, skills, cron, memory, dashboard polling, artifacts, and provider lifecycle controls.",
 	},
 	{
-		question: "What happens when the machine sleeps?",
+		question: "What are ~/.agent-machines, ~/.hermes, and /home/machine/hermes-machines?",
 		answer:
-			"Idle Dedalus microVMs hibernate to save cost (second-billed). The disk is preserved across sleeps, so on the next /v1/chat/completions request the machine wakes (typically <5s after recent activity, <30s cold) and the agent resumes from disk -- chat history, learned skills, cron schedules, and venv intact.",
+			"~/.agent-machines is Agent Machines product data such as chats and artifacts. ~/.hermes is Hermes runtime state such as skills, crons, sessions, logs, MEMORY.md, USER.md, and config. /home/machine/hermes-machines is the git checkout used by reload-from-git.sh. They are separate on purpose.",
+	},
+	{
+		question: "What inference providers are supported?",
+		answer:
+			"Dedalus is the default OpenAI-compatible inference endpoint. Hermes is configured through model.base_url and model.default, so the CLI can point DEDALUS_CHAT_BASE_URL at another compatible /v1 endpoint when needed. The dashboard stores a model slug per machine.",
+	},
+	{
+		question: "What happens when a machine sleeps?",
+		answer:
+			"On supported providers, sleep pauses compute while preserving the persistent volume. The next wake resumes from disk: app artifacts, agent runtime state, skills, cron schedules, sessions, and the venv remain available.",
+	},
+	{
+		question: "Where does my data live?",
+		answer:
+			"Provider credentials and gateway bearers live in Clerk private metadata. Machine state lives on the provider machine under /home/machine, with Agent Machines product data under ~/.agent-machines and Hermes runtime data under ~/.hermes. The public client only sees redacted provider and machine status.",
 	},
 ];

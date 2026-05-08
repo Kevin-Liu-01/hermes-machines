@@ -33,9 +33,9 @@ const CAPABILITIES: ReadonlyArray<Capability> = [
 	},
 	{
 		kicker: "PROVIDERS",
-		title: "Bring any key",
-		body: "Dedalus is the default runtime, but the MachineProvider interface accepts Vercel Sandbox and Fly Machines too -- each user attaches their own credentials. Same shape, same agent, same persistence.",
-		notes: ["dedalus", "vercel-sandbox", "fly"],
+		title: "Dedalus live; more hosts shaped",
+		body: "Dedalus Machines is wired end-to-end today. Vercel Sandbox and Fly Machines already exist in the MachineProvider schema and setup UI, with explicit not-supported responses until their provisioners land.",
+		notes: ["dedalus live", "vercel-sandbox", "fly"],
 	},
 	{
 		kicker: "AGENTS",
@@ -46,9 +46,9 @@ const CAPABILITIES: ReadonlyArray<Capability> = [
 	},
 	{
 		kicker: "TOOLS",
-		title: "23 built-in + 17 MCP services",
-		body: "Terminal, filesystem, web search, browser automation (Playwright), vision, image generation, code execution, subagent delegation. Cursor, Stripe, Supabase, Linear, Vercel, GitHub, Slack, PostHog, Sentry, ... -- mounted as MCP servers and selectable per machine.",
-		notes: ["terminal", "browser_*", "MCP", "subagent"],
+		title: "23 built-ins + 17 service routes",
+		body: "Terminal, filesystem, web search, browser automation, vision, image generation, code execution, subagent delegation. Cursor is one path; Vercel, Stripe, Supabase, Linear, GitHub, Slack, PostHog, Sentry, Figma, and more sit in the MCP/CLI/skill hierarchy.",
+		notes: ["terminal", "browser_*", "MCP/CLI", "skills"],
 		mark: "agent",
 	},
 	{
@@ -59,9 +59,9 @@ const CAPABILITIES: ReadonlyArray<Capability> = [
 	},
 	{
 		kicker: "DELEGATION",
-		title: "Spawns Cursor coding agents",
-		body: "When the agent needs to write real code, it hands off to a Cursor SDK subagent via the cursor_agent MCP tool. Same model the Cursor IDE runs, full file access, the machine's selected skills injected as .cursor/rules.",
-		notes: ["cursor_agent", "@cursor/sdk", ".cursor/rules"],
+		title: "Cursor is optional delegation",
+		body: "When configured, Hermes can hand code work to a Cursor SDK subagent through cursor_agent. Without CURSOR_API_KEY, the machine still keeps chat, tools, skills, cron, browser automation, files, and provider control working.",
+		notes: ["cursor_agent", "optional", ".cursor/rules"],
 		mark: "cursor",
 	},
 ];
@@ -73,7 +73,7 @@ export function CapabilityGrid() {
 				<div>
 					<ReticleLabel>CAPABILITIES</ReticleLabel>
 					<h2 className="ret-display mt-2 text-xl md:text-2xl">
-						State persists. Account is the key.
+						Machine first. Loadout second.
 					</h2>
 				</div>
 				<p className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ret-text-muted)] md:block">

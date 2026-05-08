@@ -1,33 +1,113 @@
-# Hermes Persistent -- Web UI
+# Agent Machines Web
 
-Next.js 15 + Tailwind v4 chat UI for the deployed Hermes Agent. Built on the Reticle / Sigil design system (engineering-instrument aesthetic: visible grid, margin rails, cross marks).
+Next.js 15 + Tailwind v4 public site and Clerk-gated dashboard for `agent-machines`.
+
+The web app does three jobs:
+
+- Public marketing/docs: landing page, architecture map, FAQ, terms, privacy.
+- Authenticated control plane: setup, machines, chat, loadout, skills, MCPs, sessions, logs, Cursor runs, artifacts.
+- Server-side gateway proxy: browser chat calls go through API routes so machine bearers never become `NEXT_PUBLIC_*` values.
+
+## Current status
+
+- Dedalus Machines is the only provider wired end-to-end today.
+- Vercel Sandbox and Fly Machines exist in the provider contract and setup UI, but their provider implementations return `not_supported`.
+- `/dashboard/setup` stores provider credentials and can create a provider machine record.
+- Browser-driven agent bootstrap is not wired yet. Use the root CLI to install Hermes/OpenClaw, then save the gateway URL/key from `/dashboard/machines`.
+- Cursor is optional. `cursor-bridge` only activates when a Cursor API key is present.
 
 ## Quick start
-
-After running `npm run deploy` from the repo root and getting the API URL + key:
 
 ```bash
 cd web
 cp .env.local.example .env.local
-# paste HERMES_API_URL and HERMES_API_KEY from `npm run deploy` output
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3210](http://localhost:3210).
+Open <http://localhost:3210>.
 
-## What's here
+For authenticated routes, configure Clerk:
 
-- `app/page.tsx` -- the landing page (hero, chat, capabilities, skills, architecture).
-- `app/api/chat/route.ts` -- server-side SSE proxy to the Hermes API. The bearer token never reaches the browser.
-- `app/api/health/route.ts` -- `/v1/models` probe. Used by the chat to render the "online" badge.
-- `components/Chat.tsx` -- streaming chat with starter prompts, abort, and markdown.
-- `components/reticle/` -- ported Reticle design system primitives (page grid, cross marks, gutters, margins, cards, buttons, badges, labels).
+```txt
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+```
 
-## Why not embed the Hermes dashboard?
+Optional owner fallback env vars:
 
-Hermes ships its own React dashboard at port 9119 -- exposed via Dedalus preview during deploy. That dashboard is great for managing config and viewing sessions, but it's full of admin chrome that doesn't fit a public landing page. This UI is a thin polished frontend over the API, complementary to (not replacing) the dashboard.
+```txt
+DEDALUS_API_KEY=...
+HERMES_MACHINE_ID=...
+HERMES_API_URL=...
+HERMES_API_KEY=...
+HERMES_MODEL=anthropic/claude-sonnet-4-6
+```
 
-## Why server-side proxy?
+## Scripts
 
-`HERMES_API_KEY` is a real bearer token. If we exposed it as `NEXT_PUBLIC_*`, every visitor could read it from JS and call the agent themselves. The API route lives on the server; the token never leaves it.
+```bash
+npm run dev          # sync skills, start Next on :3210
+npm run build        # sync skills, build
+npm run typecheck    # sync skills, tsc --noEmit
+npm run sync-skills  # regenerate data/skills.json from ../knowledge/skills
+```
+
+## Public routes
+
+| Route | Purpose |
+|---|---|
+| `/` | landing page with hero, capabilities, runtime visuals, loadout, skills, architecture |
+| `/faq` | product FAQ backed by `lib/seo/config.ts` |
+| `/terms` | terms of service |
+| `/privacy` | privacy policy |
+| `/sign-in` | Clerk sign-in |
+| `/onboarding` | first-run flow |
+
+## Dashboard routes
+
+| Route | Purpose |
+|---|---|
+| `/dashboard` | overview |
+| `/dashboard/setup` | credentials, agent, provider, spec, review |
+| `/dashboard/machines` | machine fleet, active machine, gateway credentials |
+| `/dashboard/chat` | streaming chat through the active gateway |
+| `/dashboard/loadout` | built-ins, service hierarchy, task hierarchy |
+| `/dashboard/skills` | synced SKILL.md library |
+| `/dashboard/mcps` | MCP servers and tools |
+| `/dashboard/sessions` | Hermes session DB inventory |
+| `/dashboard/logs` | gateway log tail |
+| `/dashboard/cursor` | cursor-bridge run history |
+| `/dashboard/artifacts` | machine artifact storage |
+
+## Data boundaries
+
+- Clerk private metadata stores provider keys, Cursor key, gateway bearers, and full `UserConfig`.
+- Clerk public metadata only exposes redacted setup and machine state.
+- Machine product data lives under `/home/machine/.agent-machines/`.
+- Hermes runtime data lives under `/home/machine/.hermes/`.
+- The VM repo checkout lives at `/home/machine/hermes-machines/` and is only used for reloads.
+
+These paths are deliberately separate. `~/.hermes` is not the app data root. `/home/machine/hermes-machines` is not the Hermes runtime. Tiny naming mines, neatly flagged. Horrifying, but flagged.
+
+## Important files
+
+```txt
+app/page.tsx                         public landing
+app/faq/page.tsx                     FAQ page
+app/terms/page.tsx                   terms page
+app/privacy/page.tsx                 privacy page
+app/api/chat/route.ts                server-side SSE chat proxy
+app/api/dashboard/*                  authenticated dashboard APIs
+components/ArchitectureFlow.tsx      interactive architecture map
+components/PublicDocPage.tsx         shared public docs shell
+components/dashboard/*               dashboard panels
+lib/user-config/*                    Clerk-backed user config
+lib/providers/*                      MachineProvider implementations
+lib/dashboard/loadout.ts             tool/service/task registry
+lib/seo/config.ts                    site metadata and FAQ source
+```
+
+## Design notes
+
+The UI uses the Reticle/Sigil system: visible rails, hairline borders, hatching, cross marks, Nacelle for UI text, Geist Mono for machine data, and Instrument Serif only for the wordmark. Keep public copy direct and operational. If a provider is shaped but not wired, say that plainly.

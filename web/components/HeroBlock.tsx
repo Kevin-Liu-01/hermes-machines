@@ -27,7 +27,7 @@ const PROOF_POINTS: ReadonlyArray<{
 	{
 		Icon: IconStack,
 		title: "Bring any agent + tool",
-		body: "Hermes or OpenClaw, any provider key (Dedalus / Sandbox / Fly), any of 95 skills + 17 MCP services -- swap any time.",
+		body: "Hermes or OpenClaw, 95 skills, 23 built-ins, and 17 service routes. Dedalus runs today; Sandbox and Fly are shaped in the provider layer.",
 	},
 ];
 
@@ -159,8 +159,7 @@ export function HeroBlock() {
 					<span>
 						Each cell on the right is one day this machine was awake. Hover
 						to peek, click to pin. Nothing lives in RAM that it can't rebuild
-						from <code className="text-[var(--ret-text-dim)]">/home/machine</code>{" "}
-						on restart.
+						from <code className="text-[var(--ret-text-dim)]">/home/machine</code>.
 					</span>
 				</p>
 			</div>

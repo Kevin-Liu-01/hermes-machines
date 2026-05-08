@@ -67,7 +67,7 @@ const STACK: ReadonlyArray<StackEntry> = [
 		id: "vercel",
 		icon: { kind: "service", slug: "vercel" },
 		name: "Vercel",
-		role: "web + ai gateway",
+		role: "web console",
 		href: "https://vercel.com",
 	},
 	{

@@ -172,7 +172,7 @@ export async function POST(request: Request): Promise<Response> {
 			phase: result.rawPhase,
 			state: result.state,
 			message:
-				"Machine accepted. Bootstrap install (Hermes/OpenClaw) ships in PR2; for now run the matching `npm run deploy` locally against this machine ID, then save the gateway URL/key via /dashboard/machines.",
+				"Machine accepted. Browser-driven bootstrap is not wired yet; for now run the matching `npm run deploy` locally against this machine ID, then save the gateway URL/key via /dashboard/machines.",
 		});
 	} catch (err) {
 		const message =

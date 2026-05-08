@@ -922,20 +922,20 @@ function BootStep({
 		{ id: "create", label: "Submit machine create", isDone: !!machineId },
 		{ id: "schedule", label: "Dedalus schedules", isDone: phase === "running" || phase === "starting" || phase === "wake_pending" },
 		{ id: "boot", label: "VM boots", isDone: phase === "running" },
-		{ id: "agent", label: `Install ${AGENT_LABEL[agent]}`, isDone: false },
-		{ id: "ready", label: "Ready", isDone: done },
+		{ id: "record", label: "Save fleet record", isDone: done },
+		{ id: "agent", label: `CLI bootstraps ${AGENT_LABEL[agent]}`, isDone: false },
 	];
 	return (
 		<div className="space-y-5">
 			<div>
 				<ReticleLabel>step 5 . boot</ReticleLabel>
 				<h1 className="ret-display mt-1 text-2xl">
-					{done ? "Rig is live" : "Booting your rig"}
+					{done ? "Machine accepted" : "Creating your machine"}
 				</h1>
 				<p className="mt-1 max-w-[60ch] text-[13px] text-[var(--ret-text-dim)]">
 					{done
 						? "Riding into the dashboard..."
-						: "First boot takes ~30-90s on Dedalus. Once the VM is up we install the agent and wire its skills + tools. You can leave this tab; it'll keep going."}
+						: "This creates the provider machine and saves it to your fleet. Browser-driven agent bootstrap is not wired yet; use the matching CLI deploy path to install the agent after the VM is accepted."}
 				</p>
 			</div>
 

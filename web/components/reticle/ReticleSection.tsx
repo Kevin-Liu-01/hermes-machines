@@ -96,25 +96,24 @@ export function ReticleSection({
 			{showCorners ? (
 				<>
 					{/*
-					  ReticleCross renders a 20x20 SVG with the `+` centered at
-					  (10,10). To pin the center on the rail intersection we
-					  offset by the full crossArm (10px), not half. With the
-					  half-offset the marks looked floated off the rails by 5px
-					  in each direction; with the full offset they land exactly
-					  on the rail/border crossing.
+					  ReticleCross renders a 10x10 SVG with the `+` centered at
+					  (5,5). To pin the center on the rail intersection we
+					  offset by the full crossArm (5px). Smaller crosses read
+					  as discreet structural marks instead of dominant graphic
+					  elements -- closer to the chanhdai / Tailwind register.
 					*/}
 					<ReticleCross
 						className="absolute z-20"
 						style={{
-							top: "-10px",
-							left: "calc(var(--ret-rail-offset) - 10px)",
+							top: "-5px",
+							left: "calc(var(--ret-rail-offset) - 5px)",
 						}}
 					/>
 					<ReticleCross
 						className="absolute z-20"
 						style={{
-							top: "-10px",
-							right: "calc(var(--ret-rail-offset) - 10px)",
+							top: "-5px",
+							right: "calc(var(--ret-rail-offset) - 5px)",
 						}}
 					/>
 				</>
