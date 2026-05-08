@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { BrandMark } from "@/components/BrandMark";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { cn } from "@/lib/cn";
 import type {
 	GatewaySummary,
@@ -126,9 +127,11 @@ export function StatusHeader({ agentKind }: Props) {
 function GatewayBadge({ data }: { data: GatewaySummary | null }) {
 	if (!data) {
 		return (
-			<span className="font-mono text-[11px] text-[var(--ret-text-muted)]">
-				gateway: probing...
-			</span>
+			<BrailleSpinner
+				name="orbit"
+				label="gateway"
+				className="text-[11px] text-[var(--ret-text-muted)]"
+			/>
 		);
 	}
 	const ok = data.ok;

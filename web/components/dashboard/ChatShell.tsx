@@ -7,6 +7,8 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import type { Message } from "@/lib/types";
 
@@ -65,7 +67,7 @@ export function ChatShell({ activeMachineId, model }: Props) {
 		ok: boolean;
 		reason: string | null;
 		message: string | null;
-	}>({ ok: false, reason: null, message: "loading..." });
+	}>({ ok: false, reason: null, message: "loading" });
 	const [activeChatId, setActiveChatId] = useState<string | null>(null);
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -235,6 +237,21 @@ export function ChatShell({ activeMachineId, model }: Props) {
 					</ReticleFrame>
 				) : null}
 				<ul className="flex flex-col gap-px bg-[var(--ret-border)]">
+					{!machineState.ok && machineState.reason === null ? (
+						<li className="space-y-2 bg-[var(--ret-bg)] p-2.5">
+							<BrailleSpinner
+								name="orbit"
+								label="loading chats"
+								className="text-[10px] text-[var(--ret-text-muted)]"
+							/>
+							{[0, 1, 2].map((i) => (
+								<div key={i} className="space-y-1">
+									<Skeleton className="h-3 w-3/4" />
+									<Skeleton className="h-2 w-1/2" />
+								</div>
+							))}
+						</li>
+					) : null}
 					{machineState.ok && chats.length === 0 ? (
 						<li className="bg-[var(--ret-bg)] p-3 font-mono text-[11px] text-[var(--ret-text-muted)]">
 							no past chats

@@ -7,6 +7,7 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { useMachineControl } from "@/lib/dashboard/use-machine-control";
 import type { GatewaySummary } from "@/lib/dashboard/types";
 
@@ -94,7 +95,17 @@ export function OverviewClient({ counts }: Props) {
 				/>
 				<MetricCard
 					label="gateway"
-					value={gateway ? (gateway.ok ? "online" : "down") : "..."}
+					value={
+						gateway ? (
+							gateway.ok ? (
+								"online"
+							) : (
+								"down"
+							)
+						) : (
+							<BrailleSpinner name="orbit" className="text-[11px]" />
+						)
+					}
 					hint={
 						gateway
 							? gateway.ok
@@ -106,7 +117,13 @@ export function OverviewClient({ counts }: Props) {
 				/>
 				<MetricCard
 					label="latency"
-					value={gateway ? `${gateway.latencyMs} ms` : "--"}
+					value={
+						gateway ? (
+							`${gateway.latencyMs} ms`
+						) : (
+							<BrailleSpinner name="orbit" className="text-[11px]" />
+						)
+					}
 					hint={gateway ? `model: ${gateway.model}` : "probing"}
 					tone={latencyTone}
 				/>

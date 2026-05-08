@@ -1,12 +1,28 @@
+import { redirect } from "next/navigation";
+
 import { OverviewClient } from "@/components/dashboard/OverviewClient";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import { listCrons } from "@/lib/dashboard/crons";
 import { listMcpServers } from "@/lib/dashboard/mcps";
 import { listSkills } from "@/lib/dashboard/skills";
+import { getUserConfig } from "@/lib/user-config/clerk";
 
 export const dynamic = "force-dynamic";
 
-export default function OverviewPage() {
+export default async function OverviewPage() {
+	// First-time visitors land in the focused onboarding flow before
+	// they ever see the busy dashboard. After provisioning, they're
+	// redirected back here for the live machine view.
+	let needsOnboarding = false;
+	try {
+		const config = await getUserConfig();
+		needsOnboarding = !config.machines.some((m) => !m.archived);
+	} catch {
+		// Auth / config probe failed -- the layout will surface the right
+		// error; render the degraded overview below.
+	}
+	if (needsOnboarding) redirect("/onboarding");
+
 	const skills = listSkills();
 	const mcps = listMcpServers();
 	const crons = listCrons();

@@ -3,6 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { LiveDataEnvelope } from "@/lib/dashboard/types";
 
 type Props<T> = {
@@ -69,8 +71,18 @@ export function LiveDataView<T>({
 
 	if (!envelope) {
 		return (
-			<div className="px-6 py-10 font-mono text-[12px] text-[var(--ret-text-muted)]">
-				Loading...
+			<div className="space-y-3 px-6 py-6">
+				<BrailleSpinner
+					name="orbit"
+					label={`fetching ${endpoint.split("/").pop() ?? "data"}`}
+					className="text-[12px] text-[var(--ret-text-muted)]"
+				/>
+				<div className="space-y-2">
+					<Skeleton className="h-3 w-1/3" />
+					<Skeleton className="h-3 w-2/3" />
+					<Skeleton className="h-3 w-1/2" />
+					<Skeleton className="h-3 w-3/5" />
+				</div>
 			</div>
 		);
 	}

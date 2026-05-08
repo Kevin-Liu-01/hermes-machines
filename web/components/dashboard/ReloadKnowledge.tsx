@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 
 type ReloadResponse = {
 	ok?: boolean;
@@ -88,7 +89,11 @@ export function ReloadKnowledge({ machinePhase }: Props) {
 					onClick={() => void trigger()}
 					disabled={!canReload || pending}
 				>
-					{pending ? "Reloading..." : "Reload now"}
+					{pending ? (
+						<BrailleSpinner name="cascade" label="Reloading" className="text-sm" />
+					) : (
+						"Reload now"
+					)}
 				</ReticleButton>
 			</div>
 

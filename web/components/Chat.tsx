@@ -8,6 +8,7 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleCard } from "@/components/reticle/ReticleCard";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { cn } from "@/lib/cn";
 import type { Message } from "@/lib/types";
 
@@ -224,7 +225,13 @@ export function Chat({
 
 	const showStarters = messages.length === 0 && !disabled;
 	const statusBadge = useMemo(() => {
-		if (!health) return <ReticleBadge>probing…</ReticleBadge>;
+		if (!health) {
+			return (
+				<ReticleBadge>
+					<BrailleSpinner name="orbit" label="probing" className="text-[10px]" />
+				</ReticleBadge>
+			);
+		}
 		if (health.ok) {
 			return (
 				<ReticleBadge variant="success">

@@ -20,7 +20,7 @@ import { NextResponse } from "next/server";
  * what's missing and let public routes through. This means the marketing
  * landing always renders even before auth is configured.
  */
-const isProtectedPage = createRouteMatcher(["/dashboard(.*)"]);
+const isProtectedPage = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"]);
 const isProtectedApi = createRouteMatcher([
 	"/api/dashboard(.*)",
 	"/api/chat(.*)",

@@ -7,6 +7,8 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import {
 	AGENT_LABEL,
@@ -170,7 +172,31 @@ export function MachinesPanel() {
 			) : null}
 
 			{loading && machines.length === 0 ? (
-				<EmptyShell title="Loading machines..." body="Polling per-provider state." />
+				<section className="grid gap-3 lg:grid-cols-2">
+					{[0, 1].map((i) => (
+						<ReticleFrame key={i}>
+							<div className="space-y-3 p-4">
+								<div className="flex items-center justify-between">
+									<Skeleton className="h-3 w-1/3" />
+									<Skeleton className="h-3 w-16" />
+								</div>
+								<div className="grid grid-cols-2 gap-2">
+									{[0, 1, 2, 3].map((j) => (
+										<div key={j} className="space-y-1">
+											<Skeleton className="h-2 w-1/3" />
+											<Skeleton className="h-3 w-2/3" />
+										</div>
+									))}
+								</div>
+								<BrailleSpinner
+									name="orbit"
+									label="probing per-provider state"
+									className="text-[10px] text-[var(--ret-text-muted)]"
+								/>
+							</div>
+						</ReticleFrame>
+					))}
+				</section>
 			) : null}
 
 			{!loading && machines.length === 0 ? (

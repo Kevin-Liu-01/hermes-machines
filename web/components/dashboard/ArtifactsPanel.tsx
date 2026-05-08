@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 type ArtifactRef = {
@@ -68,7 +70,7 @@ export function ArtifactsPanel() {
 		ok: boolean;
 		reason: string | null;
 		message: string | null;
-	}>({ ok: false, reason: null, message: "loading..." });
+	}>({ ok: false, reason: null, message: "loading" });
 	const [error, setError] = useState<string | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -204,6 +206,20 @@ export function ArtifactsPanel() {
 				}}
 			/>
 
+			{!machineState.ok && machineState.reason === null ? (
+				<section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+					{[0, 1, 2].map((i) => (
+						<ReticleFrame key={i}>
+							<div className="space-y-2 p-3">
+								<Skeleton className="h-3 w-2/3" />
+								<Skeleton className="h-32 w-full" />
+								<Skeleton className="h-2 w-1/2" />
+							</div>
+						</ReticleFrame>
+					))}
+				</section>
+			) : null}
+
 			{artifacts.length === 0 && machineState.ok ? (
 				<ReticleFrame>
 					<ReticleHatch
@@ -313,7 +329,11 @@ function UploadZone({
 			)}
 		>
 			<p className="font-mono text-[12px] text-[var(--ret-text)]">
-				{uploading ? "uploading..." : "drop a file here"}
+				{uploading ? (
+					<BrailleSpinner name="cascade" label="uploading" className="text-[12px]" />
+				) : (
+					"drop a file here"
+				)}
 			</p>
 			<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 				or
@@ -407,9 +427,21 @@ function TextPreview({ url }: { url: string }) {
 			.then((body) => setText(body.slice(0, 320)))
 			.catch(() => setText("(failed to load preview)"));
 	}, [url]);
+	if (text === null) {
+		return (
+			<div className="flex h-40 w-full flex-col items-center justify-center gap-2">
+				<BrailleSpinner
+					name="orbit"
+					className="text-[10px] text-[var(--ret-text-muted)]"
+				/>
+				<Skeleton className="h-2 w-3/4" />
+				<Skeleton className="h-2 w-1/2" />
+			</div>
+		);
+	}
 	return (
 		<pre className="max-h-40 w-full overflow-hidden font-mono text-[10px] text-[var(--ret-text-dim)]">
-			{text ?? "loading..."}
+			{text}
 		</pre>
 	);
 }

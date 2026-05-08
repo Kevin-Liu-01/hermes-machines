@@ -225,6 +225,42 @@ body {
 	animation: ret-caret 1s steps(1) infinite;
 }
 
+/* Skeleton shimmer. A diagonal translucent band drifts across the
+ * skeleton's surface, signaling motion without any pulsing-fill noise.
+ * Pair with <BrailleSpinner /> for the active loading affordance. */
+@keyframes ret-skeleton-shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+.ret-skeleton {
+	position: relative;
+	overflow: hidden;
+	min-height: 0.75rem;
+}
+.ret-skeleton::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.04) 30%,
+		rgba(255, 255, 255, 0.08) 50%,
+		rgba(255, 255, 255, 0.04) 70%,
+		transparent 100%
+	);
+	animation: ret-skeleton-shimmer 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ret-skeleton::after {
+		animation: none;
+	}
+}
+
 /* Static grain layer used as a fixed overlay. SVG noise is cheap, doesn't
  * scroll, and doesn't impact reflows. Opacity is bumped slightly in dark
  * mode where the noise reads as light dust on the background. */
