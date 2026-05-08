@@ -81,17 +81,65 @@ const SKILLS: ReadonlyArray<SkillEntry> = [
 	{ name: "deepsec", category: "shell" },
 	{ name: "torvalds", category: "code" },
 	{ name: "counterfactual", category: "search" },
-	{ name: "vercel-react-best-practices", brand: "vercel" },
 	{ name: "code-review", category: "code" },
 	{ name: "reticle-design-system", category: "vision" },
 	{ name: "automation-cron", category: "schedule" },
-	{ name: "cursor-coding", brand: "cursor" },
 	{ name: "production-safety", category: "shell" },
+	{ name: "design-review", category: "vision" },
+	{ name: "design-engineering", category: "vision" },
+	{ name: "frontend-design-taste", category: "vision" },
+	{ name: "qa", category: "browser" },
+	{ name: "dogfood", category: "browser" },
+	{ name: "invariant-first-testing", category: "code" },
+	{ name: "test-writing", category: "code" },
+	{ name: "voice", category: "memory" },
+	{ name: "social-draft", category: "memory" },
+	{ name: "content-strategy", category: "memory" },
+	{ name: "copywriting", category: "memory" },
+	{ name: "seo-geo-optimization", category: "search" },
+	{ name: "og-metadata-audit", category: "search" },
+	{ name: "bugs", category: "shell" },
+	{ name: "security-best-practices", category: "shell" },
+	{ name: "cross-modal-review", category: "code" },
+	{ name: "loading-screens", category: "vision" },
+	{ name: "agent-browser", brand: "googlechrome" },
+	{ name: "playwright", brand: "playwright" },
+	{ name: "cursor-coding", brand: "cursor" },
+	{ name: "vercel-react-best-practices", brand: "vercel" },
 	{ name: "supabase", brand: "supabase" },
+	{ name: "supabase-postgres-best-practices", brand: "supabase" },
 	{ name: "stripe-best-practices", brand: "stripe" },
+	{ name: "upgrade-stripe", brand: "stripe" },
 	{ name: "clerk-orgs", brand: "clerk" },
+	{ name: "clerk-webhooks", brand: "clerk" },
 	{ name: "posthog-llm-traces", brand: "posthog" },
+	{ name: "posthog-instrumentation", brand: "posthog" },
+	{ name: "posthog-experiments", brand: "posthog" },
 	{ name: "sentry-workflow", brand: "sentry" },
+	{ name: "sentry-sdk-setup", brand: "sentry" },
+	{ name: "sentry-feature-setup", brand: "sentry" },
+	{ name: "datadog-setup", brand: "datadog" },
+	{ name: "linear-workflow", brand: "linear" },
+	{ name: "shopify-admin", brand: "shopify" },
+	{ name: "shopify-hydrogen", brand: "shopify" },
+	{ name: "shopify-functions", brand: "shopify" },
+	{ name: "clickhouse-best-practices", brand: "clickhouse" },
+	{ name: "firebase-basics", brand: "firebase" },
+	{ name: "firebase-auth", brand: "firebase" },
+	{ name: "figma-implement-design", brand: "figma" },
+	{ name: "figma-design-system", brand: "figma" },
+	{ name: "ai-sdk", brand: "vercel" },
+	{ name: "ai-gateway", brand: "vercel" },
+	{ name: "vercel-functions", brand: "vercel" },
+	{ name: "vercel-sandbox", brand: "vercel" },
+	{ name: "next-cache-components", brand: "nextdotjs" },
+	{ name: "next-upgrade", brand: "nextdotjs" },
+	{ name: "react-best-practices", brand: "react" },
+	{ name: "anthropic-prompting", brand: "anthropic" },
+	{ name: "openai-docs", brand: "openai" },
+	{ name: "github-pr-review", brand: "github" },
+	{ name: "slack-automation", brand: "slack" },
+	{ name: "tailwindcss", brand: "tailwindcss" },
 ];
 
 type McpEntry = {
@@ -101,19 +149,83 @@ type McpEntry = {
 };
 
 const MCPS: ReadonlyArray<McpEntry> = [
+	// Cursor SDK delegation
 	{ name: "cursor_agent", brand: "cursor" },
 	{ name: "cursor_resume", brand: "cursor" },
+	// Filesystem + shell
 	{ name: "shell_exec", category: "shell" },
 	{ name: "fs_read", category: "filesystem" },
 	{ name: "fs_write", category: "filesystem" },
+	{ name: "fs_glob", category: "filesystem" },
+	{ name: "ripgrep_search", category: "search" },
+	// Browser + vision
 	{ name: "browser_use", category: "browser" },
+	{ name: "browser_screenshot", category: "vision" },
+	{ name: "vision_analyze", category: "vision" },
+	{ name: "image_generate", category: "image" },
+	// Schedule + memory
 	{ name: "cron_create", category: "schedule" },
+	{ name: "memory_read", category: "memory" },
+	{ name: "session_search", category: "search" },
+	{ name: "delegate_task", category: "delegate" },
+	// Vercel
 	{ name: "vercel_deploy", brand: "vercel" },
+	{ name: "vercel_logs", brand: "vercel" },
+	{ name: "vercel_env", brand: "vercel" },
+	{ name: "vercel_alias", brand: "vercel" },
+	// Supabase
 	{ name: "supabase_query", brand: "supabase" },
-	{ name: "linear_create_issue", brand: "linear" },
+	{ name: "supabase_migrate", brand: "supabase" },
+	{ name: "supabase_rls", brand: "supabase" },
+	// Stripe
 	{ name: "stripe_get_customer", brand: "stripe" },
+	{ name: "stripe_create_subscription", brand: "stripe" },
+	{ name: "stripe_refund", brand: "stripe" },
+	{ name: "stripe_listen", brand: "stripe" },
+	// Linear
+	{ name: "linear_create_issue", brand: "linear" },
+	{ name: "linear_update", brand: "linear" },
+	{ name: "linear_close", brand: "linear" },
+	// GitHub
 	{ name: "github_open_pr", brand: "github" },
+	{ name: "github_review", brand: "github" },
+	{ name: "github_merge", brand: "github" },
+	{ name: "github_search", brand: "github" },
+	// Slack
 	{ name: "slack_post", brand: "slack" },
+	{ name: "slack_dm", brand: "slack" },
+	{ name: "slack_search", brand: "slack" },
+	// PostHog
+	{ name: "posthog_query", brand: "posthog" },
+	{ name: "posthog_flag", brand: "posthog" },
+	{ name: "posthog_replay", brand: "posthog" },
+	// Sentry
+	{ name: "sentry_assign", brand: "sentry" },
+	{ name: "sentry_resolve", brand: "sentry" },
+	{ name: "sentry_alert", brand: "sentry" },
+	// Clerk
+	{ name: "clerk_invite", brand: "clerk" },
+	{ name: "clerk_user_lookup", brand: "clerk" },
+	// Firebase
+	{ name: "firebase_set", brand: "firebase" },
+	{ name: "firestore_query", brand: "firebase" },
+	// Figma
+	{ name: "figma_inspect", brand: "figma" },
+	{ name: "figma_export", brand: "figma" },
+	// Shopify
+	{ name: "shopify_order", brand: "shopify" },
+	{ name: "shopify_admin_query", brand: "shopify" },
+	// ClickHouse + Datadog
+	{ name: "clickhouse_query", brand: "clickhouse" },
+	{ name: "datadog_query", brand: "datadog" },
+	// Cloud infra
+	{ name: "aws_s3_put", brand: "amazonwebservices" },
+	{ name: "aws_ecs_describe", brand: "amazonwebservices" },
+	{ name: "cloudflare_tunnel", brand: "cloudflare" },
+	{ name: "cloudflare_purge", brand: "cloudflare" },
+	// Provider AI
+	{ name: "anthropic_messages", brand: "anthropic" },
+	{ name: "openai_chat", brand: "openai" },
 ];
 
 type OpenclawTool = {
@@ -126,10 +238,15 @@ const OPENCLAW_TOOLS: ReadonlyArray<OpenclawTool> = [
 	{ label: "browser.click_xy", category: "browser" },
 	{ label: "browser.screenshot", category: "vision" },
 	{ label: "browser.snapshot", category: "browser" },
+	{ label: "browser.fill_form", category: "browser" },
+	{ label: "browser.scroll", category: "browser" },
 	{ label: "shell.exec", category: "shell" },
 	{ label: "computer.move_mouse", category: "browser" },
 	{ label: "computer.type_text", category: "browser" },
+	{ label: "computer.press_key", category: "browser" },
+	{ label: "computer.drag", category: "browser" },
 	{ label: "vision.analyze", category: "vision" },
+	{ label: "vision.diff_screenshots", category: "vision" },
 ];
 
 const CRON_NAMES = [
@@ -151,25 +268,36 @@ function buildDayEvents(
 	for (let i = 0; i < count; i++) {
 		const r = rng();
 		if (partner === "cursor") {
-			if (r < 0.6) {
-				const mcp = MCPS[Math.floor(rng() * 4)];
+			if (r < 0.45) {
+				const mcp = MCPS[Math.floor(rng() * MCPS.length)];
 				events.push({
 					kind: "cursor",
 					label: "cursor_agent run",
 					detail: `tool: ${mcp.name} . dur: ${(rng() * 30 + 4).toFixed(1)}s`,
-					brand: "cursor",
+					brand: mcp.brand ?? "cursor",
+					category: mcp.category,
 				});
-			} else {
+			} else if (r < 0.75) {
 				const skill = SKILLS[Math.floor(rng() * SKILLS.length)];
 				events.push({
 					kind: "mcp",
 					label: "cursor_resume",
-					detail: `loaded skills: ${skill.name}`,
-					brand: "cursor",
+					detail: `loaded skill: ${skill.name}`,
+					brand: skill.brand ?? "cursor",
+					category: skill.category,
+				});
+			} else {
+				const mcp = MCPS[Math.floor(rng() * MCPS.length)];
+				events.push({
+					kind: "mcp",
+					label: mcp.name,
+					detail: `cursor subagent . exit 0`,
+					brand: mcp.brand ?? "cursor",
+					category: mcp.category,
 				});
 			}
 		} else if (partner === "nous") {
-			if (r < 0.45) {
+			if (r < 0.55) {
 				const mcp = MCPS[Math.floor(rng() * MCPS.length)];
 				events.push({
 					kind: "mcp",
@@ -178,16 +306,7 @@ function buildDayEvents(
 					brand: mcp.brand,
 					category: mcp.category,
 				});
-			} else if (r < 0.85) {
-				const name = CRON_NAMES[Math.floor(rng() * CRON_NAMES.length)];
-				events.push({
-					kind: "cron",
-					label: `${name} fired`,
-					detail: r < 0.85 ? "exit 0" : "exit 1 . retried",
-					brand: "nous",
-					category: "schedule",
-				});
-			} else {
+			} else if (r < 0.78) {
 				const skill = SKILLS[Math.floor(rng() * SKILLS.length)];
 				events.push({
 					kind: "skill",
@@ -195,6 +314,15 @@ function buildDayEvents(
 					detail: `intent match . in-context`,
 					brand: skill.brand ?? "nous",
 					category: skill.category,
+				});
+			} else {
+				const name = CRON_NAMES[Math.floor(rng() * CRON_NAMES.length)];
+				events.push({
+					kind: "cron",
+					label: `${name} fired`,
+					detail: r < 0.85 ? "exit 0" : "exit 1 . retried",
+					brand: "nous",
+					category: "schedule",
 				});
 			}
 		} else if (partner === "openclaw") {
