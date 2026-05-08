@@ -4,6 +4,7 @@ import { ArchitectureFlow } from "@/components/ArchitectureFlow";
 import { SignedIn, SignedOut } from "@/components/AuthSwitch";
 import { BrandMark } from "@/components/BrandMark";
 import { CapabilityGrid } from "@/components/CapabilityGrid";
+import { RuntimeVizGrid } from "@/components/RuntimeVizGrid";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
 	ComponentShowcase,
@@ -16,6 +17,7 @@ import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleNavbar } from "@/components/reticle/ReticleNavbar";
 import { ReticlePageGrid } from "@/components/reticle/ReticlePageGrid";
 import { ReticleSection } from "@/components/reticle/ReticleSection";
+import { ReticleSpacer } from "@/components/reticle/ReticleSpacer";
 import { SkillsManifest } from "@/components/SkillsManifest";
 import { StatsRow } from "@/components/StatsRow";
 
@@ -35,6 +37,12 @@ export default function HomePage() {
 							className="hidden hover:text-[var(--ret-text)] md:inline"
 						>
 							capabilities
+						</a>
+						<a
+							href="#runtime"
+							className="hidden hover:text-[var(--ret-text)] md:inline"
+						>
+							runtime
 						</a>
 						<a
 							href="#loadout"
@@ -97,24 +105,40 @@ export default function HomePage() {
 					<StatsRow />
 				</ReticleSection>
 
-				<ReticleSection id="capabilities" background="wing-cloud">
+				<ReticleSpacer />
+
+				<ReticleSection id="capabilities" background="wing-cloud" borderTop={false}>
 					<CapabilityGrid />
 				</ReticleSection>
 
-				<ReticleSection id="loadout" background="wing-nyx-lines">
+				<ReticleSpacer />
+
+				<ReticleSection id="runtime" borderTop={false}>
+					<RuntimeVizGrid />
+				</ReticleSection>
+
+				<ReticleSpacer />
+
+				<ReticleSection id="loadout" background="wing-nyx-lines" borderTop={false}>
 					<LoadoutPreview />
 				</ReticleSection>
 
-				<ReticleSection id="components">
+				<ReticleSpacer />
+
+				<ReticleSection id="components" borderTop={false}>
 					<ComponentShowcase />
 					<ShowcaseAttribution />
 				</ReticleSection>
 
-				<ReticleSection id="skills">
+				<ReticleSpacer />
+
+				<ReticleSection id="skills" borderTop={false}>
 					<SkillsManifest />
 				</ReticleSection>
 
-				<ReticleSection id="architecture" background="wing-nyx-waves">
+				<ReticleSpacer />
+
+				<ReticleSection id="architecture" background="wing-nyx-waves" borderTop={false}>
 					<ArchitectureFlow />
 				</ReticleSection>
 			</main>
