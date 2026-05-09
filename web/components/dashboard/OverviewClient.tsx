@@ -14,6 +14,7 @@ import { useMachineControl } from "@/lib/dashboard/use-machine-control";
 import type { GatewaySummary } from "@/lib/dashboard/types";
 
 import { BootTranscript } from "./BootTranscript";
+import { FleetMonitor } from "./FleetMonitor";
 import { MetricCard } from "./MetricCard";
 import { MetricsChartPanel } from "./MetricsChartPanel";
 import { ObservabilityPanel } from "./ObservabilityPanel";
@@ -91,6 +92,15 @@ export function OverviewClient({ counts, agentKind, model }: Props) {
 
 	return (
 		<div className="space-y-6 px-5 py-5">
+			{/*
+			  Fleet-level monitor at the top: shows EVERY machine on
+			  the account with live state, lets the operator spin up
+			  a new one without leaving the page, and switches the
+			  active machine inline. Everything below this strip is
+			  the deep dive on the currently-active machine.
+			*/}
+			<FleetMonitor />
+
 			<MachineControlBar
 				phase={phase}
 				pending={machine.pending}
