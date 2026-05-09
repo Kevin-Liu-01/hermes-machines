@@ -20,7 +20,18 @@
  */
 
 :root {
-	color-scheme: light dark;
+	/*
+	 * Default to LIGHT only. The pair (`light dark`) used to live here
+	 * so the browser would pick the form-control theme based on the OS
+	 * preference -- but that meant on a Mac in OS-dark mode, manually
+	 * flipping the site to light still rendered <input>, <select>,
+	 * etc. with the browser's dark form theme (charcoal background,
+	 * pale placeholder). The Clerk sign-in card was the most visible
+	 * casualty: light card, dark email input. Each theme branch below
+	 * overrides `color-scheme` explicitly so the native form controls
+	 * always match the active theme.
+	 */
+	color-scheme: light;
 
 	--ret-bg: #ffffff;
 	--ret-bg-soft: #f0f0f2;
@@ -84,6 +95,8 @@
 
 .dark,
 :root[data-theme="dark"] {
+	color-scheme: dark;
+
 	--ret-bg: #09090b;
 	--ret-bg-soft: #111113;
 	--ret-surface: #111113;
@@ -112,6 +125,8 @@
 
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
+		color-scheme: dark;
+
 		--ret-bg: #09090b;
 		--ret-bg-soft: #111113;
 		--ret-surface: #111113;
@@ -147,6 +162,26 @@ body {
 	font-feature-settings: "ss01", "cv11", "tnum";
 	font-size: 14px;
 	line-height: 1.5;
+}
+
+/*
+ * Force native form controls to inherit the active theme's
+ * background/text instead of falling back to the browser's
+ * system-dark defaults. Belt-and-suspenders alongside the
+ * `color-scheme` token at the :root level -- some browsers (esp.
+ * mobile Safari) keep using the OS dark form chrome even after
+ * `color-scheme` flips, so we set explicit colors too. Clerk's
+ * `<SignIn>` email input was the canary for this bug.
+ */
+input,
+textarea,
+select {
+	background-color: var(--ret-bg);
+	color: var(--ret-text);
+}
+input::placeholder,
+textarea::placeholder {
+	color: var(--ret-text-muted);
 }
 
 /*
