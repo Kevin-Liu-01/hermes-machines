@@ -196,6 +196,24 @@ textarea::placeholder {
 	line-height: 1.05;
 }
 
+/*
+ * Editorial moments. Instrument Serif italic, used for kicker
+ * captions, ceremonial headings, page-level subtitles -- anywhere
+ * we want the brand voice to read instead of a UI label. The
+ * `font-display-serif` variable comes from the next/font/local
+ * import in app/layout.tsx; if it's not loaded yet the system serif
+ * fallback keeps the italic identity intact. Reserved for
+ * intentional editorial moments only -- mass-applying it makes the
+ * dashboard read as marketing copy.
+ */
+.ret-serif {
+	font-family: var(--font-display-serif), "Iowan Old Style", "Palatino",
+		"Georgia", serif;
+	font-style: italic;
+	font-weight: 400;
+	letter-spacing: -0.005em;
+}
+
 * {
 	border-color: var(--ret-border);
 }

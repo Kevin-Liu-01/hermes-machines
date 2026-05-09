@@ -17,6 +17,15 @@ type Props = {
  * marker, not just a thin line that could be mistaken for any other
  * border on the page. A muted BrandMark sits on the right when no
  * other action is supplied.
+ *
+ * Typography:
+ *   - kicker: ReticleLabel (mono uppercase tracked) -- structural marker
+ *   - title:  ret-display (Nacelle SemiBold, tight) -- the primary heading
+ *   - description: Nacelle (sans) at body weight -- prose, not metadata
+ *
+ * The description used to be `font-mono` which made every dashboard
+ * page header read as code commentary. Sans body copy gives it the
+ * editorial tone the marketing site already has.
  */
 export function PageHeader({ kicker, title, description, right }: Props) {
 	return (
@@ -26,7 +35,7 @@ export function PageHeader({ kicker, title, description, right }: Props) {
 					<ReticleLabel>{kicker}</ReticleLabel>
 					<h1 className="ret-display mt-1.5 text-lg md:text-xl">{title}</h1>
 					{description ? (
-						<p className="mt-1.5 max-w-[72ch] text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
+						<p className="mt-1.5 max-w-[72ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)]">
 							{description}
 						</p>
 					) : null}

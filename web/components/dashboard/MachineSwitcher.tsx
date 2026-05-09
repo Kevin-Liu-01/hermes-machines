@@ -200,7 +200,7 @@ export function MachineSwitcher() {
 					</header>
 					<ul className="max-h-[420px] overflow-y-auto">
 						{machines.length === 0 ? (
-							<li className="px-3 py-4 font-mono text-[11px] text-[var(--ret-text-muted)]">
+							<li className="px-3 py-4 text-[12px] italic text-[var(--ret-text-muted)]">
 								No machines yet. Use Spin up below.
 							</li>
 						) : null}

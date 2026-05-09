@@ -260,9 +260,9 @@ export function OverviewClient({ counts, agentKind, model }: Props) {
 					<h2 className="ret-display mt-1.5 text-base">
 						Talk to it. Read it. Inspect it.
 					</h2>
-					<p className="mt-1.5 max-w-[60ch] text-[12px] text-[var(--ret-text-dim)]">
-						Chat is gated. Skills and MCPs are read-only views of the same
-						files the agent reads on the VM.
+					<p className="mt-1.5 max-w-[60ch] text-[13px] text-[var(--ret-text-dim)]">
+						Chat is gated. Skills and MCPs are read-only views of the
+						same files the agent reads on the VM.
 					</p>
 					<div className="mt-3 flex flex-wrap gap-2">
 						<ReticleButton as="a" href="/dashboard/chat" variant="primary" size="sm">
@@ -280,34 +280,40 @@ export function OverviewClient({ counts, agentKind, model }: Props) {
 				<ReticleFrame>
 					<ReticleHatch className="h-2 border-b border-[var(--ret-border)]" pitch={6} />
 					<div className="p-4">
-					<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
-						Health probe
-					</p>
-					<h2 className="ret-display mt-1.5 text-base">
-						Polling every 5s
-					</h2>
-					<dl className="mt-3 space-y-1.5 font-mono text-[11px] text-[var(--ret-text-dim)]">
-						<Row label="phase" value={phase} />
-						<Row label="desired" value={desired} />
-						<Row label="reason" value={machine.machine?.reason ?? "--"} />
-						<Row label="last probe" value={ageLabel ?? "..."} />
-						<Row
-							label="status"
-							value={
-								gateway
-									? `HTTP ${gateway.status} . ${gateway.latencyMs} ms`
-									: "..."
-							}
-						/>
-					</dl>
-					<p className="mt-3 font-mono text-[10px] text-[var(--ret-text-muted)]">
-						Live:{" "}
-						<Link href="/dashboard/logs" className="underline">logs</Link>{" "}
-						<span>.</span>{" "}
-						<Link href="/dashboard/sessions" className="underline">sessions</Link>{" "}
-						<span>.</span>{" "}
-						<Link href="/dashboard/cursor" className="underline">cursor</Link>
-					</p>
+						<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+							Health probe
+						</p>
+						<h2 className="ret-display mt-1.5 text-base">Polling every 5s</h2>
+						{/* Probe rows are key/value telemetry: mono is correct
+						    for tabular alignment of the value column. */}
+						<dl className="mt-3 space-y-1.5 font-mono text-[11px] text-[var(--ret-text-dim)]">
+							<Row label="phase" value={phase} />
+							<Row label="desired" value={desired} />
+							<Row label="reason" value={machine.machine?.reason ?? "--"} />
+							<Row label="last probe" value={ageLabel ?? "..."} />
+							<Row
+								label="status"
+								value={
+									gateway
+										? `HTTP ${gateway.status} . ${gateway.latencyMs} ms`
+										: "..."
+								}
+							/>
+						</dl>
+						<p className="mt-3 text-[11px] italic text-[var(--ret-text-muted)]">
+							Live:{" "}
+							<Link href="/dashboard/logs" className="underline">
+								logs
+							</Link>
+							{" . "}
+							<Link href="/dashboard/sessions" className="underline">
+								sessions
+							</Link>
+							{" . "}
+							<Link href="/dashboard/cursor" className="underline">
+								cursor
+							</Link>
+						</p>
 					</div>
 				</ReticleFrame>
 			</section>

@@ -297,16 +297,15 @@ function Counter({
 				{label}
 			</p>
 			<p className="flex items-baseline gap-1.5">
+				{/* Numerical value stays mono+tabular: tabular-nums
+				    alignment is the whole point of mono in a counter. */}
 				<span
-					className={cn(
-						"font-mono text-2xl tabular-nums",
-						colorCls,
-					)}
+					className={cn("font-mono text-2xl tabular-nums", colorCls)}
 				>
 					{value}
 				</span>
 				{hint ? (
-					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+					<span className="text-[11px] italic text-[var(--ret-text-muted)]">
 						{hint}
 					</span>
 				) : null}
@@ -350,8 +349,8 @@ function PhaseDistribution({
 				<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
 					phase distribution
 				</p>
-				<p className="mt-2 font-mono text-[11px] text-[var(--ret-text-dim)]">
-					no machines yet
+				<p className="mt-2 text-[12px] italic text-[var(--ret-text-dim)]">
+					No machines yet.
 				</p>
 			</div>
 		);
@@ -518,8 +517,15 @@ function WorkspaceHeatmap({
 					))}
 				</div>
 			</div>
-			<p className="mt-2 font-mono text-[10px] text-[var(--ret-text-muted)]">
-				{totalLines} log lines bucketed . live tail polled every {POLL_MS / 1000}s
+			<p className="mt-2 text-[11px] italic text-[var(--ret-text-muted)]">
+				<span className="font-mono not-italic tabular-nums">
+					{totalLines}
+				</span>{" "}
+				log lines bucketed; live tail polled every{" "}
+				<span className="font-mono not-italic tabular-nums">
+					{POLL_MS / 1000}s
+				</span>
+				.
 			</p>
 		</div>
 	);
@@ -659,8 +665,8 @@ function TransitionsLog({ transitions }: { transitions: Transition[] }) {
 				</p>
 			</div>
 			{transitions.length === 0 ? (
-				<p className="mt-2 font-mono text-[11px] text-[var(--ret-text-dim)]">
-					no transitions yet -- waiting for a phase change
+				<p className="mt-2 text-[12px] italic text-[var(--ret-text-dim)]">
+					No transitions yet -- waiting for a phase change.
 				</p>
 			) : (
 				<ul className="mt-3 max-h-[180px] space-y-1 overflow-y-auto font-mono text-[11px]">

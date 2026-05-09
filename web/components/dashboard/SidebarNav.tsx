@@ -91,14 +91,20 @@ export function SidebarNav({ setupComplete }: Props) {
 	return (
 		<nav
 			aria-label="Dashboard"
-			className="flex flex-col gap-5 px-3 pb-6 pt-5 font-mono text-[13px]"
+			className="flex flex-col gap-5 px-3 pb-6 pt-5 text-[13px]"
 		>
 			<header className="px-3 pb-1">
-				<p className="text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text)]">
-					Dashboard
+				{/* Serif italic wordmark mirrors the navbar wordmark on
+				    the marketing site -- gives the sidebar a brand
+				    moment instead of "Dashboard" rendered as a mono
+				    section label. */}
+				<p
+					className="ret-serif text-[18px] leading-none text-[var(--ret-text)]"
+				>
+					dashboard
 				</p>
-				<p className="mt-0.5 text-[10px] text-[var(--ret-text-muted)]">
-					machine telemetry + control
+				<p className="mt-1 text-[11px] text-[var(--ret-text-muted)]">
+					Machine telemetry + control.
 				</p>
 			</header>
 			{sections.map((section) => (
@@ -118,10 +124,12 @@ function Section({
 	return (
 		<div className="flex flex-col gap-0.5">
 			<div className="flex items-baseline justify-between gap-2 px-3 pb-1.5">
-				<p className="text-[9px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
+				{/* Section headers stay mono+tracked-uppercase: that's
+				    the kicker pattern, not body copy. */}
+				<p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
 					{section.label}
 				</p>
-				<p className="text-[9px] text-[var(--ret-text-muted)]">
+				<p className="text-[10px] italic text-[var(--ret-text-muted)]">
 					{section.hint}
 				</p>
 			</div>

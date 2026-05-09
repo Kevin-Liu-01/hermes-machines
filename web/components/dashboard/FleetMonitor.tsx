@@ -277,13 +277,16 @@ export function FleetMonitor() {
 
 			{!loading && machines.length === 0 ? (
 				<div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-					<p className="font-mono text-[11px] text-[var(--ret-text-muted)]">
+					<p className="ret-serif text-[18px] text-[var(--ret-text)]">
 						no machines yet
 					</p>
-					<p className="max-w-[60ch] text-[12px] text-[var(--ret-text-dim)]">
+					<p className="max-w-[60ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)]">
 						Spin up your first machine using the button above. Each
-						machine gets its own /home/machine volume, gateway port,
-						and agent runtime.
+						machine gets its own{" "}
+						<code className="font-mono text-[12px] text-[var(--ret-text)]">
+							/home/machine
+						</code>{" "}
+						volume, gateway port, and agent runtime.
 					</p>
 				</div>
 			) : null}
@@ -592,6 +595,8 @@ function SpinUpForm({
 				/>
 			</Field>
 			<div className="flex flex-wrap items-center justify-between gap-2">
+				{/* Endpoint + payload preview stays mono: it's literally
+				    a wire-protocol fragment, not body copy. */}
 				<p className="font-mono text-[10px] text-[var(--ret-text-muted)]">
 					POST /api/dashboard/admin/provision-machine . spec {spec.vcpu}v
 					. {(spec.memoryMib / 1024).toFixed(1)}G . {spec.storageGib}G
