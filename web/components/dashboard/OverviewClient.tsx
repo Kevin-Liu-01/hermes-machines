@@ -9,6 +9,7 @@ import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 import { ToolIcon } from "@/components/ToolIcon";
+import { DashboardPageBody } from "@/components/dashboard/DashboardPageBody";
 import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { useMachineControl } from "@/lib/dashboard/use-machine-control";
 import type { GatewaySummary } from "@/lib/dashboard/types";
@@ -92,7 +93,7 @@ export function OverviewClient({ counts, agentKind, model }: Props) {
 		phase === "failed";
 
 	return (
-		<div className="space-y-6 px-5 py-5">
+		<DashboardPageBody>
 			{/*
 			  Fleet-level monitor at the top: shows EVERY machine on
 			  the account with live state, lets the operator spin up
@@ -317,7 +318,7 @@ export function OverviewClient({ counts, agentKind, model }: Props) {
 					</div>
 				</ReticleFrame>
 			</section>
-		</div>
+		</DashboardPageBody>
 	);
 }
 

@@ -608,10 +608,7 @@ function LatencyHistogram({
 								/>
 								{bucket.count > 0 ? (
 									<span
-										className="absolute left-1.5 top-1/2 -translate-y-1/2 font-mono text-[10px] tabular-nums text-[var(--ret-text)]"
-										style={{
-											textShadow: "0 0 2px var(--ret-bg)",
-										}}
+										className="absolute left-1.5 top-1/2 -translate-y-1/2 font-mono text-[10px] tabular-nums text-[var(--ret-text)] [text-shadow:0_0_2px_var(--ret-bg)]"
 									>
 										{bucket.count}
 									</span>

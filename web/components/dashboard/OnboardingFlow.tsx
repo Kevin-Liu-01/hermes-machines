@@ -202,7 +202,11 @@ export function OnboardingFlow({
 					agentKind: agent,
 				}),
 			});
-			const provBody = (await provResp.json()) as {
+			// Server may return a non-JSON body on 5xx (gateway HTML page,
+			// empty Vercel error). Fall back to an empty object so the
+			// HTTP-status message below is still actionable instead of a
+			// JSON-parse exception that obscures the real failure.
+			const provBody = (await provResp.json().catch(() => ({}))) as {
 				ok?: boolean;
 				machineId?: string;
 				phase?: string;

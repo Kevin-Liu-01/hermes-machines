@@ -14,7 +14,7 @@
 
 import { getEffectiveUserId } from "@/lib/user-config/identity";
 
-import { fetchMachineSummary } from "@/lib/dashboard/dedalus";
+import { fetchActiveMachineSummary } from "@/lib/dashboard/active-machine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET(): Promise<Response> {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
 	try {
-		const summary = await fetchMachineSummary();
+		const summary = await fetchActiveMachineSummary();
 		return Response.json(summary, {
 			headers: { "Cache-Control": "no-store" },
 		});

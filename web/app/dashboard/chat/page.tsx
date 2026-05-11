@@ -12,7 +12,7 @@ export default async function DashboardChatPage() {
 			<PageHeader
 				kicker={`LIVE -- ${active?.agentKind === "openclaw" ? "openclaw" : "hermes"} gateway`}
 				title="Chat"
-				description="Streams from the OpenAI-compatible gateway on your active machine. Switch agents (Hermes / OpenClaw) from the navbar dropdown -- the dropdown changes the draft for new machines; existing machines keep their installed agent. Past chats persist to Vercel Blob, scoped to your account."
+				description="Streams from the resolved gateway profile for your active machine. Switch agents (Hermes / OpenClaw) from the navbar dropdown -- the dropdown changes the draft for new machines; existing machines keep their installed agent. Persistent-machine chats live under /home/machine/.agent-machines; ephemeral sandboxes use the external storage backend configured for the account."
 			/>
 			<ChatShell
 				activeMachineId={active?.id ?? null}

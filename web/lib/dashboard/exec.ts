@@ -1,6 +1,6 @@
 /**
- * Server-side helper that runs a read-only shell command on the live
- * machine via Dedalus's executions API.
+ * Server-side helper that runs a shell command on the user's active
+ * machine through the selected provider's exec adapter.
  *
  * The dashboard uses this to peek at on-VM state -- list session DBs,
  * tail the gateway log, dump cursor-runs.jsonl. Each call is a single
@@ -12,26 +12,14 @@
  * mutates state. Use the CLI for that. Commands here should look like
  * `cat`, `tail`, `ls`, never `rm` or `>`.
  *
- * Multi-tenant: the env (api key, machine id, base url) comes from the
- * Clerk-backed `getDedalusEnvForUser()`. Each request resolves the
- * caller's machine, never a shared one.
+ * Multi-tenant: the provider credentials and active machine come from
+ * the Clerk-backed UserConfig. Each request resolves the caller's
+ * machine, never a shared one.
  */
 
-import { getDedalusEnvForUser } from "@/lib/user-config/clerk";
-
-const DEFAULT_TIMEOUT_MS = 30_000;
-const POLL_INTERVAL_MS = 1000;
-
-type ExecRaw = {
-	execution_id: string;
-	status: "queued" | "running" | "succeeded" | "failed" | "expired" | "cancelled";
-	exit_code?: number | null;
-};
-
-type ExecOutputRaw = {
-	stdout?: string;
-	stderr?: string;
-};
+import { getProvider } from "@/lib/providers";
+import { getUserConfig } from "@/lib/user-config/clerk";
+import { activeMachine } from "@/lib/user-config/schema";
 
 export type ExecResult = {
 	stdout: string;
@@ -39,91 +27,21 @@ export type ExecResult = {
 	exitCode: number;
 };
 
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function dedalusFetch(
-	apiKey: string,
-	url: string,
-	init?: RequestInit,
-): Promise<Response> {
-	return fetch(url, {
-		...init,
-		headers: {
-			"X-API-Key": apiKey,
-			"Content-Type": "application/json",
-			...(init?.headers ?? {}),
-		},
-		cache: "no-store",
-	});
-}
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 export async function execOnMachine(
 	command: string,
 	options: { timeoutMs?: number } = {},
 ): Promise<ExecResult> {
-	const { apiKey, baseUrl, machineId } = await getDedalusEnvForUser();
-	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-
-	const createResponse = await dedalusFetch(
-		apiKey,
-		`${baseUrl}/v1/machines/${machineId}/executions`,
-		{
-			method: "POST",
-			body: JSON.stringify({
-				command: ["/bin/bash", "-c", command],
-				timeout_ms: timeoutMs,
-			}),
-		},
-	);
-	if (!createResponse.ok) {
-		throw new Error(
-			`exec create ${createResponse.status}: ${(await createResponse.text()).slice(0, 200)}`,
-		);
+	const config = await getUserConfig();
+	const machine = activeMachine(config);
+	if (!machine) {
+		throw new Error("No active machine selected.");
 	}
-	const created = (await createResponse.json()) as ExecRaw;
-
-	let current = created;
-	const deadline = Date.now() + timeoutMs + 5000;
-	while (
-		current.status !== "succeeded" &&
-		current.status !== "failed" &&
-		current.status !== "expired" &&
-		current.status !== "cancelled"
-	) {
-		if (Date.now() > deadline) {
-			throw new Error(
-				`exec poll timed out after ${timeoutMs}ms: ${command.slice(0, 80)}`,
-			);
-		}
-		await sleep(POLL_INTERVAL_MS);
-		const pollResponse = await dedalusFetch(
-			apiKey,
-			`${baseUrl}/v1/machines/${machineId}/executions/${created.execution_id}`,
-		);
-		if (!pollResponse.ok) {
-			throw new Error(
-				`exec poll ${pollResponse.status}: ${(await pollResponse.text()).slice(0, 200)}`,
-			);
-		}
-		current = (await pollResponse.json()) as ExecRaw;
-	}
-
-	const outputResponse = await dedalusFetch(
-		apiKey,
-		`${baseUrl}/v1/machines/${machineId}/executions/${created.execution_id}/output`,
-	);
-	const output: ExecOutputRaw = outputResponse.ok
-		? ((await outputResponse.json()) as ExecOutputRaw)
-		: {};
-
-	const exitCode = current.exit_code ?? (current.status === "succeeded" ? 0 : 1);
-	return {
-		stdout: (output.stdout ?? "").trim(),
-		stderr: (output.stderr ?? "").trim(),
-		exitCode,
-	};
+	const provider = getProvider(machine.providerKind, config.providers);
+	return provider.exec(machine.id, command, {
+		timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+	});
 }
 
 /**
@@ -137,14 +55,12 @@ export async function execOnMachine(
  */
 export async function isMachineRunning(): Promise<boolean> {
 	try {
-		const { apiKey, baseUrl, machineId } = await getDedalusEnvForUser();
-		const response = await fetch(`${baseUrl}/v1/machines/${machineId}`, {
-			headers: { "X-API-Key": apiKey },
-			cache: "no-store",
-		});
-		if (!response.ok) return false;
-		const body = (await response.json()) as { status?: { phase?: string } };
-		return body.status?.phase === "running";
+		const config = await getUserConfig();
+		const machine = activeMachine(config);
+		if (!machine) return false;
+		const provider = getProvider(machine.providerKind, config.providers);
+		const summary = await provider.state(machine.id);
+		return summary.state === "ready";
 	} catch {
 		return false;
 	}

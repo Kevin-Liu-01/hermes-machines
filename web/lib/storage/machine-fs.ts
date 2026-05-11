@@ -1,5 +1,5 @@
 /**
- * Filesystem helpers that run against the user's active Dedalus machine.
+ * Filesystem helpers that run against the user's active persistent machine.
  *
  * The persistent volume at `/home/machine` survives sleep/wake. Storing
  * chats + artifacts there means each user's data lives on the machine
@@ -8,11 +8,11 @@
  * files as context. This mirrors the Dedalus "agent sandbox per user"
  * cookbook pattern.
  *
- * All operations route through the Dedalus execution API (single
- * roundtrip per call). Latency is ~1-2s per read because each call is
- * `create execution` + `poll status` + `fetch output`. The wake helper
- * adds another ~30s on first read of a sleeping machine; subsequent
- * reads are warm.
+ * All operations route through the selected provider's exec API. On
+ * persistent-machine providers (Dedalus, Fly once exec is available)
+ * this points at `/home/machine`. Ephemeral providers such as Vercel
+ * Sandbox need an external storage backend and fail closed here until
+ * that profile is configured.
  */
 
 import { Buffer } from "node:buffer";
@@ -72,30 +72,20 @@ export async function withActiveMachine(): Promise<
 				"No active machine. Pick one in /dashboard/machines or provision via /dashboard/setup.",
 		};
 	}
-	if (machine.providerKind !== "dedalus") {
+	const provider = getProvider(machine.providerKind, config.providers);
+	if (!provider.capabilities.hasPersistentDisk) {
 		return {
 			ok: false,
 			reason: "missing_credentials",
-			message: `Machine ${machine.id} runs on ${machine.providerKind}; on-machine storage is only wired for Dedalus today.`,
-		};
-	}
-	if (!config.providers.dedalus?.apiKey) {
-		return {
-			ok: false,
-			reason: "missing_credentials",
-			message:
-				"No Dedalus API key on file. Add one in /dashboard/setup step 1.",
+			message: `Machine ${machine.id} runs on ${machine.providerKind}; chats and artifacts need an external storage backend for ephemeral sessions.`,
 		};
 	}
 
-	if (await isMachineRunning()) {
-		return { machine };
-	}
+	if (await isMachineRunning()) return { machine };
 
 	// Machine is asleep / starting / failed. Submit a wake and return
 	// the appropriate transitional state for the client to poll on.
 	try {
-		const provider = getProvider("dedalus", config.providers);
 		const summary = await provider.state(machine.id);
 		if (summary.state === "sleeping") {
 			await provider.wake(machine.id);

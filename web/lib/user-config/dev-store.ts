@@ -21,6 +21,11 @@ import path from "node:path";
 import {
 	DEFAULT_USER_CONFIG,
 	type AgentKind,
+	type AgentProfile,
+	type BootstrapPreset,
+	type CustomLoadoutEntry,
+	type EnvironmentProfile,
+	type GatewayProfile,
 	type MachineRef,
 	type MachineSpec,
 	type ProviderCredentials,
@@ -38,6 +43,11 @@ const DEV_STORE_PATH = path.join(process.cwd(), ".dev-user-config.json");
 type ConfigPatch = {
 	providers?: ProviderCredentials;
 	cursorApiKey?: string | null;
+	gatewayProfiles?: GatewayProfile[];
+	agentProfiles?: AgentProfile[];
+	environmentProfiles?: EnvironmentProfile[];
+	bootstrapPresets?: BootstrapPreset[];
+	customLoadout?: CustomLoadoutEntry[];
 	setupStep?: SetupStep;
 	draftAgentKind?: AgentKind;
 	draftProviderKind?: ProviderKind;
@@ -57,7 +67,22 @@ async function readDevStore(): Promise<UserConfig | null> {
 		// Coerce missing fields against the default shape so callers
 		// always get a well-formed UserConfig even if the on-disk file
 		// was written by an older code rev with fewer fields.
-		return { ...DEFAULT_USER_CONFIG, ...parsed };
+		const merged = { ...DEFAULT_USER_CONFIG, ...parsed };
+		return {
+			...merged,
+			gatewayProfiles:
+				merged.gatewayProfiles.length > 0
+					? merged.gatewayProfiles
+					: DEFAULT_USER_CONFIG.gatewayProfiles,
+			agentProfiles:
+				merged.agentProfiles.length > 0
+					? merged.agentProfiles
+					: DEFAULT_USER_CONFIG.agentProfiles,
+			bootstrapPresets:
+				merged.bootstrapPresets.length > 0
+					? merged.bootstrapPresets
+					: DEFAULT_USER_CONFIG.bootstrapPresets,
+		};
 	} catch (err) {
 		if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
 		throw err;
@@ -150,6 +175,12 @@ export async function setDevUserConfig(
 			patch.cursorApiKey !== undefined
 				? patch.cursorApiKey
 				: current.cursorApiKey,
+		gatewayProfiles: patch.gatewayProfiles ?? current.gatewayProfiles,
+		agentProfiles: patch.agentProfiles ?? current.agentProfiles,
+		environmentProfiles:
+			patch.environmentProfiles ?? current.environmentProfiles,
+		bootstrapPresets: patch.bootstrapPresets ?? current.bootstrapPresets,
+		customLoadout: patch.customLoadout ?? current.customLoadout,
 		setupStep: patch.setupStep ?? current.setupStep,
 		draftAgentKind: patch.draftAgentKind ?? current.draftAgentKind,
 		draftProviderKind: patch.draftProviderKind ?? current.draftProviderKind,

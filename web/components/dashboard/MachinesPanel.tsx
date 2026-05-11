@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Logo } from "@/components/Logo";
+import { DashboardPageBody } from "@/components/dashboard/DashboardPageBody";
+import {
+	MachineActions,
+	type MachineState as MachineActionState,
+} from "@/components/dashboard/MachineActions";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
@@ -10,6 +15,7 @@ import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
+import type { ProviderCapabilities } from "@/lib/providers";
 import {
 	AGENT_LABEL,
 	PROVIDER_LABEL,
@@ -32,6 +38,7 @@ type LiveMachine = {
 	apiUrl: string | null;
 	hasApiKey: boolean;
 	archived?: boolean;
+	capabilities: ProviderCapabilities | null;
 	live:
 		| { ok: true; state: string; rawPhase: string; lastError: string | null }
 		| { ok: false; reason: string };
@@ -74,7 +81,6 @@ export function MachinesPanel() {
 	const [data, setData] = useState<Payload | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [editing, setEditing] = useState<string | null>(null);
 
 	const refresh = useCallback(async () => {
@@ -103,66 +109,12 @@ export function MachinesPanel() {
 		return () => window.clearInterval(id);
 	}, [refresh]);
 
-	const setActive = useCallback(
-		async (machineId: string) => {
-			setPendingId(machineId);
-			try {
-				const response = await fetch(`/api/dashboard/machines/${machineId}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ active: true }),
-				});
-				if (!response.ok) throw new Error(`HTTP ${response.status}`);
-				await refresh();
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "set active failed");
-			} finally {
-				setPendingId(null);
-			}
-		},
-		[refresh],
-	);
-
-	const archive = useCallback(
-		async (machineId: string, hardDestroy: boolean) => {
-			if (
-				hardDestroy &&
-				!window.confirm(
-					"Hard-destroy this machine on the provider? This cannot be undone.",
-				)
-			) {
-				return;
-			}
-			setPendingId(machineId);
-			try {
-				const response = await fetch(
-					`/api/dashboard/machines/${machineId}${
-						hardDestroy ? "?destroy=1" : ""
-					}`,
-					{ method: "DELETE" },
-				);
-				if (!response.ok) {
-					const body = (await response.json().catch(() => ({}))) as {
-						message?: string;
-					};
-					throw new Error(body.message ?? `HTTP ${response.status}`);
-				}
-				await refresh();
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "delete failed");
-			} finally {
-				setPendingId(null);
-			}
-		},
-		[refresh],
-	);
-
 	const machines = data?.machines ?? [];
 	const visible = machines.filter((m) => !m.archived);
 	const archived = machines.filter((m) => m.archived);
 
 	return (
-		<div className="space-y-6 px-5 py-5">
+		<DashboardPageBody>
 			{error ? (
 				<ReticleFrame className="border-[var(--ret-red)]/50 bg-[var(--ret-red)]/5 p-3">
 					<p className="font-mono text-[11px] text-[var(--ret-red)]">
@@ -222,10 +174,7 @@ export function MachinesPanel() {
 								key={machine.id}
 								machine={machine}
 								active={machine.id === data?.activeMachineId}
-								pending={pendingId === machine.id}
-								onSetActive={() => setActive(machine.id)}
-								onArchive={() => archive(machine.id, false)}
-								onDestroy={() => archive(machine.id, true)}
+								onChange={refresh}
 								editing={editing === machine.id}
 								onToggleEdit={() =>
 									setEditing((prev) => (prev === machine.id ? null : machine.id))
@@ -251,10 +200,7 @@ export function MachinesPanel() {
 								key={machine.id}
 								machine={machine}
 								active={false}
-								pending={pendingId === machine.id}
-								onSetActive={() => setActive(machine.id)}
-								onArchive={() => archive(machine.id, false)}
-								onDestroy={() => archive(machine.id, true)}
+								onChange={refresh}
 								editing={false}
 								onToggleEdit={() => setEditing(machine.id)}
 								onSavedEdit={() => void refresh()}
@@ -263,7 +209,7 @@ export function MachinesPanel() {
 					</div>
 				</section>
 			) : null}
-		</div>
+		</DashboardPageBody>
 	);
 }
 
@@ -293,20 +239,14 @@ function EmptyShell({
 function MachineCard({
 	machine,
 	active,
-	pending,
-	onSetActive,
-	onArchive,
-	onDestroy,
+	onChange,
 	editing,
 	onToggleEdit,
 	onSavedEdit,
 }: {
 	machine: LiveMachine;
 	active: boolean;
-	pending: boolean;
-	onSetActive: () => void;
-	onArchive: () => void;
-	onDestroy: () => void;
+	onChange: () => Promise<void>;
 	editing: boolean;
 	onToggleEdit: () => void;
 	onSavedEdit: () => void;
@@ -390,42 +330,24 @@ function MachineCard({
 						)}
 					</span>
 					<div className="flex items-center gap-1">
-						<ReticleButton
-							variant="ghost"
-							size="sm"
-							onClick={onToggleEdit}
-							disabled={pending}
-						>
+						<ReticleButton variant="ghost" size="sm" onClick={onToggleEdit}>
 							Edit gateway
 						</ReticleButton>
-						{!active && !machine.archived ? (
-							<ReticleButton
-								variant="secondary"
-								size="sm"
-								onClick={onSetActive}
-								disabled={pending}
-							>
-								Set active
-							</ReticleButton>
-						) : null}
-						{!machine.archived ? (
-							<ReticleButton
-								variant="ghost"
-								size="sm"
-								onClick={onArchive}
-								disabled={pending}
-							>
-								Archive
-							</ReticleButton>
-						) : null}
-						<ReticleButton
-							variant="ghost"
-							size="sm"
-							onClick={onDestroy}
-							disabled={pending}
-						>
-							Destroy
-						</ReticleButton>
+						{/* The full transition set lives in MachineActions
+						    so /dashboard/machines, FleetMonitor, and the
+						    header MachineSwitcher all expose the same
+						    surface. `allowDestroy` is on here because this
+						    page is the explicit "manage fleet" surface;
+						    other lists keep destroy behind archive. */}
+						<MachineActions
+							machineId={machine.id}
+							state={stateName as MachineActionState}
+							capabilities={machine.capabilities}
+							active={active}
+							archived={machine.archived ?? false}
+							allowDestroy
+							onChange={onChange}
+						/>
 					</div>
 				</div>
 			)}

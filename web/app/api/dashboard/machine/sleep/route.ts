@@ -12,7 +12,7 @@
 
 import { getEffectiveUserId } from "@/lib/user-config/identity";
 
-import { sleepMachine } from "@/lib/dashboard/dedalus";
+import { sleepActiveMachine } from "@/lib/dashboard/active-machine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export async function POST(): Promise<Response> {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
 	try {
-		const summary = await sleepMachine();
+		const summary = await sleepActiveMachine();
 		return Response.json(summary, {
 			headers: { "Cache-Control": "no-store" },
 		});

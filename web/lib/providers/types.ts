@@ -38,6 +38,19 @@ export type ProviderMachineSummary = {
 	lastError: string | null;
 };
 
+export type RuntimeKind = "persistent-machine" | "ephemeral-session";
+
+export type ProviderCapabilities = {
+	runtime: RuntimeKind;
+	canProvision: boolean;
+	canWake: boolean;
+	canSleep: boolean;
+	canDestroy: boolean;
+	canExec: boolean;
+	hasPersistentDisk: boolean;
+	usesExternalStorage: boolean;
+};
+
 export type ProvisionResult = {
 	id: string;
 	state: MachineState;
@@ -79,11 +92,15 @@ export class MachineProviderError extends Error {
 export type ProvisionInput = {
 	spec: MachineSpec;
 	name?: string;
+	agentKind?: string;
+	model?: string;
+	env?: Record<string, string>;
 };
 
 export type MachineProvider = {
 	readonly kind: ProviderKind;
 	readonly hasCredentials: boolean;
+	readonly capabilities: ProviderCapabilities;
 
 	provision(input: ProvisionInput): Promise<ProvisionResult>;
 	state(machineId: string): Promise<ProviderMachineSummary>;

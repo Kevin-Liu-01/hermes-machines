@@ -13,7 +13,7 @@
 import { getEffectiveUserId } from "@/lib/user-config/identity";
 
 import type { GatewaySummary } from "@/lib/dashboard/types";
-import { getGatewayEnvForUser } from "@/lib/user-config/clerk";
+import { resolveGatewayForUser } from "@/lib/gateway/resolver";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,9 +24,9 @@ export async function GET(): Promise<Response> {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
 
-	let env: Awaited<ReturnType<typeof getGatewayEnvForUser>>;
+	let env: Awaited<ReturnType<typeof resolveGatewayForUser>>;
 	try {
-		env = await getGatewayEnvForUser();
+		env = await resolveGatewayForUser();
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "config_error";
 		return Response.json(
@@ -38,7 +38,7 @@ export async function GET(): Promise<Response> {
 	const start = performance.now();
 	try {
 		const response = await fetch(`${env.apiUrl}/models`, {
-			headers: { Authorization: `Bearer ${env.apiKey}` },
+			headers: env.headers,
 			cache: "no-store",
 		});
 		const latencyMs = Math.round(performance.now() - start);
@@ -56,7 +56,7 @@ export async function GET(): Promise<Response> {
 			ok: response.ok,
 			status: response.status,
 			model: env.model,
-			apiHost: new URL(env.apiUrl).host,
+			apiHost: env.apiHost,
 			latencyMs,
 			modelCount,
 		};
@@ -69,7 +69,7 @@ export async function GET(): Promise<Response> {
 			ok: false,
 			status: 0,
 			model: env.model,
-			apiHost: new URL(env.apiUrl).host,
+			apiHost: env.apiHost,
 			latencyMs,
 			modelCount: null,
 			error: err instanceof Error ? err.message : "fetch_failed",

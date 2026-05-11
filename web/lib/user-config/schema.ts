@@ -107,9 +107,68 @@ export const SETUP_STEPS: ReadonlyArray<SetupStep> = [
  * Stored in Clerk privateMetadata; the public-config helper strips them.
  */
 export type ProviderCredentials = {
-	dedalus?: { apiKey: string };
-	"vercel-sandbox"?: { apiKey: string; teamId?: string };
+	dedalus?: { apiKey: string; baseUrl?: string };
+	"vercel-sandbox"?: { apiKey: string; teamId?: string; projectId?: string };
 	fly?: { apiKey: string; orgSlug?: string };
+};
+
+export type GatewayKind = "dedalus" | "vercel-ai-gateway" | "openai-compatible";
+
+export type GatewayProfile = {
+	id: string;
+	name: string;
+	kind: GatewayKind;
+	model: string;
+	baseUrl: string | null;
+	apiKey: string | null;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type AgentProfile = {
+	id: string;
+	name: string;
+	agentKind: AgentKind;
+	gatewayProfileId: string;
+	model: string;
+	enabledSkills: string[];
+	enabledTools: string[];
+	enabledMcpServers: string[];
+	environmentProfileId: string | null;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type EnvironmentProfile = {
+	id: string;
+	name: string;
+	vars: Record<string, string>;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type BootstrapPreset = {
+	id: string;
+	name: string;
+	providerKind: ProviderKind;
+	agentProfileId: string;
+	environmentProfileId: string | null;
+	spec: MachineSpec;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type CustomLoadoutKind = "skill" | "tool" | "mcp" | "cli" | "plugin";
+
+export type CustomLoadoutEntry = {
+	id: string;
+	name: string;
+	kind: CustomLoadoutKind;
+	description: string;
+	command: string | null;
+	enabled: boolean;
+	createdAt: string;
+	updatedAt: string;
 };
 
 /**
@@ -126,6 +185,10 @@ export type MachineRef = {
 	name: string;
 	spec: MachineSpec;
 	model: string;
+	agentProfileId: string | null;
+	gatewayProfileId: string | null;
+	environmentProfileId: string | null;
+	bootstrapPresetId: string | null;
 	createdAt: string;
 	apiUrl: string | null;
 	apiKey: string | null;
@@ -138,6 +201,11 @@ export type UserConfig = {
 	machines: MachineRef[];
 	activeMachineId: string | null;
 	cursorApiKey: string | null;
+	gatewayProfiles: GatewayProfile[];
+	agentProfiles: AgentProfile[];
+	environmentProfiles: EnvironmentProfile[];
+	bootstrapPresets: BootstrapPreset[];
+	customLoadout: CustomLoadoutEntry[];
 	setupStep: SetupStep;
 
 	/* Wizard scratch -- the choices the user made last in the wizard,
@@ -149,11 +217,69 @@ export type UserConfig = {
 	draftModel: string;
 };
 
+const DEFAULT_CREATED_AT = new Date(0).toISOString();
+
+export const DEFAULT_GATEWAY_PROFILE: GatewayProfile = {
+	id: "dedalus-default",
+	name: "Dedalus default",
+	kind: "dedalus",
+	model: DEFAULT_MODEL,
+	baseUrl: "https://api.dedaluslabs.ai/v1",
+	apiKey: null,
+	createdAt: DEFAULT_CREATED_AT,
+	updatedAt: DEFAULT_CREATED_AT,
+};
+
+export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
+	{
+		id: "hermes-default",
+		name: "Hermes default",
+		agentKind: "hermes",
+		gatewayProfileId: DEFAULT_GATEWAY_PROFILE.id,
+		model: DEFAULT_MODEL,
+		enabledSkills: [],
+		enabledTools: [],
+		enabledMcpServers: [],
+		environmentProfileId: null,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+	{
+		id: "openclaw-default",
+		name: "OpenClaw default",
+		agentKind: "openclaw",
+		gatewayProfileId: DEFAULT_GATEWAY_PROFILE.id,
+		model: DEFAULT_MODEL,
+		enabledSkills: [],
+		enabledTools: [],
+		enabledMcpServers: [],
+		environmentProfileId: null,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+];
+
+export const DEFAULT_BOOTSTRAP_PRESET: BootstrapPreset = {
+	id: "dedalus-hermes-default",
+	name: "Dedalus + Hermes",
+	providerKind: "dedalus",
+	agentProfileId: "hermes-default",
+	environmentProfileId: null,
+	spec: DEFAULT_MACHINE_SPEC,
+	createdAt: DEFAULT_CREATED_AT,
+	updatedAt: DEFAULT_CREATED_AT,
+};
+
 export const DEFAULT_USER_CONFIG: UserConfig = {
 	providers: {},
 	machines: [],
 	activeMachineId: null,
 	cursorApiKey: null,
+	gatewayProfiles: [DEFAULT_GATEWAY_PROFILE],
+	agentProfiles: DEFAULT_AGENT_PROFILES,
+	environmentProfiles: [],
+	bootstrapPresets: [DEFAULT_BOOTSTRAP_PRESET],
+	customLoadout: [],
 	setupStep: "api-key",
 	draftAgentKind: "hermes",
 	draftProviderKind: "dedalus",
@@ -179,10 +305,12 @@ export type PublicMachineRef = Omit<MachineRef, "apiKey"> & {
 
 export type PublicUserConfig = Omit<
 	UserConfig,
-	"providers" | "machines" | "cursorApiKey"
+	"providers" | "machines" | "cursorApiKey" | "gatewayProfiles" | "environmentProfiles"
 > & {
 	providers: Record<ProviderKind, PublicProviderStatus>;
 	machines: PublicMachineRef[];
+	gatewayProfiles: Array<Omit<GatewayProfile, "apiKey"> & { hasApiKey: boolean }>;
+	environmentProfiles: Array<Omit<EnvironmentProfile, "vars"> & { varCount: number }>;
 	hasCursorKey: boolean;
 };
 
@@ -206,6 +334,17 @@ export function toPublicConfig(config: UserConfig): PublicUserConfig {
 		providers,
 		machines,
 		activeMachineId: config.activeMachineId,
+		gatewayProfiles: config.gatewayProfiles.map(({ apiKey, ...profile }) => ({
+			...profile,
+			hasApiKey: Boolean(apiKey),
+		})),
+		agentProfiles: config.agentProfiles,
+		environmentProfiles: config.environmentProfiles.map(({ vars, ...profile }) => ({
+			...profile,
+			varCount: Object.keys(vars).length,
+		})),
+		bootstrapPresets: config.bootstrapPresets,
+		customLoadout: config.customLoadout,
 		setupStep: config.setupStep,
 		draftAgentKind: config.draftAgentKind,
 		draftProviderKind: config.draftProviderKind,

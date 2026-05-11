@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Logo } from "@/components/Logo";
+import {
+	MachineActions,
+	type MachineState as MachineActionState,
+} from "@/components/dashboard/MachineActions";
 import { cn } from "@/lib/cn";
 import {
 	AGENT_LABEL,
@@ -12,6 +16,7 @@ import {
 	type MachineSpec,
 	type ProviderKind,
 } from "@/lib/user-config/schema";
+import type { ProviderCapabilities } from "@/lib/providers";
 
 /**
  * Persistent machine switcher in the dashboard header.
@@ -43,6 +48,7 @@ type LiveMachine = {
 	apiUrl: string | null;
 	hasApiKey: boolean;
 	archived?: boolean;
+	capabilities: ProviderCapabilities | null;
 	live:
 		| { ok: true; state: string; rawPhase: string; lastError: string | null }
 		| { ok: false; reason: string };
@@ -209,18 +215,32 @@ export function MachineSwitcher() {
 							const stateName = machine.live.ok ? machine.live.state : "unknown";
 							const memGib = (machine.spec.memoryMib / 1024).toFixed(1);
 							return (
-								<li key={machine.id} role="option" aria-selected={isActive}>
+								<li
+									key={machine.id}
+									role="option"
+									aria-selected={isActive}
+									className={cn(
+										"flex flex-col gap-1 border-b border-[var(--ret-border)] px-3 py-2 transition-colors",
+										isActive
+											? "bg-[var(--ret-purple-glow)]"
+											: "hover:bg-[var(--ret-surface)]",
+										pendingId === machine.id && "opacity-60",
+									)}
+								>
+									{/* The meta block is still a button so a
+									    keyboard or pointer click on the
+									    label sets-active in one motion --
+									    that's the most common intent for
+									    this dropdown. Per-machine wake /
+									    sleep / archive / destroy live in
+									    the MachineActions row below so the
+									    full lifecycle is reachable without
+									    leaving the popover. */}
 									<button
 										type="button"
 										onClick={() => void setActive(machine.id)}
 										disabled={pendingId === machine.id || isActive}
-										className={cn(
-											"flex w-full items-start gap-2 border-b border-[var(--ret-border)] px-3 py-2 text-left transition-colors",
-											isActive
-												? "bg-[var(--ret-purple-glow)]"
-												: "hover:bg-[var(--ret-surface)]",
-											pendingId === machine.id && "opacity-60",
-										)}
+										className="flex w-full items-start gap-2 text-left disabled:cursor-default"
 									>
 										<StateDot state={stateName} />
 										<div className="min-w-0 flex-1">
@@ -253,6 +273,17 @@ export function MachineSwitcher() {
 											</p>
 										</div>
 									</button>
+									<MachineActions
+										machineId={machine.id}
+										state={stateName as MachineActionState}
+											capabilities={machine.capabilities}
+										active={isActive}
+										compact
+										onChange={async () => {
+											await refresh();
+											router.refresh();
+										}}
+									/>
 								</li>
 							);
 						})}

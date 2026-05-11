@@ -60,6 +60,7 @@ const LIVE_ITEMS: ReadonlyArray<NavItem> = [
 
 const CONFIG_ITEMS: ReadonlyArray<NavItem> = [
 	{ href: "/dashboard/machines", label: "Machines", icon: IconStack },
+	{ href: "/dashboard/settings", label: "Settings", icon: IconKey },
 	{ href: "/dashboard/skills", label: "Skills", icon: IconScroll },
 	{ href: "/dashboard/mcps", label: "MCPs", icon: IconPlug },
 ];

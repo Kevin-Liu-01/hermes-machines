@@ -144,23 +144,33 @@ export function ObservabilityPanel({
 	}, []);
 
 	return (
-		<section
-			className="grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-2 xl:grid-cols-4"
-			aria-label="observability"
-		>
-			<IdentityCell
-				agentKind={agentKind}
-				model={modelOverride ?? state.gateway?.model ?? null}
-				machineSummary={machineSummary}
-			/>
-			<LatencyCell history={latencyHistory} gateway={state.gateway} />
-			<ActivityCell logs={state.logs} cursor={state.cursor} />
-			<BreakdownCell
-				cursor={state.cursor}
-				sessions={state.sessions}
-				logs={state.logs}
-			/>
-		</section>
+		<div className="space-y-px">
+			{state.error ? (
+				<p
+					role="alert"
+					className="border border-[var(--ret-red)]/40 bg-[var(--ret-red)]/5 px-3 py-2 font-mono text-[10px] text-[var(--ret-red)]"
+				>
+					observability poll failed: {state.error}
+				</p>
+			) : null}
+			<section
+				className="grid grid-cols-1 gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-2 xl:grid-cols-4"
+				aria-label="observability"
+			>
+				<IdentityCell
+					agentKind={agentKind}
+					model={modelOverride ?? state.gateway?.model ?? null}
+					machineSummary={machineSummary}
+				/>
+				<LatencyCell history={latencyHistory} gateway={state.gateway} />
+				<ActivityCell logs={state.logs} cursor={state.cursor} />
+				<BreakdownCell
+					cursor={state.cursor}
+					sessions={state.sessions}
+					logs={state.logs}
+				/>
+			</section>
+		</div>
 	);
 }
 

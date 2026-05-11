@@ -62,5 +62,10 @@ export function getProvider(
 	}
 }
 
-export type { MachineProvider, MachineState, ProviderMachineSummary } from "./types";
+export type {
+	MachineProvider,
+	MachineState,
+	ProviderCapabilities,
+	ProviderMachineSummary,
+} from "./types";
 export { MachineProviderError } from "./types";

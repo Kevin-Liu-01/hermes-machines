@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Chat } from "@/components/Chat";
+import {
+	MachineActions,
+	type MachineState as MachineActionState,
+} from "@/components/dashboard/MachineActions";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
@@ -228,7 +232,11 @@ export function ChatShell({ activeMachineId, model }: Props) {
 						New
 					</ReticleButton>
 				</div>
-				<MachineStateBanner state={machineState} />
+				<MachineStateBanner
+					state={machineState}
+					machineId={activeMachineId ?? null}
+					onChanged={refreshList}
+				/>
 				{loadError ? (
 					<ReticleFrame className="mb-3 border-[var(--ret-red)]/40 bg-[var(--ret-red)]/5 p-3">
 						<p className="font-mono text-[10px] text-[var(--ret-red)]">
@@ -355,19 +363,46 @@ export function ChatShell({ activeMachineId, model }: Props) {
 
 function MachineStateBanner({
 	state,
+	machineId,
+	onChanged,
 }: {
 	state: { ok: boolean; reason: string | null; message: string | null };
+	machineId: string | null;
+	onChanged: () => void | Promise<unknown>;
 }) {
 	if (state.ok) return null;
 	if (state.reason === "machine_starting" || state.reason === "machine_asleep") {
+		// Posting any message implicitly wakes the active machine, but
+		// when the user just opens /dashboard/chat with no draft we
+		// want a single-click "wake now" affordance so they can warm
+		// the VM before composing. Renders MachineActions in compact
+		// mode so the same wake/sleep buttons are visible here as in
+		// the fleet UIs.
+		const phase: MachineActionState =
+			state.reason === "machine_starting" ? "starting" : "sleeping";
 		return (
 			<ReticleFrame className="mb-3 border-[var(--ret-amber)]/40 bg-[var(--ret-amber)]/5 p-3">
-				<p className="font-mono text-[10px] text-[var(--ret-amber)]">
-					Waking your machine... chats are stored on its disk.
-				</p>
-				<p className="mt-1 font-mono text-[10px] text-[var(--ret-text-muted)]">
-					{state.message ?? "First open after sleep takes ~30 seconds."}
-				</p>
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<div>
+						<p className="font-mono text-[10px] text-[var(--ret-amber)]">
+							{phase === "sleeping"
+								? "Machine is asleep. Wake it to load /home/machine."
+								: "Waking your machine... chats are stored on its disk."}
+						</p>
+						<p className="mt-1 font-mono text-[10px] text-[var(--ret-text-muted)]">
+							{state.message ?? "First open after sleep takes ~30 seconds."}
+						</p>
+					</div>
+					{machineId ? (
+						<MachineActions
+							machineId={machineId}
+							state={phase}
+							active
+							compact
+							onChange={onChanged}
+						/>
+					) : null}
+				</div>
 			</ReticleFrame>
 		);
 	}

@@ -13,7 +13,7 @@ import { getEffectiveUserId } from "@/lib/user-config/identity";
 import type { NextRequest } from "next/server";
 
 import type { ChatRequestBody } from "@/lib/types";
-import { getGatewayEnvForUser } from "@/lib/user-config/clerk";
+import { resolveGatewayForUser } from "@/lib/gateway/resolver";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 		return Response.json({ error: "messages_required" }, { status: 422 });
 	}
 
-	let env: Awaited<ReturnType<typeof getGatewayEnvForUser>>;
+	let env: Awaited<ReturnType<typeof resolveGatewayForUser>>;
 	try {
-		env = await getGatewayEnvForUser();
+		env = await resolveGatewayForUser();
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "config_error";
 		return Response.json(
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${env.apiKey}`,
+			...env.headers,
 		},
 		body: JSON.stringify({
 			model: env.model,

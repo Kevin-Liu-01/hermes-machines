@@ -16,6 +16,7 @@ import { getEffectiveUserId } from "@/lib/user-config/identity";
 import {
 	MachineProviderError,
 	getProvider,
+	type ProviderCapabilities,
 } from "@/lib/providers";
 import { getUserConfig } from "@/lib/user-config/clerk";
 import {
@@ -30,6 +31,7 @@ export const dynamic = "force-dynamic";
 type LiveMachine = Omit<MachineRef, "apiKey"> & {
 	hasApiKey: boolean;
 	providerLabel: string;
+	capabilities: ProviderCapabilities | null;
 	live:
 		| { ok: true; state: string; rawPhase: string; lastError: string | null }
 		| { ok: false; reason: string };
@@ -64,10 +66,15 @@ async function probe(
 		id: machine.id,
 		providerKind: machine.providerKind,
 		providerLabel: PROVIDER_LABEL[machine.providerKind],
+		capabilities: null,
 		agentKind: machine.agentKind,
 		name: machine.name,
 		spec: machine.spec,
 		model: machine.model,
+		agentProfileId: machine.agentProfileId,
+		gatewayProfileId: machine.gatewayProfileId,
+		environmentProfileId: machine.environmentProfileId,
+		bootstrapPresetId: machine.bootstrapPresetId,
 		createdAt: machine.createdAt,
 		apiUrl: machine.apiUrl,
 		bootstrapState: machine.bootstrapState,
@@ -79,6 +86,7 @@ async function probe(
 		const summary = await provider.state(machine.id);
 		return {
 			...base,
+			capabilities: provider.capabilities,
 			live: {
 				ok: true,
 				state: summary.state,

@@ -33,8 +33,15 @@ import {
 	INITIAL_BOOTSTRAP_STATE,
 	activeMachine,
 	type AgentKind,
+	type AgentProfile,
+	type BootstrapPreset,
 	type BootstrapPhaseId,
 	type BootstrapState,
+	type EnvironmentProfile,
+	type GatewayKind,
+	type GatewayProfile,
+	type CustomLoadoutEntry,
+	type CustomLoadoutKind,
 	type MachineRef,
 	type MachineSpec,
 	type ProviderCredentials,
@@ -48,6 +55,18 @@ const KNOWN_PROVIDERS: ReadonlySet<ProviderKind> = new Set([
 	"dedalus",
 	"vercel-sandbox",
 	"fly",
+]);
+const KNOWN_GATEWAYS: ReadonlySet<GatewayKind> = new Set([
+	"dedalus",
+	"vercel-ai-gateway",
+	"openai-compatible",
+]);
+const KNOWN_LOADOUT: ReadonlySet<CustomLoadoutKind> = new Set([
+	"skill",
+	"tool",
+	"mcp",
+	"cli",
+	"plugin",
 ]);
 const KNOWN_STEPS: ReadonlySet<SetupStep> = new Set([
 	"api-key",
@@ -73,6 +92,13 @@ function asProvider(value: unknown, fallback: ProviderKind = "dedalus"): Provide
 	const v = asString(value);
 	return v && KNOWN_PROVIDERS.has(v as ProviderKind)
 		? (v as ProviderKind)
+		: fallback;
+}
+
+function asGateway(value: unknown, fallback: GatewayKind = "dedalus"): GatewayKind {
+	const v = asString(value);
+	return v && KNOWN_GATEWAYS.has(v as GatewayKind)
+		? (v as GatewayKind)
 		: fallback;
 }
 
@@ -139,6 +165,10 @@ function asMachineRefShallow(value: unknown): Omit<MachineRef, "apiKey"> | null 
 		name: asString(v.name) ?? id.slice(0, 12),
 		spec: asSpec(v.spec),
 		model: asString(v.model) ?? DEFAULT_MODEL,
+		agentProfileId: asString(v.agentProfileId) ?? null,
+		gatewayProfileId: asString(v.gatewayProfileId) ?? null,
+		environmentProfileId: asString(v.environmentProfileId) ?? null,
+		bootstrapPresetId: asString(v.bootstrapPresetId) ?? null,
 		createdAt: asString(v.createdAt) ?? new Date().toISOString(),
 		apiUrl: asString(v.apiUrl) ?? null,
 		bootstrapState: asBootstrapState(v.bootstrapState),
@@ -152,7 +182,13 @@ type RawPrivate = Record<string, unknown>;
 function readEnvProviderCreds(): ProviderCredentials {
 	const out: ProviderCredentials = {};
 	const dedalusKey = process.env.DEDALUS_API_KEY?.trim();
-	if (dedalusKey) out.dedalus = { apiKey: dedalusKey };
+	const dedalusBaseUrl = process.env.DEDALUS_BASE_URL?.trim();
+	if (dedalusKey) {
+		out.dedalus = {
+			apiKey: dedalusKey,
+			baseUrl: dedalusBaseUrl,
+		};
+	}
 	return out;
 }
 
@@ -180,10 +216,59 @@ function envFallbackMachine(): MachineRef | null {
 					: DEFAULT_MACHINE_SPEC.storageGib,
 		},
 		model,
+		agentProfileId: null,
+		gatewayProfileId: null,
+		environmentProfileId: null,
+		bootstrapPresetId: null,
 		createdAt: new Date(0).toISOString(),
 		apiUrl,
 		apiKey,
 		bootstrapState: { ...INITIAL_BOOTSTRAP_STATE, phase: "succeeded" },
+	};
+}
+
+function defaultDedalusGatewayProfile(): GatewayProfile {
+	const now = new Date().toISOString();
+	return {
+		id: "dedalus-default",
+		name: "Dedalus default",
+		kind: "dedalus",
+		model: DEFAULT_MODEL,
+		baseUrl: "https://api.dedaluslabs.ai/v1",
+		apiKey: null,
+		createdAt: now,
+		updatedAt: now,
+	};
+}
+
+function defaultAgentProfile(agentKind: AgentKind): AgentProfile {
+	const now = new Date().toISOString();
+	return {
+		id: `${agentKind}-default`,
+		name: agentKind === "hermes" ? "Hermes default" : "OpenClaw default",
+		agentKind,
+		gatewayProfileId: "dedalus-default",
+		model: DEFAULT_MODEL,
+		enabledSkills: [],
+		enabledTools: [],
+		enabledMcpServers: [],
+		environmentProfileId: null,
+		createdAt: now,
+		updatedAt: now,
+	};
+}
+
+function defaultBootstrapPreset(): BootstrapPreset {
+	const now = new Date().toISOString();
+	return {
+		id: "dedalus-hermes-default",
+		name: "Dedalus + Hermes",
+		providerKind: "dedalus",
+		agentProfileId: "hermes-default",
+		environmentProfileId: null,
+		spec: DEFAULT_MACHINE_SPEC,
+		createdAt: now,
+		updatedAt: now,
 	};
 }
 
@@ -200,12 +285,16 @@ function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig
 	const privateProviders =
 		(privateMeta.providers as ProviderCredentials | undefined) ?? {};
 	if (privateProviders.dedalus?.apiKey) {
-		providers.dedalus = { apiKey: privateProviders.dedalus.apiKey };
+		providers.dedalus = {
+			apiKey: privateProviders.dedalus.apiKey,
+			baseUrl: privateProviders.dedalus.baseUrl,
+		};
 	}
 	if (privateProviders["vercel-sandbox"]?.apiKey) {
 		providers["vercel-sandbox"] = {
 			apiKey: privateProviders["vercel-sandbox"].apiKey,
 			teamId: privateProviders["vercel-sandbox"].teamId,
+			projectId: privateProviders["vercel-sandbox"].projectId,
 		};
 	}
 	if (privateProviders.fly?.apiKey) {
@@ -254,6 +343,10 @@ function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig
 			name: `${legacyAgent} (legacy)`,
 			spec: legacySpec,
 			model: legacyModel,
+			agentProfileId: null,
+			gatewayProfileId: null,
+			environmentProfileId: null,
+			bootstrapPresetId: null,
 			createdAt: new Date(0).toISOString(),
 			apiUrl: legacyApiUrl,
 			apiKey: legacyApiKey,
@@ -266,6 +359,51 @@ function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig
 		const envMachine = envFallbackMachine();
 		if (envMachine) machines.push(envMachine);
 	}
+
+	const gatewayApiKeys =
+		(privateMeta.gatewayApiKeys as Record<string, string> | undefined) ?? {};
+	const gatewayProfiles = Array.isArray(publicMeta.gatewayProfiles)
+		? publicMeta.gatewayProfiles
+				.map((entry) => asGatewayProfile(entry, gatewayApiKeys))
+				.filter((entry): entry is GatewayProfile => entry !== null)
+		: [];
+	if (gatewayProfiles.length === 0 && providers.dedalus?.apiKey) {
+		gatewayProfiles.push(defaultDedalusGatewayProfile());
+	}
+
+	const environmentProfileVars =
+		(privateMeta.environmentProfileVars as
+			| Record<string, Record<string, string>>
+			| undefined) ?? {};
+	const environmentProfiles = Array.isArray(publicMeta.environmentProfiles)
+		? publicMeta.environmentProfiles
+				.map((entry) => asEnvironmentProfile(entry, environmentProfileVars))
+				.filter((entry): entry is EnvironmentProfile => entry !== null)
+		: [];
+
+	const agentProfiles = Array.isArray(publicMeta.agentProfiles)
+		? publicMeta.agentProfiles
+				.map((entry) => asAgentProfile(entry))
+				.filter((entry): entry is AgentProfile => entry !== null)
+		: [];
+	if (agentProfiles.length === 0) {
+		agentProfiles.push(defaultAgentProfile("hermes"));
+		agentProfiles.push(defaultAgentProfile("openclaw"));
+	}
+
+	const bootstrapPresets = Array.isArray(publicMeta.bootstrapPresets)
+		? publicMeta.bootstrapPresets
+				.map((entry) => asBootstrapPreset(entry))
+				.filter((entry): entry is BootstrapPreset => entry !== null)
+		: [];
+	if (bootstrapPresets.length === 0) {
+		bootstrapPresets.push(defaultBootstrapPreset());
+	}
+	const customLoadout = Array.isArray(publicMeta.customLoadout)
+		? publicMeta.customLoadout
+				.map((entry) => asCustomLoadoutEntry(entry))
+				.filter((entry): entry is CustomLoadoutEntry => entry !== null)
+		: [];
 
 	const activeFromMeta = asString(publicMeta.activeMachineId);
 	const activeMachineId = (() => {
@@ -286,6 +424,11 @@ function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig
 		machines,
 		activeMachineId,
 		cursorApiKey,
+		gatewayProfiles,
+		agentProfiles,
+		environmentProfiles,
+		bootstrapPresets,
+		customLoadout,
 		setupStep: asStep(publicMeta.setupStep),
 		draftAgentKind: asAgent(
 			publicMeta.draftAgentKind ?? publicMeta.agentKind,
@@ -341,6 +484,11 @@ export async function getUserConfigById(userId: string): Promise<UserConfig> {
 type ConfigPatch = {
 	providers?: ProviderCredentials;
 	cursorApiKey?: string | null;
+	gatewayProfiles?: GatewayProfile[];
+	agentProfiles?: AgentProfile[];
+	environmentProfiles?: EnvironmentProfile[];
+	bootstrapPresets?: BootstrapPreset[];
+	customLoadout?: CustomLoadoutEntry[];
 	setupStep?: SetupStep;
 	draftAgentKind?: AgentKind;
 	draftProviderKind?: ProviderKind;
@@ -353,6 +501,112 @@ type ConfigPatch = {
 	archiveMachine?: string;
 };
 
+function asGatewayProfile(
+	value: unknown,
+	apiKeys: Record<string, string>,
+): GatewayProfile | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		kind: asGateway(v.kind),
+		model: asString(v.model) ?? DEFAULT_MODEL,
+		baseUrl: asString(v.baseUrl) ?? null,
+		apiKey: apiKeys[id] ?? null,
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asAgentProfile(value: unknown): AgentProfile | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		agentKind: asAgent(v.agentKind),
+		gatewayProfileId: asString(v.gatewayProfileId) ?? "dedalus-default",
+		model: asString(v.model) ?? DEFAULT_MODEL,
+		enabledSkills: asStringArray(v.enabledSkills),
+		enabledTools: asStringArray(v.enabledTools),
+		enabledMcpServers: asStringArray(v.enabledMcpServers),
+		environmentProfileId: asString(v.environmentProfileId) ?? null,
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asEnvironmentProfile(
+	value: unknown,
+	varsById: Record<string, Record<string, string>>,
+): EnvironmentProfile | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		vars: varsById[id] ?? {},
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asBootstrapPreset(value: unknown): BootstrapPreset | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		providerKind: asProvider(v.providerKind),
+		agentProfileId: asString(v.agentProfileId) ?? "hermes-default",
+		environmentProfileId: asString(v.environmentProfileId) ?? null,
+		spec: asSpec(v.spec),
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asCustomLoadoutEntry(value: unknown): CustomLoadoutEntry | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const kindRaw = asString(v.kind);
+	const kind =
+		kindRaw && KNOWN_LOADOUT.has(kindRaw as CustomLoadoutKind)
+			? (kindRaw as CustomLoadoutKind)
+			: "tool";
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		kind,
+		description: asString(v.description) ?? "",
+		command: asString(v.command) ?? null,
+		enabled: v.enabled !== false,
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asStringArray(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value.map((entry) => asString(entry)).filter((entry): entry is string => Boolean(entry));
+}
+
 function publicShape(machines: MachineRef[]): Array<Omit<MachineRef, "apiKey">> {
 	return machines.map(({ apiKey, ...rest }) => rest);
 }
@@ -361,6 +615,36 @@ function machineKeyMap(machines: MachineRef[]): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const m of machines) {
 		if (m.apiKey) out[m.id] = m.apiKey;
+	}
+	return out;
+}
+
+function publicGatewayShape(
+	profiles: GatewayProfile[],
+): Array<Omit<GatewayProfile, "apiKey">> {
+	return profiles.map(({ apiKey, ...rest }) => rest);
+}
+
+function gatewayKeyMap(profiles: GatewayProfile[]): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const profile of profiles) {
+		if (profile.apiKey) out[profile.id] = profile.apiKey;
+	}
+	return out;
+}
+
+function publicEnvironmentShape(
+	profiles: EnvironmentProfile[],
+): Array<Omit<EnvironmentProfile, "vars">> {
+	return profiles.map(({ vars, ...rest }) => rest);
+}
+
+function environmentVarsMap(
+	profiles: EnvironmentProfile[],
+): Record<string, Record<string, string>> {
+	const out: Record<string, Record<string, string>> = {};
+	for (const profile of profiles) {
+		out[profile.id] = profile.vars;
 	}
 	return out;
 }
@@ -442,6 +726,13 @@ export async function setUserConfigById(
 
 	const nextCursor =
 		patch.cursorApiKey !== undefined ? patch.cursorApiKey : current.cursorApiKey;
+	const nextGatewayProfiles = patch.gatewayProfiles ?? current.gatewayProfiles;
+	const nextAgentProfiles = patch.agentProfiles ?? current.agentProfiles;
+	const nextEnvironmentProfiles =
+		patch.environmentProfiles ?? current.environmentProfiles;
+	const nextBootstrapPresets =
+		patch.bootstrapPresets ?? current.bootstrapPresets;
+	const nextCustomLoadout = patch.customLoadout ?? current.customLoadout;
 
 	const nextStep = patch.setupStep ?? current.setupStep;
 	const nextDraftAgent = patch.draftAgentKind ?? current.draftAgentKind;
@@ -452,6 +743,11 @@ export async function setUserConfigById(
 	const nextPublic: RawPublic = {
 		...existingPublic,
 		machines: publicShape(nextMachines),
+		gatewayProfiles: publicGatewayShape(nextGatewayProfiles),
+		agentProfiles: nextAgentProfiles,
+		environmentProfiles: publicEnvironmentShape(nextEnvironmentProfiles),
+		bootstrapPresets: nextBootstrapPresets,
+		customLoadout: nextCustomLoadout,
 		activeMachineId: nextActive,
 		setupStep: nextStep,
 		draftAgentKind: nextDraftAgent,
@@ -472,6 +768,8 @@ export async function setUserConfigById(
 		...existingPrivate,
 		providers: nextProviders,
 		machineApiKeys: machineKeyMap(nextMachines),
+		gatewayApiKeys: gatewayKeyMap(nextGatewayProfiles),
+		environmentProfileVars: environmentVarsMap(nextEnvironmentProfiles),
 	};
 	if (nextCursor === null) {
 		delete nextPrivate.cursorApiKey;
@@ -517,7 +815,11 @@ export async function getDedalusEnvForMachine(machine: MachineRef): Promise<{
 			"DEDALUS_API_KEY is not set on this user. Add it in /dashboard/setup.",
 		);
 	}
-	const baseUrl = (process.env.DEDALUS_BASE_URL ?? "https://dcs.dedaluslabs.ai")
+	const baseUrl = (
+		config.providers.dedalus?.baseUrl ??
+		process.env.DEDALUS_BASE_URL ??
+		"https://dcs.dedaluslabs.ai"
+	)
 		.trim()
 		.replace(/\/$/, "");
 	return { apiKey, baseUrl, machineId: machine.id };

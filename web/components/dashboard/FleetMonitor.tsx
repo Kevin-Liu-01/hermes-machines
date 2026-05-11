@@ -3,12 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Logo } from "@/components/Logo";
+import {
+	MachineActions,
+	type MachineState as MachineActionState,
+} from "@/components/dashboard/MachineActions";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
+import type { ProviderCapabilities } from "@/lib/providers";
 import {
 	AGENT_KINDS,
 	AGENT_LABEL,
@@ -46,6 +51,7 @@ type LiveMachine = {
 	apiUrl: string | null;
 	hasApiKey: boolean;
 	archived?: boolean;
+	capabilities: ProviderCapabilities | null;
 	live:
 		| { ok: true; state: string; rawPhase: string; lastError: string | null }
 		| { ok: false; reason: string };
@@ -88,7 +94,6 @@ export function FleetMonitor() {
 	const [data, setData] = useState<Payload | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [showForm, setShowForm] = useState(false);
 	const [spawn, setSpawn] = useState<SpawnState>({ phase: "idle" });
 
@@ -118,26 +123,6 @@ export function FleetMonitor() {
 		}, POLL_MS);
 		return () => window.clearInterval(id);
 	}, [refresh]);
-
-	const setActive = useCallback(
-		async (machineId: string): Promise<void> => {
-			setPendingId(machineId);
-			try {
-				const response = await fetch(`/api/dashboard/machines/${machineId}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ active: true }),
-				});
-				if (!response.ok) throw new Error(`HTTP ${response.status}`);
-				await refresh();
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "set active failed");
-			} finally {
-				setPendingId(null);
-			}
-		},
-		[refresh],
-	);
 
 	const provision = useCallback(
 		async (input: {
@@ -298,8 +283,7 @@ export function FleetMonitor() {
 							key={machine.id}
 							machine={machine}
 							active={machine.id === data?.activeMachineId}
-							pending={pendingId === machine.id}
-							onSetActive={() => void setActive(machine.id)}
+							onChange={refresh}
 						/>
 					))}
 				</ul>
@@ -337,13 +321,11 @@ function summarize(machines: LiveMachine[]) {
 function MachineRow({
 	machine,
 	active,
-	pending,
-	onSetActive,
+	onChange,
 }: {
 	machine: LiveMachine;
 	active: boolean;
-	pending: boolean;
-	onSetActive: () => void;
+	onChange: () => Promise<void>;
 }) {
 	const stateName = machine.live.ok ? machine.live.state : "unknown";
 	const tone = STATE_TONE[stateName] ?? "muted";
@@ -418,23 +400,16 @@ function MachineRow({
 					last error: {machine.live.lastError.slice(0, 80)}
 				</p>
 			) : null}
-			{!active ? (
-				<div className="flex justify-end">
-					<button
-						type="button"
-						onClick={onSetActive}
-						disabled={pending}
-						className={cn(
-							"font-mono text-[10px] uppercase tracking-[0.18em]",
-							pending
-								? "text-[var(--ret-text-muted)]"
-								: "text-[var(--ret-purple)] hover:underline",
-						)}
-					>
-						{pending ? "..." : "set active"}
-					</button>
-				</div>
-			) : null}
+			<div className="flex justify-end">
+				<MachineActions
+					machineId={machine.id}
+					state={stateName as MachineActionState}
+					capabilities={machine.capabilities}
+					active={active}
+					archived={machine.archived ?? false}
+					onChange={onChange}
+				/>
+			</div>
 		</li>
 	);
 }

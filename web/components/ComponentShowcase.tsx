@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { cn } from "@/lib/cn";
 
 const PHASES = [
 	{ label: "running", color: "text-[var(--ret-green)] border-[var(--ret-green)]/40 bg-[var(--ret-green)]/10" },
@@ -110,7 +111,10 @@ function StatusPillDemo() {
 			<button
 				type="button"
 				onClick={() => setActive((i) => (i + 1) % PHASES.length)}
-				className={`mt-1 inline-flex w-fit items-center gap-2 border px-3 py-1.5 font-mono text-[12px] transition-colors ${phase.color}`}
+				className={cn(
+					"mt-1 inline-flex w-fit items-center gap-2 border px-3 py-1.5 font-mono text-[12px] transition-colors",
+					phase.color,
+				)}
 			>
 				<span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
 				{phase.label}
@@ -193,7 +197,10 @@ function LogTailDemo() {
 									{line.ts}
 								</td>
 								<td
-									className={`px-2 py-1 align-top uppercase ${LEVEL_COLOR[line.level as keyof typeof LEVEL_COLOR]}`}
+									className={cn(
+										"px-2 py-1 align-top uppercase",
+										LEVEL_COLOR[line.level as keyof typeof LEVEL_COLOR],
+									)}
 								>
 									{line.level}
 								</td>

@@ -23,6 +23,7 @@ import {
 	type ExecOptions,
 	type ExecResult,
 	type MachineProvider,
+	type ProviderCapabilities,
 	type MachineState,
 	type ProviderMachineSummary,
 	type ProvisionInput,
@@ -114,6 +115,16 @@ export type DedalusCreds = {
 
 export class DedalusProvider implements MachineProvider {
 	readonly kind = "dedalus" as const;
+	readonly capabilities: ProviderCapabilities = {
+		runtime: "persistent-machine",
+		canProvision: true,
+		canWake: true,
+		canSleep: true,
+		canDestroy: true,
+		canExec: true,
+		hasPersistentDisk: true,
+		usesExternalStorage: false,
+	};
 	private readonly apiKey: string;
 	private readonly baseUrl: string;
 
