@@ -8,12 +8,16 @@ import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
 import { ReticleLabel } from "@/components/reticle/ReticleLabel";
+import { WingBackground } from "@/components/WingBackground";
+import { TRUSTED_ADDONS } from "@/lib/dashboard/loadout";
 import type {
 	AgentProfile,
 	BootstrapPreset,
 	CustomLoadoutEntry,
 	EnvironmentProfile,
 	GatewayProfile,
+	LoadoutPreset,
+	LoadoutSource,
 	ProviderCredentials,
 	PublicUserConfig,
 } from "@/lib/user-config/schema";
@@ -45,6 +49,13 @@ export function SettingsPanel({ initialConfig }: Props) {
 	const [envJson, setEnvJson] = useState(json(config.environmentProfiles));
 	const [presetJson, setPresetJson] = useState(json(config.bootstrapPresets));
 	const [loadoutJson, setLoadoutJson] = useState(json(config.customLoadout));
+	const [sourceJson, setSourceJson] = useState(json(config.loadoutSources));
+	const [loadoutPresetJson, setLoadoutPresetJson] = useState(
+		json(config.loadoutPresets),
+	);
+	const [activeLoadoutPresetId, setActiveLoadoutPresetId] = useState(
+		config.activeLoadoutPresetId,
+	);
 	const [state, setState] = useState<SaveState>({ phase: "idle" });
 
 	async function save(): Promise<void> {
@@ -81,6 +92,9 @@ export function SettingsPanel({ initialConfig }: Props) {
 					environmentProfiles: parse<EnvironmentProfile[]>(envJson),
 					bootstrapPresets: parse<BootstrapPreset[]>(presetJson),
 					customLoadout: parse<CustomLoadoutEntry[]>(loadoutJson),
+					loadoutSources: parse<LoadoutSource[]>(sourceJson),
+					loadoutPresets: parse<LoadoutPreset[]>(loadoutPresetJson),
+					activeLoadoutPresetId,
 				}),
 			});
 			const body = (await response.json().catch(() => ({}))) as {
@@ -121,6 +135,9 @@ export function SettingsPanel({ initialConfig }: Props) {
 			setEnvJson(json(body.config.environmentProfiles));
 			setPresetJson(json(body.config.bootstrapPresets));
 			setLoadoutJson(json(body.config.customLoadout));
+			setSourceJson(json(body.config.loadoutSources));
+			setLoadoutPresetJson(json(body.config.loadoutPresets));
+			setActiveLoadoutPresetId(body.config.activeLoadoutPresetId);
 			setState({ phase: "ok", message: "synced from machine settings.json" });
 		} catch (err) {
 			setState({
@@ -134,10 +151,25 @@ export function SettingsPanel({ initialConfig }: Props) {
 		<DashboardPageBody>
 			<ReticleFrame>
 				<ReticleHatch className="h-1.5 border-b border-[var(--ret-border)]" pitch={6} />
-				<div className="grid gap-px bg-[var(--ret-border)] md:grid-cols-4">
+				<div className="grid gap-px bg-[var(--ret-border)] md:grid-cols-[1.2fr_0.7fr_0.7fr_0.7fr_0.7fr_0.7fr]">
+					<div className="relative min-h-[120px] overflow-hidden bg-[var(--ret-bg)] p-3">
+						<WingBackground
+							variant="nyx-lines"
+							opacity={{ light: 0.22, dark: 0.34 }}
+							fadeEdges
+						/>
+						<div className="relative z-10">
+							<ReticleLabel>CONFIG GRAPH</ReticleLabel>
+							<p className="mt-2 max-w-[32ch] text-[13px] leading-relaxed text-[var(--ret-text-dim)]">
+								Settings become reusable recipes: provider, gateway, agent,
+								environment, then machine.
+							</p>
+						</div>
+					</div>
 					<Summary label="providers" value={configuredCount(config.providers)} />
 					<Summary label="gateways" value={config.gatewayProfiles.length} />
 					<Summary label="agents" value={config.agentProfiles.length} />
+					<Summary label="sources" value={config.loadoutSources.length} />
 					<Summary label="custom" value={config.customLoadout.length} />
 				</div>
 			</ReticleFrame>
@@ -202,12 +234,25 @@ export function SettingsPanel({ initialConfig }: Props) {
 			<Section
 				kicker="PROFILES"
 				title="Reusable machine configuration"
-				description="These JSON arrays are account-level. New machines can inherit them; terminal edits can write the same shape to /home/machine/.agent-machines/settings.json and sync back."
+				description="These JSON arrays are account-level. Existing bundled sources are the opinionated default preset; add GitHub repos, URLs, MCP servers, CLIs, npm packages, or manual tools and compose your own presets."
 			>
+				<CatalogHint />
 				<JsonEditor label="Gateway profiles" value={gatewayJson} onChange={setGatewayJson} />
 				<JsonEditor label="Agent profiles" value={agentJson} onChange={setAgentJson} />
 				<JsonEditor label="Environment profiles" value={envJson} onChange={setEnvJson} />
 				<JsonEditor label="Bootstrap presets" value={presetJson} onChange={setPresetJson} />
+				<label className="mb-3 block">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+						Active loadout preset
+					</span>
+					<input
+						value={activeLoadoutPresetId}
+						onChange={(event) => setActiveLoadoutPresetId(event.target.value)}
+						className="mt-1 w-full border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] px-2 py-2 font-mono text-[11px] text-[var(--ret-text)]"
+					/>
+				</label>
+				<JsonEditor label="Loadout sources" value={sourceJson} onChange={setSourceJson} />
+				<JsonEditor label="Loadout presets" value={loadoutPresetJson} onChange={setLoadoutPresetJson} />
 				<JsonEditor label="Custom skills / tools / MCP / CLI / plugins" value={loadoutJson} onChange={setLoadoutJson} />
 			</Section>
 
@@ -292,6 +337,56 @@ function ProviderBox({
 						/>
 					</label>
 				))}
+			</div>
+		</div>
+	);
+}
+
+function CatalogHint() {
+	const preview = TRUSTED_ADDONS.slice(0, 8);
+	return (
+		<div className="mb-3 grid gap-px bg-[var(--ret-border)] lg:grid-cols-[0.9fr_1.1fr]">
+			<div className="bg-[var(--ret-bg)] p-3">
+				<ReticleLabel>AVAILABLE CATALOG</ReticleLabel>
+				<p className="mt-2 text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
+					{TRUSTED_ADDONS.length} trusted add-ons are shown on the Loadout
+					page. To add one, copy its source into `loadoutSources` or create a
+					`customLoadout` entry, then include that ID in a `loadoutPresets`
+					record.
+				</p>
+				<pre className="mt-3 overflow-x-auto border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] p-2 font-mono text-[10px] text-[var(--ret-text-dim)]">
+					{`{
+  "id": "my-tool",
+  "name": "My Tool",
+  "kind": "cli",
+  "description": "What the agent can use it for",
+  "command": "my-tool",
+  "enabled": true
+}`}
+				</pre>
+			</div>
+			<div className="bg-[var(--ret-bg)] p-3">
+				<ReticleLabel>STARTING POINTS</ReticleLabel>
+				<div className="mt-2 grid gap-1 sm:grid-cols-2">
+					{preview.map((item) => (
+						<div
+							key={item.id}
+							className="border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] px-2 py-1.5"
+						>
+							<div className="flex items-center justify-between gap-2">
+								<p className="truncate font-mono text-[11px] text-[var(--ret-text)]">
+									{item.name}
+								</p>
+								<ReticleBadge className="px-1.5 py-0 text-[9px]">
+									{item.kind}
+								</ReticleBadge>
+							</div>
+							<p className="mt-0.5 truncate font-mono text-[9px] text-[var(--ret-text-muted)]">
+								{item.source}
+							</p>
+						</div>
+					))}
+				</div>
 			</div>
 		</div>
 	);

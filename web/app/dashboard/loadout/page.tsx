@@ -1,17 +1,20 @@
 import { LoadoutPanel } from "@/components/dashboard/LoadoutPanel";
 import { PageHeader } from "@/components/dashboard/PageHeader";
+import { getUserConfig } from "@/lib/user-config/clerk";
 import { listMcpServers } from "@/lib/dashboard/mcps";
 import { listSkills } from "@/lib/dashboard/skills";
 import {
 	BUILTIN_TOOLS,
 	SERVICES,
 	TASKS,
+	TRUSTED_ADDONS,
 	computeCounts,
 } from "@/lib/dashboard/loadout";
 
 export const dynamic = "force-dynamic";
 
-export default function LoadoutPage() {
+export default async function LoadoutPage() {
+	const config = await getUserConfig();
 	const skills = listSkills();
 	const mcps = listMcpServers();
 	const mcpToolCount = mcps.reduce((sum, m) => sum + m.tools.length, 0);
@@ -34,6 +37,11 @@ export default function LoadoutPage() {
 				builtins={[...BUILTIN_TOOLS]}
 				services={[...SERVICES]}
 				tasks={[...TASKS]}
+				catalog={[...TRUSTED_ADDONS]}
+				customLoadout={config.customLoadout}
+				loadoutSources={config.loadoutSources}
+				loadoutPresets={config.loadoutPresets}
+				activeLoadoutPresetId={config.activeLoadoutPresetId}
 			/>
 		</div>
 	);

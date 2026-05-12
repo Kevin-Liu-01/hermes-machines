@@ -26,6 +26,8 @@ import {
 	type CustomLoadoutEntry,
 	type EnvironmentProfile,
 	type GatewayProfile,
+	type LoadoutPreset,
+	type LoadoutSource,
 	type MachineRef,
 	type MachineSpec,
 	type ProviderCredentials,
@@ -48,6 +50,9 @@ type ConfigPatch = {
 	environmentProfiles?: EnvironmentProfile[];
 	bootstrapPresets?: BootstrapPreset[];
 	customLoadout?: CustomLoadoutEntry[];
+	loadoutSources?: LoadoutSource[];
+	loadoutPresets?: LoadoutPreset[];
+	activeLoadoutPresetId?: string;
 	setupStep?: SetupStep;
 	draftAgentKind?: AgentKind;
 	draftProviderKind?: ProviderKind;
@@ -82,6 +87,17 @@ async function readDevStore(): Promise<UserConfig | null> {
 				merged.bootstrapPresets.length > 0
 					? merged.bootstrapPresets
 					: DEFAULT_USER_CONFIG.bootstrapPresets,
+			loadoutSources:
+				merged.loadoutSources.length > 0
+					? merged.loadoutSources
+					: DEFAULT_USER_CONFIG.loadoutSources,
+			loadoutPresets:
+				merged.loadoutPresets.length > 0
+					? merged.loadoutPresets
+					: DEFAULT_USER_CONFIG.loadoutPresets,
+			activeLoadoutPresetId:
+				merged.activeLoadoutPresetId ||
+				DEFAULT_USER_CONFIG.activeLoadoutPresetId,
 		};
 	} catch (err) {
 		if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -181,6 +197,10 @@ export async function setDevUserConfig(
 			patch.environmentProfiles ?? current.environmentProfiles,
 		bootstrapPresets: patch.bootstrapPresets ?? current.bootstrapPresets,
 		customLoadout: patch.customLoadout ?? current.customLoadout,
+		loadoutSources: patch.loadoutSources ?? current.loadoutSources,
+		loadoutPresets: patch.loadoutPresets ?? current.loadoutPresets,
+		activeLoadoutPresetId:
+			patch.activeLoadoutPresetId ?? current.activeLoadoutPresetId,
 		setupStep: patch.setupStep ?? current.setupStep,
 		draftAgentKind: patch.draftAgentKind ?? current.draftAgentKind,
 		draftProviderKind: patch.draftProviderKind ?? current.draftProviderKind,

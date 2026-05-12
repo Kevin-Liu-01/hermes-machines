@@ -149,6 +149,12 @@ export async function POST(request: Request): Promise<Response> {
 
 	try {
 		const result = await provider.provision({ spec, name });
+		const gatewayProfileId =
+			config.gatewayProfiles.find((profile) => profile.kind === "dedalus")?.id ??
+			null;
+		const agentProfileId =
+			config.agentProfiles.find((profile) => profile.agentKind === agentKind)?.id ??
+			null;
 		const ref: MachineRef = {
 			id: result.id,
 			providerKind,
@@ -156,8 +162,8 @@ export async function POST(request: Request): Promise<Response> {
 			name,
 			spec,
 			model,
-			agentProfileId: null,
-			gatewayProfileId: null,
+			agentProfileId,
+			gatewayProfileId,
 			environmentProfileId: null,
 			bootstrapPresetId: null,
 			createdAt: new Date().toISOString(),
@@ -176,7 +182,7 @@ export async function POST(request: Request): Promise<Response> {
 			phase: result.rawPhase,
 			state: result.state,
 			message:
-				"Machine accepted. Browser-driven bootstrap is not wired yet; for now run the matching `npm run deploy` locally against this machine ID, then save the gateway URL/key via /dashboard/machines.",
+				"Machine accepted. Run browser bootstrap from the dashboard to install the selected agent runtime, or use the CLI deploy path for the full production bootstrap.",
 		});
 	} catch (err) {
 		const message =

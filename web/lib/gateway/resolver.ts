@@ -27,19 +27,14 @@ export async function resolveGatewayForUser(): Promise<GatewayEnv> {
 		);
 	}
 
-	const profile = machine.gatewayProfileId
-		? config.gatewayProfiles.find((entry) => entry.id === machine.gatewayProfileId)
-		: null;
-	if (profile) return fromProfile(profile, machine.model);
-
 	if (!machine.apiUrl) {
 		throw new Error(
-			`Machine ${machine.id} has no gateway URL on file yet -- finish bootstrap first.`,
+			`Machine ${machine.id} has no agent gateway URL on file yet -- bootstrap the agent first.`,
 		);
 	}
 	if (!machine.apiKey) {
 		throw new Error(
-			`Machine ${machine.id} has no gateway bearer on file. Save one via /dashboard/machines.`,
+			`Machine ${machine.id} has no agent gateway bearer on file -- bootstrap the agent first.`,
 		);
 	}
 	return {
@@ -51,7 +46,31 @@ export async function resolveGatewayForUser(): Promise<GatewayEnv> {
 	};
 }
 
-function fromProfile(profile: GatewayProfile, machineModel: string): GatewayEnv {
+export async function resolveModelGatewayForUser(): Promise<GatewayEnv> {
+	const config = await getUserConfig();
+	const machine = activeMachine(config);
+	if (!machine) {
+		throw new Error(
+			"No machine selected. Pick one in /dashboard/machines or provision via /dashboard/setup.",
+		);
+	}
+	const profile =
+		(machine.gatewayProfileId
+			? config.gatewayProfiles.find((entry) => entry.id === machine.gatewayProfileId)
+			: null) ??
+		config.gatewayProfiles.find((entry) => entry.kind === "dedalus") ??
+		null;
+	if (!profile) {
+		throw new Error("No model gateway profile configured.");
+	}
+	return fromProfile(profile, machine.model, config);
+}
+
+function fromProfile(
+	profile: GatewayProfile,
+	machineModel: string,
+	config: Awaited<ReturnType<typeof getUserConfig>>,
+): GatewayEnv {
 	const model = profile.model || machineModel;
 	if (profile.kind === "vercel-ai-gateway") {
 		const key =
@@ -81,14 +100,18 @@ function fromProfile(profile: GatewayProfile, machineModel: string): GatewayEnv 
 		if (!profile.baseUrl) {
 			throw new Error(`Gateway profile '${profile.name}' is missing a base URL.`);
 		}
-		if (!profile.apiKey) {
+		const apiKey =
+			profile.apiKey ??
+			(profile.kind === "dedalus" ? config.providers.dedalus?.apiKey : null) ??
+			null;
+		if (!apiKey) {
 			throw new Error(`Gateway profile '${profile.name}' is missing an API key.`);
 		}
 		const base = normalizeOpenAiBase(profile.baseUrl);
 		return {
 			apiUrl: base,
 			model,
-			headers: { Authorization: `Bearer ${profile.apiKey}` },
+			headers: { Authorization: `Bearer ${apiKey}` },
 			kind: profile.kind,
 			apiHost: hostOf(base),
 		};

@@ -12,8 +12,8 @@ export default async function SetupPage() {
 		<div className="flex flex-col">
 			<PageHeader
 				kicker="SETUP"
-				title="Provision your agent"
-				description="Bring an API key for any supported provider, pick an agent, size the box, and provision. Each user gets their own machine; secrets persist in Clerk private metadata."
+				title="Provision a persistent agent"
+				description="Bring a provider key, pick Hermes or OpenClaw, size the environment, and provision. Both agents can be bootstrapped from the UI into a durable machine profile; secrets persist in Clerk private metadata."
 			/>
 			<SetupWizard
 				initialConfig={toPublicConfig(config)}

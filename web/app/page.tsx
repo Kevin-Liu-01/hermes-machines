@@ -1,4 +1,3 @@
-import { ArchitectureFlow } from "@/components/ArchitectureFlow";
 import { CapabilityGrid } from "@/components/CapabilityGrid";
 import { RuntimeVizGrid } from "@/components/RuntimeVizGrid";
 import {
@@ -16,6 +15,8 @@ import { ReticleSection } from "@/components/reticle/ReticleSection";
 import { ReticleSpacer } from "@/components/reticle/ReticleSpacer";
 import { SkillsManifest } from "@/components/SkillsManifest";
 import { StatsRow } from "@/components/StatsRow";
+import { StickyRuntimeStory } from "@/components/StickyRuntimeStory";
+import { WorkflowNavigator } from "@/components/WorkflowNavigator";
 
 export default function HomePage() {
 	return (
@@ -25,7 +26,7 @@ export default function HomePage() {
 			<main id="top">
 				<ReticleSection
 					borderTop={false}
-					contentClassName="px-6 pt-14 pb-12 md:pt-16 md:pb-14"
+					contentClassName="px-3 pt-10 pb-8 md:px-4 md:pt-12 md:pb-10"
 				>
 					<HeroBlock />
 				</ReticleSection>
@@ -36,50 +37,80 @@ export default function HomePage() {
 				  filling the margin strips. Reads as a structural ledger
 				  beneath the hero copy.
 				*/}
-				<ReticleBand hatchMargins contentClassName="px-6 py-6 md:py-8">
+				<ReticleBand hatchMargins contentClassName="px-3 py-4 md:px-4 md:py-5">
 					<StatsRow />
 				</ReticleBand>
 
-				<ReticleSpacer />
+				<ReticleSpacer height={10} />
 
-				<ReticleSection id="capabilities" background="wing-cloud" borderTop={false}>
+				<ReticleSection
+					id="workflow"
+					borderTop={false}
+					contentClassName="px-3 py-6 md:px-4 md:py-8"
+				>
+					<WorkflowNavigator />
+				</ReticleSection>
+
+				<ReticleSpacer height={10} />
+
+				<ReticleSection
+					id="capabilities"
+					borderTop={false}
+					contentClassName="px-3 py-6 md:px-4 md:py-8"
+				>
 					<CapabilityGrid />
 				</ReticleSection>
 
-				<ReticleSpacer />
+				<ReticleSpacer height={10} />
 
-				<ReticleBand id="runtime" hatchMargins contentClassName="px-6 py-10 md:py-14">
+				<ReticleBand id="runtime" hatchMargins contentClassName="px-3 py-6 md:px-4 md:py-8">
 					<RuntimeVizGrid />
 				</ReticleBand>
 
-				<ReticleSpacer />
+				<ReticleSpacer height={10} />
 
-				<ReticleSection id="loadout" background="wing-nyx-lines" borderTop={false}>
+				<ReticleSection
+					id="architecture"
+					borderTop={false}
+					contentClassName="px-3 py-6 md:px-4 md:py-8"
+				>
+					<StickyRuntimeStory />
+				</ReticleSection>
+
+				<ReticleSpacer height={10} />
+
+				<ReticleSection
+					id="loadout"
+					borderTop={false}
+					contentClassName="px-3 py-6 md:px-4 md:py-8"
+				>
 					<LoadoutPreview />
 				</ReticleSection>
 
-				<ReticleSpacer />
+				<ReticleSpacer height={10} />
 
-				<ReticleSection id="components" borderTop={false}>
+				<ReticleSection
+					id="components"
+					borderTop={false}
+					contentClassName="px-3 py-6 md:px-4 md:py-8"
+				>
 					<ComponentShowcase />
 					<ShowcaseAttribution />
 				</ReticleSection>
 
-				<ReticleSpacer />
+				<ReticleSpacer height={10} />
 
-				<ReticleSection id="skills" borderTop={false}>
+				<ReticleSection
+					id="skills"
+					borderTop={false}
+					contentClassName="px-3 py-6 md:px-4 md:py-8"
+				>
 					<SkillsManifest />
 				</ReticleSection>
 
-				<ReticleSpacer />
+				<ReticleSpacer height={10} />
 
-				<ReticleSection id="architecture" background="wing-nyx-waves" borderTop={false}>
-					<ArchitectureFlow />
-				</ReticleSection>
-
-				<ReticleSpacer />
-
-				<ReticleBand id="faq" hatchMargins contentClassName="px-6 py-10 md:py-14">
+				<ReticleBand id="faq" hatchMargins contentClassName="px-3 py-6 md:px-4 md:py-8">
 					<FaqSection />
 				</ReticleBand>
 			</main>

@@ -171,6 +171,41 @@ export type CustomLoadoutEntry = {
 	updatedAt: string;
 };
 
+export type LoadoutSourceKind =
+	| "bundled"
+	| "github"
+	| "git"
+	| "wiki"
+	| "url"
+	| "mcp"
+	| "cli"
+	| "npm"
+	| "manual";
+
+export type LoadoutSource = {
+	id: string;
+	name: string;
+	kind: LoadoutSourceKind;
+	description: string;
+	uri: string | null;
+	enabled: boolean;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type LoadoutPreset = {
+	id: string;
+	name: string;
+	description: string;
+	sourceIds: string[];
+	customEntryIds: string[];
+	enabledSkillIds: string[];
+	enabledToolIds: string[];
+	enabledMcpServerIds: string[];
+	createdAt: string;
+	updatedAt: string;
+};
+
 /**
  * One machine the user owns. Lives in publicMetadata since these are
  * not secrets -- the gateway bearer is the only sensitive bit and it
@@ -206,6 +241,9 @@ export type UserConfig = {
 	environmentProfiles: EnvironmentProfile[];
 	bootstrapPresets: BootstrapPreset[];
 	customLoadout: CustomLoadoutEntry[];
+	loadoutSources: LoadoutSource[];
+	loadoutPresets: LoadoutPreset[];
+	activeLoadoutPresetId: string;
 	setupStep: SetupStep;
 
 	/* Wizard scratch -- the choices the user made last in the wizard,
@@ -259,13 +297,92 @@ export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
 	},
 ];
 
-export const DEFAULT_BOOTSTRAP_PRESET: BootstrapPreset = {
-	id: "dedalus-hermes-default",
-	name: "Dedalus + Hermes",
-	providerKind: "dedalus",
-	agentProfileId: "hermes-default",
-	environmentProfileId: null,
-	spec: DEFAULT_MACHINE_SPEC,
+export const DEFAULT_BOOTSTRAP_PRESETS: BootstrapPreset[] = [
+	{
+		id: "dedalus-hermes-default",
+		name: "Dedalus + Hermes",
+		providerKind: "dedalus",
+		agentProfileId: "hermes-default",
+		environmentProfileId: null,
+		spec: DEFAULT_MACHINE_SPEC,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+	{
+		id: "dedalus-openclaw-default",
+		name: "Dedalus + OpenClaw",
+		providerKind: "dedalus",
+		agentProfileId: "openclaw-default",
+		environmentProfileId: null,
+		spec: DEFAULT_MACHINE_SPEC,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+];
+
+export const DEFAULT_LOADOUT_SOURCES: LoadoutSource[] = [
+	{
+		id: "bundled-skills",
+		name: "Bundled SKILL.md library",
+		kind: "bundled",
+		description: "The curated 95-skill wiki-derived library shipped in knowledge/skills.",
+		uri: "knowledge/skills",
+		enabled: true,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+	{
+		id: "bundled-mcps",
+		name: "Bundled MCP servers",
+		kind: "bundled",
+		description: "The MCP server catalog installed during agent bootstrap.",
+		uri: "knowledge/mcps",
+		enabled: true,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+	{
+		id: "builtin-tools",
+		name: "Agent built-ins",
+		kind: "bundled",
+		description: "Native Hermes and OpenClaw tools such as shell, browser, files, vision, memory, and schedules.",
+		uri: "web/lib/dashboard/loadout.ts",
+		enabled: true,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+	{
+		id: "service-registry",
+		name: "Service registry",
+		kind: "wiki",
+		description: "Opinionated interface rankings per external service: MCP, CLI, plugin skills, browser, or docs.",
+		uri: "wiki/SKILL-RESOLVER.md",
+		enabled: true,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+	{
+		id: "task-hierarchy",
+		name: "Task hierarchy",
+		kind: "wiki",
+		description: "Per-task routing rules for reviews, QA, research, design, security, deployment, and content work.",
+		uri: "config/cursor/rules/tool-hierarchy.mdc",
+		enabled: true,
+		createdAt: DEFAULT_CREATED_AT,
+		updatedAt: DEFAULT_CREATED_AT,
+	},
+];
+
+export const DEFAULT_LOADOUT_PRESET: LoadoutPreset = {
+	id: "opinionated-default",
+	name: "Opinionated default",
+	description:
+		"Kevin's curated preset: bundled skills, built-in tools, MCPs, service routing, task hierarchy, and any enabled custom entries.",
+	sourceIds: DEFAULT_LOADOUT_SOURCES.map((source) => source.id),
+	customEntryIds: [],
+	enabledSkillIds: ["*"],
+	enabledToolIds: ["*"],
+	enabledMcpServerIds: ["*"],
 	createdAt: DEFAULT_CREATED_AT,
 	updatedAt: DEFAULT_CREATED_AT,
 };
@@ -278,8 +395,11 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
 	gatewayProfiles: [DEFAULT_GATEWAY_PROFILE],
 	agentProfiles: DEFAULT_AGENT_PROFILES,
 	environmentProfiles: [],
-	bootstrapPresets: [DEFAULT_BOOTSTRAP_PRESET],
+	bootstrapPresets: DEFAULT_BOOTSTRAP_PRESETS,
 	customLoadout: [],
+	loadoutSources: DEFAULT_LOADOUT_SOURCES,
+	loadoutPresets: [DEFAULT_LOADOUT_PRESET],
+	activeLoadoutPresetId: DEFAULT_LOADOUT_PRESET.id,
 	setupStep: "api-key",
 	draftAgentKind: "hermes",
 	draftProviderKind: "dedalus",
@@ -305,7 +425,11 @@ export type PublicMachineRef = Omit<MachineRef, "apiKey"> & {
 
 export type PublicUserConfig = Omit<
 	UserConfig,
-	"providers" | "machines" | "cursorApiKey" | "gatewayProfiles" | "environmentProfiles"
+	| "providers"
+	| "machines"
+	| "cursorApiKey"
+	| "gatewayProfiles"
+	| "environmentProfiles"
 > & {
 	providers: Record<ProviderKind, PublicProviderStatus>;
 	machines: PublicMachineRef[];
@@ -345,6 +469,9 @@ export function toPublicConfig(config: UserConfig): PublicUserConfig {
 		})),
 		bootstrapPresets: config.bootstrapPresets,
 		customLoadout: config.customLoadout,
+		loadoutSources: config.loadoutSources,
+		loadoutPresets: config.loadoutPresets,
+		activeLoadoutPresetId: config.activeLoadoutPresetId,
 		setupStep: config.setupStep,
 		draftAgentKind: config.draftAgentKind,
 		draftProviderKind: config.draftProviderKind,

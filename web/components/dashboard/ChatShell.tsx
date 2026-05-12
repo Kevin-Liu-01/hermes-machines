@@ -75,6 +75,12 @@ export function ChatShell({ activeMachineId, model }: Props) {
 	const [activeChatId, setActiveChatId] = useState<string | null>(null);
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [loadError, setLoadError] = useState<string | null>(null);
+	const [bootstrapState, setBootstrapState] = useState<
+		| { phase: "idle" }
+		| { phase: "running" }
+		| { phase: "error"; message: string }
+		| { phase: "ok"; message: string }
+	>({ phase: "idle" });
 	const titleRef = useRef<string>("untitled chat");
 	const createdAtRef = useRef<string>(new Date().toISOString());
 
@@ -216,6 +222,32 @@ export function ChatShell({ activeMachineId, model }: Props) {
 	const isTransient =
 		machineState.reason !== null && TRANSIENT_REASONS.has(machineState.reason);
 
+	const bootstrapAgent = useCallback(async (): Promise<void> => {
+		if (!activeMachineId) return;
+		setBootstrapState({ phase: "running" });
+		try {
+			const response = await fetch("/api/dashboard/admin/bootstrap", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ machineId: activeMachineId }),
+			});
+			const body = (await response.json().catch(() => ({}))) as {
+				message?: string;
+				error?: string;
+			};
+			if (!response.ok) {
+				throw new Error(body.message ?? body.error ?? `HTTP ${response.status}`);
+			}
+			setBootstrapState({ phase: "ok", message: "agent gateway bootstrapped" });
+			await refreshList();
+		} catch (err) {
+			setBootstrapState({
+				phase: "error",
+				message: err instanceof Error ? err.message : "bootstrap failed",
+			});
+		}
+	}, [activeMachineId, refreshList]);
+
 	return (
 		<div className="grid gap-px bg-[var(--ret-border)] lg:grid-cols-[260px_1fr]">
 			<aside className="bg-[var(--ret-bg)] p-3">
@@ -342,6 +374,11 @@ export function ChatShell({ activeMachineId, model }: Props) {
 					className="mb-4 h-1 border-b border-[var(--ret-border)]"
 					pitch={6}
 				/>
+				<BootstrapAgentPanel
+					machineId={activeMachineId}
+					state={bootstrapState}
+					onBootstrap={() => void bootstrapAgent()}
+				/>
 				<Chat
 					key={activeChatId ?? "blank"}
 					messages={messages}
@@ -358,6 +395,55 @@ export function ChatShell({ activeMachineId, model }: Props) {
 				/>
 			</section>
 		</div>
+	);
+}
+
+function BootstrapAgentPanel({
+	machineId,
+	state,
+	onBootstrap,
+}: {
+	machineId: string | null;
+	state:
+		| { phase: "idle" }
+		| { phase: "running" }
+		| { phase: "error"; message: string }
+		| { phase: "ok"; message: string };
+	onBootstrap: () => void;
+}) {
+	if (!machineId) return null;
+	return (
+		<ReticleFrame className="mb-3 border-[var(--ret-border)] bg-[var(--ret-bg-soft)] p-3">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+						agent gateway
+					</p>
+					<p className="mt-1 text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
+						If chat is offline, bootstrap the installed Hermes/OpenClaw gateway
+						and save its URL/key back to this machine record.
+					</p>
+					{state.phase === "error" ? (
+						<p className="mt-1 font-mono text-[10px] text-[var(--ret-red)]">
+							{state.message}
+						</p>
+					) : null}
+					{state.phase === "ok" ? (
+						<p className="mt-1 font-mono text-[10px] text-[var(--ret-green)]">
+							{state.message}
+						</p>
+					) : null}
+				</div>
+				<ReticleButton
+					variant="secondary"
+					size="sm"
+					onClick={onBootstrap}
+					disabled={state.phase === "running"}
+				>
+					{state.phase === "running" ? "Bootstrapping..." : "Bootstrap agent"}
+				</ReticleButton>
+			</div>
+		</ReticleFrame>
 	);
 }
 

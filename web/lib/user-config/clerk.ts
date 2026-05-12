@@ -42,6 +42,9 @@ import {
 	type GatewayProfile,
 	type CustomLoadoutEntry,
 	type CustomLoadoutKind,
+	type LoadoutPreset,
+	type LoadoutSource,
+	type LoadoutSourceKind,
 	type MachineRef,
 	type MachineSpec,
 	type ProviderCredentials,
@@ -67,6 +70,17 @@ const KNOWN_LOADOUT: ReadonlySet<CustomLoadoutKind> = new Set([
 	"mcp",
 	"cli",
 	"plugin",
+]);
+const KNOWN_LOADOUT_SOURCES: ReadonlySet<LoadoutSourceKind> = new Set([
+	"bundled",
+	"github",
+	"git",
+	"wiki",
+	"url",
+	"mcp",
+	"cli",
+	"npm",
+	"manual",
 ]);
 const KNOWN_STEPS: ReadonlySet<SetupStep> = new Set([
 	"api-key",
@@ -259,12 +273,17 @@ function defaultAgentProfile(agentKind: AgentKind): AgentProfile {
 }
 
 function defaultBootstrapPreset(): BootstrapPreset {
+	return defaultBootstrapPresetFor("hermes");
+}
+
+function defaultBootstrapPresetFor(agentKind: AgentKind): BootstrapPreset {
 	const now = new Date().toISOString();
+	const title = agentKind === "hermes" ? "Hermes" : "OpenClaw";
 	return {
-		id: "dedalus-hermes-default",
-		name: "Dedalus + Hermes",
+		id: `dedalus-${agentKind}-default`,
+		name: `Dedalus + ${title}`,
 		providerKind: "dedalus",
-		agentProfileId: "hermes-default",
+		agentProfileId: `${agentKind}-default`,
 		environmentProfileId: null,
 		spec: DEFAULT_MACHINE_SPEC,
 		createdAt: now,
@@ -397,13 +416,34 @@ function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig
 				.filter((entry): entry is BootstrapPreset => entry !== null)
 		: [];
 	if (bootstrapPresets.length === 0) {
-		bootstrapPresets.push(defaultBootstrapPreset());
+		bootstrapPresets.push(defaultBootstrapPresetFor("hermes"));
+		bootstrapPresets.push(defaultBootstrapPresetFor("openclaw"));
 	}
 	const customLoadout = Array.isArray(publicMeta.customLoadout)
 		? publicMeta.customLoadout
 				.map((entry) => asCustomLoadoutEntry(entry))
 				.filter((entry): entry is CustomLoadoutEntry => entry !== null)
 		: [];
+	const loadoutSources = Array.isArray(publicMeta.loadoutSources)
+		? publicMeta.loadoutSources
+				.map((entry) => asLoadoutSource(entry))
+				.filter((entry): entry is LoadoutSource => entry !== null)
+		: [];
+	if (loadoutSources.length === 0) {
+		loadoutSources.push(...DEFAULT_USER_CONFIG.loadoutSources);
+	}
+	const loadoutPresets = Array.isArray(publicMeta.loadoutPresets)
+		? publicMeta.loadoutPresets
+				.map((entry) => asLoadoutPreset(entry))
+				.filter((entry): entry is LoadoutPreset => entry !== null)
+		: [];
+	if (loadoutPresets.length === 0) {
+		loadoutPresets.push(...DEFAULT_USER_CONFIG.loadoutPresets);
+	}
+	const activeLoadoutPresetId =
+		asString(publicMeta.activeLoadoutPresetId) ??
+		loadoutPresets[0]?.id ??
+		DEFAULT_USER_CONFIG.activeLoadoutPresetId;
 
 	const activeFromMeta = asString(publicMeta.activeMachineId);
 	const activeMachineId = (() => {
@@ -429,6 +469,9 @@ function buildConfig(publicMeta: RawPublic, privateMeta: RawPrivate): UserConfig
 		environmentProfiles,
 		bootstrapPresets,
 		customLoadout,
+		loadoutSources,
+		loadoutPresets,
+		activeLoadoutPresetId,
 		setupStep: asStep(publicMeta.setupStep),
 		draftAgentKind: asAgent(
 			publicMeta.draftAgentKind ?? publicMeta.agentKind,
@@ -489,6 +532,9 @@ type ConfigPatch = {
 	environmentProfiles?: EnvironmentProfile[];
 	bootstrapPresets?: BootstrapPreset[];
 	customLoadout?: CustomLoadoutEntry[];
+	loadoutSources?: LoadoutSource[];
+	loadoutPresets?: LoadoutPreset[];
+	activeLoadoutPresetId?: string;
 	setupStep?: SetupStep;
 	draftAgentKind?: AgentKind;
 	draftProviderKind?: ProviderKind;
@@ -597,6 +643,49 @@ function asCustomLoadoutEntry(value: unknown): CustomLoadoutEntry | null {
 		description: asString(v.description) ?? "",
 		command: asString(v.command) ?? null,
 		enabled: v.enabled !== false,
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asLoadoutSource(value: unknown): LoadoutSource | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const kindRaw = asString(v.kind);
+	const kind =
+		kindRaw && KNOWN_LOADOUT_SOURCES.has(kindRaw as LoadoutSourceKind)
+			? (kindRaw as LoadoutSourceKind)
+			: "manual";
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		kind,
+		description: asString(v.description) ?? "",
+		uri: asString(v.uri) ?? null,
+		enabled: v.enabled !== false,
+		createdAt: asString(v.createdAt) ?? now,
+		updatedAt: asString(v.updatedAt) ?? now,
+	};
+}
+
+function asLoadoutPreset(value: unknown): LoadoutPreset | null {
+	if (!value || typeof value !== "object") return null;
+	const v = value as Record<string, unknown>;
+	const id = asString(v.id);
+	if (!id) return null;
+	const now = new Date().toISOString();
+	return {
+		id,
+		name: asString(v.name) ?? id,
+		description: asString(v.description) ?? "",
+		sourceIds: asStringArray(v.sourceIds),
+		customEntryIds: asStringArray(v.customEntryIds),
+		enabledSkillIds: asStringArray(v.enabledSkillIds),
+		enabledToolIds: asStringArray(v.enabledToolIds),
+		enabledMcpServerIds: asStringArray(v.enabledMcpServerIds),
 		createdAt: asString(v.createdAt) ?? now,
 		updatedAt: asString(v.updatedAt) ?? now,
 	};
@@ -733,6 +822,10 @@ export async function setUserConfigById(
 	const nextBootstrapPresets =
 		patch.bootstrapPresets ?? current.bootstrapPresets;
 	const nextCustomLoadout = patch.customLoadout ?? current.customLoadout;
+	const nextLoadoutSources = patch.loadoutSources ?? current.loadoutSources;
+	const nextLoadoutPresets = patch.loadoutPresets ?? current.loadoutPresets;
+	const nextActiveLoadoutPresetId =
+		patch.activeLoadoutPresetId ?? current.activeLoadoutPresetId;
 
 	const nextStep = patch.setupStep ?? current.setupStep;
 	const nextDraftAgent = patch.draftAgentKind ?? current.draftAgentKind;
@@ -748,6 +841,9 @@ export async function setUserConfigById(
 		environmentProfiles: publicEnvironmentShape(nextEnvironmentProfiles),
 		bootstrapPresets: nextBootstrapPresets,
 		customLoadout: nextCustomLoadout,
+		loadoutSources: nextLoadoutSources,
+		loadoutPresets: nextLoadoutPresets,
+		activeLoadoutPresetId: nextActiveLoadoutPresetId,
 		activeMachineId: nextActive,
 		setupStep: nextStep,
 		draftAgentKind: nextDraftAgent,

@@ -44,6 +44,27 @@ export type ToolCategory =
 	| "image"
 	| "delegate";
 
+export type TrustedAddOnKind =
+	| "skill"
+	| "mcp"
+	| "cli"
+	| "tool"
+	| "plugin"
+	| "provider"
+	| "source";
+
+export type TrustedAddOn = {
+	id: string;
+	name: string;
+	kind: TrustedAddOnKind;
+	provider: string;
+	description: string;
+	source: string;
+	command: string | null;
+	brand?: ServiceSlug;
+	agent: AgentSupport;
+};
+
 export type BuiltinTool = {
 	name: string;
 	title: string;
@@ -691,6 +712,306 @@ export const TASKS: ReadonlyArray<TaskEntry> = [
 ];
 
 /* ------------------------------------------------------------------ */
+/* Trusted add-on catalog                                              */
+/* ------------------------------------------------------------------ */
+
+export const TRUSTED_ADDONS: ReadonlyArray<TrustedAddOn> = [
+	{
+		id: "mcp-vercel",
+		name: "Vercel MCP",
+		kind: "mcp",
+		provider: "Vercel",
+		description:
+			"Deployments, logs, env vars, domains, projects, and Vercel platform configuration through MCP.",
+		source: "plugin-vercel-vercel",
+		command: null,
+		brand: "vercel",
+		agent: "both",
+	},
+	{
+		id: "mcp-supabase",
+		name: "Supabase MCP",
+		kind: "mcp",
+		provider: "Supabase",
+		description:
+			"Schema inspection, auth settings, RLS checks, and safe database reads through Supabase MCP.",
+		source: "plugin-supabase-supabase",
+		command: null,
+		brand: "supabase",
+		agent: "both",
+	},
+	{
+		id: "mcp-stripe",
+		name: "Stripe MCP",
+		kind: "mcp",
+		provider: "Stripe",
+		description:
+			"Customers, subscriptions, invoices, products, and payment lookup without writing custom API glue.",
+		source: "plugin-stripe-stripe",
+		command: null,
+		brand: "stripe",
+		agent: "both",
+	},
+	{
+		id: "mcp-clerk",
+		name: "Clerk MCP",
+		kind: "mcp",
+		provider: "Clerk",
+		description:
+			"User lookup, auth configuration, organizations, membership, and webhooks for B2B SaaS agents.",
+		source: "plugin-clerk-clerk",
+		command: null,
+		brand: "clerk",
+		agent: "both",
+	},
+	{
+		id: "mcp-posthog",
+		name: "PostHog MCP",
+		kind: "mcp",
+		provider: "PostHog",
+		description:
+			"HogQL, feature flags, experiments, session replays, LLM traces, analytics, and product events.",
+		source: "plugin-posthog-posthog",
+		command: null,
+		brand: "posthog",
+		agent: "both",
+	},
+	{
+		id: "mcp-sentry",
+		name: "Sentry MCP",
+		kind: "mcp",
+		provider: "Sentry",
+		description:
+			"Production issues, stack traces, alert context, release health, and performance traces.",
+		source: "plugin-sentry-sentry",
+		command: null,
+		brand: "sentry",
+		agent: "both",
+	},
+	{
+		id: "mcp-datadog",
+		name: "Datadog MCP",
+		kind: "mcp",
+		provider: "Datadog",
+		description:
+			"Logs, metrics, traces, dashboards, monitors, and incident investigation across Datadog orgs.",
+		source: "plugin-datadog-datadog",
+		command: null,
+		brand: "datadog",
+		agent: "both",
+	},
+	{
+		id: "mcp-figma",
+		name: "Figma MCP",
+		kind: "mcp",
+		provider: "Figma",
+		description:
+			"Read file structure, inspect components, create frames, and generate design system artifacts.",
+		source: "plugin-figma-figma",
+		command: null,
+		brand: "figma",
+		agent: "both",
+	},
+	{
+		id: "mcp-linear",
+		name: "Linear MCP",
+		kind: "mcp",
+		provider: "Linear",
+		description:
+			"Create and update issues, read project state, link implementation work to tickets, and triage backlog.",
+		source: "plugin-linear-linear",
+		command: null,
+		brand: "linear",
+		agent: "both",
+	},
+	{
+		id: "cli-gh",
+		name: "GitHub CLI",
+		kind: "cli",
+		provider: "GitHub",
+		description:
+			"Canonical interface for PRs, issues, checks, releases, API calls, and branch workflow automation.",
+		source: "github/cli",
+		command: "gh",
+		brand: "github",
+		agent: "both",
+	},
+	{
+		id: "cli-vercel",
+		name: "Vercel CLI",
+		kind: "cli",
+		provider: "Vercel",
+		description:
+			"Deploy, link, inspect logs, pull env vars, manage domains, and debug builds from the machine.",
+		source: "vercel/vercel",
+		command: "vercel",
+		brand: "vercel",
+		agent: "both",
+	},
+	{
+		id: "cli-fly",
+		name: "Fly CLI",
+		kind: "cli",
+		provider: "Fly.io",
+		description:
+			"Manage Fly apps, volumes, machines, secrets, deploys, and logs when Fly is selected as a provider.",
+		source: "superfly/flyctl",
+		command: "flyctl",
+		agent: "both",
+	},
+	{
+		id: "cli-cloudflared",
+		name: "cloudflared",
+		kind: "cli",
+		provider: "Cloudflare",
+		description:
+			"Quick tunnels for public agent gateway exposure when provider-native previews are unavailable.",
+		source: "cloudflare/cloudflared",
+		command: "cloudflared",
+		brand: "cloudflare",
+		agent: "both",
+	},
+	{
+		id: "cli-aws",
+		name: "AWS CLI",
+		kind: "cli",
+		provider: "AWS",
+		description:
+			"SSO-backed access to S3, ECR, ECS, SSM, CloudWatch, and account diagnostics with profile guardrails.",
+		source: "aws/aws-cli",
+		command: "aws",
+		brand: "amazonwebservices",
+		agent: "both",
+	},
+	{
+		id: "tool-cursor-sdk",
+		name: "Cursor TypeScript SDK",
+		kind: "tool",
+		provider: "Cursor",
+		description:
+			"Programmatically run Cursor coding agents from scripts, services, CI, and machine-side automations.",
+		source: "@cursor/sdk",
+		command: "pnpm add @cursor/sdk",
+		agent: "hermes",
+	},
+	{
+		id: "tool-agent-browser",
+		name: "agent-browser",
+		kind: "tool",
+		provider: "Browser automation",
+		description:
+			"Agent-friendly browser automation with snapshots, screenshots, ref-based actions, and visual QA hooks.",
+		source: "personal skill + CLI",
+		command: "agent-browser",
+		brand: "googlechrome",
+		agent: "both",
+	},
+	{
+		id: "tool-playwright",
+		name: "Playwright",
+		kind: "tool",
+		provider: "Microsoft",
+		description:
+			"Deterministic browser testing and replayable E2E specs for CI, smoke tests, and regressions.",
+		source: "microsoft/playwright",
+		command: "pnpm exec playwright",
+		brand: "playwright",
+		agent: "both",
+	},
+	{
+		id: "skill-deepsec",
+		name: "deepsec",
+		kind: "skill",
+		provider: "Security",
+		description:
+			"Agent-powered vulnerability scanner with regex calibration, parallel investigation, and revalidation.",
+		source: ".cursor/skills/deepsec/SKILL.md",
+		command: null,
+		agent: "both",
+	},
+	{
+		id: "skill-gstack-qa",
+		name: "gstack-qa",
+		kind: "skill",
+		provider: "QA",
+		description:
+			"Real-browser QA lead that tests flows, captures evidence, fixes obvious bugs, and writes regressions.",
+		source: ".cursor/skills/gstack-qa/SKILL.md",
+		command: null,
+		agent: "both",
+	},
+	{
+		id: "skill-frontend-design-taste",
+		name: "frontend-design-taste",
+		kind: "skill",
+		provider: "Design",
+		description:
+			"Anti-generic frontend taste skill with art direction, design dials, and production UI guardrails.",
+		source: ".cursor/skills/frontend-design-taste/SKILL.md",
+		command: null,
+		agent: "both",
+	},
+	{
+		id: "plugin-vercel",
+		name: "Vercel skill pack",
+		kind: "plugin",
+		provider: "Vercel",
+		description:
+			"Next.js, AI SDK, caching, deployments, functions, storage, middleware, shadcn, and platform guidance.",
+		source: "cursor-public/vercel skills",
+		command: null,
+		brand: "vercel",
+		agent: "both",
+	},
+	{
+		id: "source-github-skill-repo",
+		name: "GitHub skill repo",
+		kind: "source",
+		provider: "GitHub",
+		description:
+			"Import a repository containing SKILL.md files, MCP descriptors, scripts, or package manifests.",
+		source: "github:<owner>/<repo>",
+		command: null,
+		brand: "github",
+		agent: "both",
+	},
+	{
+		id: "source-url-manifest",
+		name: "URL manifest",
+		kind: "source",
+		provider: "Web",
+		description:
+			"Load a remote JSON/YAML manifest that defines skills, MCP servers, CLIs, npm packages, or docs links.",
+		source: "https://example.com/agent-machines.json",
+		command: null,
+		agent: "both",
+	},
+	{
+		id: "provider-vercel-sandbox",
+		name: "Vercel Sandbox",
+		kind: "provider",
+		provider: "Vercel",
+		description:
+			"Ephemeral microVM sessions for safe code execution, browser automation, and temporary agent runs.",
+		source: "@vercel/sandbox",
+		command: null,
+		brand: "vercel",
+		agent: "both",
+	},
+	{
+		id: "provider-fly-machines",
+		name: "Fly Machines",
+		kind: "provider",
+		provider: "Fly.io",
+		description:
+			"Persistent app-scoped machines with volumes, useful when users want an alternative long-lived runtime.",
+		source: "Fly Machines API",
+		command: "flyctl",
+		agent: "both",
+	},
+];
+
+/* ------------------------------------------------------------------ */
 /* Aggregate counts                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -701,6 +1022,7 @@ export type LoadoutCounts = {
 	builtinTools: number;
 	services: number;
 	tasks: number;
+	trustedAddOns: number;
 	total: number;
 };
 
@@ -712,6 +1034,7 @@ export function computeCounts(args: {
 	const builtinTools = BUILTIN_TOOLS.length;
 	const services = SERVICES.length;
 	const tasks = TASKS.length;
+	const trustedAddOns = TRUSTED_ADDONS.length;
 	return {
 		skills: args.skills,
 		mcpServers: args.mcpServers,
@@ -719,6 +1042,7 @@ export function computeCounts(args: {
 		builtinTools,
 		services,
 		tasks,
+		trustedAddOns,
 		total: args.skills + args.mcpTools + builtinTools,
 	};
 }

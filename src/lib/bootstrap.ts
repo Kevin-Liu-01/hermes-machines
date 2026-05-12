@@ -449,7 +449,11 @@ async function installNode({ client, machineId }: BootstrapInput): Promise<void>
 }
 
 async function installCursorBridge(input: BootstrapInput): Promise<void> {
-	const { client, machineId, repoRoot } = input;
+	const { client, machineId, repoRoot, cursorApiKey } = input;
+	if (!cursorApiKey) {
+		dim("  CURSOR_API_KEY not set; skipping optional cursor-bridge build");
+		return;
+	}
 	if (
 		await check(
 			client,
@@ -508,7 +512,8 @@ async function installCursorBridge(input: BootstrapInput): Promise<void> {
 async function registerCursorMcp(input: BootstrapInput): Promise<void> {
 	const { client, machineId, cursorApiKey } = input;
 	if (!cursorApiKey) {
-		dim("  CURSOR_API_KEY not set; cursor_agent tool will refuse calls until set");
+		dim("  CURSOR_API_KEY not set; skipping cursor MCP registration");
+		return;
 	}
 	// Hermes reads ~/.hermes/config.yaml at startup. We yaml-rewrite the file
 	// in place via a Python helper that we write to disk first -- inlining it

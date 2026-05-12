@@ -57,36 +57,109 @@ const SCROLLBACK_KEY = "agent-machines:terminal:scrollback";
 const MAX_HISTORY = 200;
 const MAX_SCROLLBACK = 100;
 
-const STARTERS: ReadonlyArray<{ label: string; command: string; hint: string }> = [
+const COMMAND_GROUPS: ReadonlyArray<{
+	label: string;
+	items: ReadonlyArray<{ label: string; command: string; hint: string }>;
+}> = [
 	{
-		label: "where am I",
-		command: "whoami && hostname && pwd",
-		hint: "user + host + cwd",
+		label: "machine",
+		items: [
+			{
+				label: "identity",
+				command: "whoami && hostname && pwd && echo HOME=$HOME",
+				hint: "user + host + cwd",
+			},
+			{
+				label: "ports",
+				command: "ss -tlnp 2>/dev/null | grep -E ':(8642|18789|9119)\\b' || echo 'no agent ports listening'",
+				hint: "gateway listeners",
+			},
+			{
+				label: "processes",
+				command: "ps aux --sort=-pcpu | head -12",
+				hint: "top by cpu",
+			},
+			{
+				label: "disk",
+				command: "df -h /home/machine && echo --- && du -sh /home/machine/.agent-machines /home/machine/.hermes /home/machine/.openclaw /home/machine/hermes-machines 2>/dev/null",
+				hint: "persistent volume",
+			},
+		],
 	},
 	{
-		label: "tail gateway",
-		command: "tail -n 30 ~/.hermes/logs/gateway.log 2>/dev/null || echo '(no gateway log yet)'",
-		hint: "last 30 lines",
+		label: "agent state",
+		items: [
+			{
+				label: "app data",
+				command: "find /home/machine/.agent-machines -maxdepth 2 -type f 2>/dev/null | sort | head -60 || echo 'no app data yet'",
+				hint: "chats, artifacts, settings",
+			},
+			{
+				label: "settings.json",
+				command: "python3 -m json.tool /home/machine/.agent-machines/settings.json 2>/dev/null || echo 'no /home/machine/.agent-machines/settings.json yet'",
+				hint: "terminal -> UI sync source",
+			},
+			{
+				label: "repo checkout",
+				command: "cd /home/machine/hermes-machines 2>/dev/null && git status --short && git rev-parse --short HEAD || echo 'repo checkout missing'",
+				hint: "git-backed reload",
+			},
+			{
+				label: "live marker",
+				command: "cat /home/machine/.agent-machines/live-fire-agent.txt 2>/dev/null || echo 'live-fire marker not found'",
+				hint: "last e2e artifact",
+			},
+		],
 	},
 	{
-		label: "list skills",
-		command: "ls ~/.hermes/skills 2>/dev/null | head -40 || echo '(no skills dir yet)'",
-		hint: "skills dir",
+		label: "Hermes",
+		items: [
+			{
+				label: "version",
+				command: "/home/machine/.hermes/venv/bin/hermes --version 2>/dev/null || hermes --version 2>/dev/null || echo 'Hermes not installed'",
+				hint: "runtime version",
+			},
+			{
+				label: "skills",
+				command: "find /home/machine/.hermes/skills -maxdepth 2 -type f 2>/dev/null | sed 's#^/home/machine/.hermes/skills/##' | sort | head -80 || echo 'no Hermes skills dir yet'",
+				hint: "/home/machine/.hermes/skills",
+			},
+			{
+				label: "crons",
+				command: "source /home/machine/.hermes/venv/bin/activate 2>/dev/null && hermes cron list 2>/dev/null || find /home/machine/.hermes/crons -maxdepth 2 -type f 2>/dev/null | sort || echo 'no cron state yet'",
+				hint: "scheduled automations",
+			},
+			{
+				label: "gateway log",
+				command: "tail -n 80 /home/machine/.hermes/logs/gateway.log 2>/dev/null || echo 'no Hermes gateway log yet'",
+				hint: "last 80 lines",
+			},
+			{
+				label: "models",
+				command: "set -a; [ -f /home/machine/.hermes/.env ] && . /home/machine/.hermes/.env; set +a; curl -s -H \"Authorization: Bearer $API_SERVER_KEY\" http://127.0.0.1:8642/v1/models 2>/dev/null | head -c 1200 || echo 'Hermes gateway not responding'",
+				hint: "local /v1/models",
+			},
+		],
 	},
 	{
-		label: "list MCPs",
-		command: "ls ~/.hermes/mcps 2>/dev/null | head -40 || echo '(no MCP dir yet)'",
-		hint: "mcps dir",
-	},
-	{
-		label: "disk usage",
-		command: "df -h /home/machine && echo --- && du -sh ~/.hermes ~/.openclaw ~/.agent-machines 2>/dev/null",
-		hint: "/home/machine + agent paths",
-	},
-	{
-		label: "running processes",
-		command: "ps aux --sort=-pcpu | head -10",
-		hint: "top by cpu",
+		label: "OpenClaw",
+		items: [
+			{
+				label: "state",
+				command: "find /home/machine/.openclaw -maxdepth 2 -type f 2>/dev/null | sort | head -80 || echo 'OpenClaw not installed on this machine'",
+				hint: "/home/machine/.openclaw",
+			},
+			{
+				label: "log",
+				command: "tail -n 80 /home/machine/.openclaw/logs/gateway.log 2>/dev/null || tail -n 80 /home/machine/.openclaw/gateway.log 2>/dev/null || echo 'no OpenClaw gateway log yet'",
+				hint: "computer-use gateway",
+			},
+			{
+				label: "config",
+				command: "OPENCLAW_STATE_DIR=/home/machine/.openclaw PATH=/home/machine/.npm-global/bin:$PATH openclaw config list 2>/dev/null || echo 'OpenClaw config unavailable'",
+				hint: "runtime config",
+			},
+		],
 	},
 ];
 
@@ -303,22 +376,35 @@ export function TerminalPanel({ initialCommand }: Props) {
 
 	return (
 		<section className="grid gap-3">
-			{/* Starter strip: one-tap diagnostic prompts. */}
-			<div className="flex flex-wrap items-center gap-2">
-				<ReticleLabel>STARTERS</ReticleLabel>
-				{STARTERS.map((s) => (
-					<button
-						key={s.command}
-						type="button"
-						onClick={() => {
-							setInput(s.command);
-							inputRef.current?.focus();
-						}}
-						title={`${s.hint} -- click to load into prompt`}
-						className="border border-[var(--ret-border)] bg-[var(--ret-bg)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-dim)] transition-colors hover:border-[var(--ret-purple)]/40 hover:text-[var(--ret-purple)]"
-					>
-						{s.label}
-					</button>
+			{/* Starter strip: one-tap diagnostic prompts. These use
+			    absolute /home/machine paths because dashboard exec may
+			    run as root, so `~` is /root rather than /home/machine. */}
+			<div className="grid gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-2 xl:grid-cols-4">
+				{COMMAND_GROUPS.map((group) => (
+					<div key={group.label} className="bg-[var(--ret-bg)] p-2">
+						<div className="mb-2 flex items-center justify-between gap-2">
+							<ReticleLabel>{group.label}</ReticleLabel>
+							<span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+								{group.items.length} refs
+							</span>
+						</div>
+						<div className="flex flex-wrap gap-1">
+							{group.items.map((s) => (
+								<button
+									key={s.command}
+									type="button"
+									onClick={() => {
+										setInput(s.command);
+										inputRef.current?.focus();
+									}}
+									title={`${s.hint} -- click to load into prompt`}
+									className="border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ret-text-dim)] transition-colors hover:border-[var(--ret-purple)]/40 hover:text-[var(--ret-purple)]"
+								>
+									{s.label}
+								</button>
+							))}
+						</div>
+					</div>
 				))}
 			</div>
 
@@ -362,9 +448,10 @@ export function TerminalPanel({ initialCommand }: Props) {
 								empty scrollback
 							</p>
 							<p className="max-w-[60ch] text-[12px] text-[var(--ret-text-dim)]">
-								Run any shell command on the active machine. Use the
-								starter chips above for one-tap diagnostics, or type your
-								own. Ctrl/Cmd-L clears.
+								Run one-shot commands on the active machine. The useful
+								roots are /home/machine/.agent-machines,
+								/home/machine/.hermes, /home/machine/.openclaw, and
+								/home/machine/hermes-machines. Ctrl/Cmd-L clears.
 							</p>
 						</div>
 					) : (
@@ -394,7 +481,7 @@ export function TerminalPanel({ initialCommand }: Props) {
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
 							onKeyDown={onKey}
-							placeholder="ls ~/.hermes/skills"
+							placeholder="find /home/machine/.agent-machines -maxdepth 2 -type f | head"
 							disabled={submitting}
 							spellCheck={false}
 							autoCorrect="off"

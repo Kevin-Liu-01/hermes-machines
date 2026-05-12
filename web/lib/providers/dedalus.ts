@@ -49,6 +49,11 @@ type RawMachine = {
 	};
 };
 
+const BENIGN_REASONS = new Set([
+	"DesiredStateReached",
+	"Machine already reached desired state",
+]);
+
 function mapPhase(phase: string): MachineState {
 	switch (phase) {
 		case "running":
@@ -72,6 +77,13 @@ function mapPhase(phase: string): MachineState {
 	}
 }
 
+function lastError(raw: RawMachine): string | null {
+	const value = raw.status.last_error ?? raw.status.reason ?? null;
+	if (!value) return null;
+	if (BENIGN_REASONS.has(value)) return null;
+	return value;
+}
+
 function summarize(raw: RawMachine): ProviderMachineSummary {
 	return {
 		id: raw.machine_id,
@@ -83,7 +95,7 @@ function summarize(raw: RawMachine): ProviderMachineSummary {
 			storageGib: raw.storage_gib,
 		},
 		createdAt: raw.created_at,
-		lastError: raw.status.last_error ?? raw.status.reason ?? null,
+		lastError: lastError(raw),
 	};
 }
 
@@ -156,8 +168,8 @@ export class DedalusProvider implements MachineProvider {
 		// uses Bearer; the dashboard kept getting 401
 		// "missing internal route signature" with X-API-Key alone.
 		//
-		// `Idempotency-Key` is also required on every POST so retried
-		// requests don't double-spend. UUID per call -- the SDK does
+		// `Idempotency-Key` is required on mutating requests so retried
+		// operations don't double-spend. UUID per call -- the SDK does
 		// the same. Caller can override by passing the header
 		// explicitly when retrying the same logical operation.
 		const headers: Record<string, string> = {
@@ -167,7 +179,7 @@ export class DedalusProvider implements MachineProvider {
 			...(init?.headers as Record<string, string> | undefined),
 		};
 		const method = (init?.method ?? "GET").toUpperCase();
-		if (method === "POST" && !headers["Idempotency-Key"]) {
+		if (method !== "GET" && method !== "HEAD" && !headers["Idempotency-Key"]) {
 			headers["Idempotency-Key"] = crypto.randomUUID();
 		}
 		return fetch(`${this.baseUrl}${path}`, {

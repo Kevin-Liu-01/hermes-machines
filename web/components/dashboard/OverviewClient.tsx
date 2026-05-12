@@ -8,8 +8,10 @@ import { ReticleBadge } from "@/components/reticle/ReticleBadge";
 import { ReticleButton } from "@/components/reticle/ReticleButton";
 import { ReticleFrame } from "@/components/reticle/ReticleFrame";
 import { ReticleHatch } from "@/components/reticle/ReticleHatch";
+import { ReticleLabel } from "@/components/reticle/ReticleLabel";
 import { ToolIcon } from "@/components/ToolIcon";
 import { DashboardPageBody } from "@/components/dashboard/DashboardPageBody";
+import { WingBackground } from "@/components/WingBackground";
 import { BrailleSpinner } from "@/components/ui/BrailleSpinner";
 import { useMachineControl } from "@/lib/dashboard/use-machine-control";
 import type { GatewaySummary } from "@/lib/dashboard/types";
@@ -112,6 +114,27 @@ export function OverviewClient({ counts, agentKind, model }: Props) {
 			  health before drilling into any single machine.
 			*/}
 			<FleetMetrics />
+
+			<section className="grid gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] lg:grid-cols-[1fr_1fr_1fr]">
+				<DashboardBento
+					kicker="agent"
+					title="Hermes / OpenClaw"
+					body="Runtime profile, gateway command, log path, tools, and storage are selected from account settings."
+					variant="nyx-lines"
+				/>
+				<DashboardBento
+					kicker="gateway"
+					title="Machine agent, not model proxy"
+					body="Chat requires the bootstrapped machine gateway, so the UI cannot accidentally talk to upstream Claude directly."
+					variant="nyx-waves"
+				/>
+				<DashboardBento
+					kicker="storage"
+					title="/home/machine is source of truth"
+					body="Chats, settings, artifacts, Hermes state, OpenClaw state, and repo reload are all visible from the terminal."
+					variant="cloud"
+				/>
+			</section>
 
 			<MachineControlBar
 				phase={phase}
@@ -416,6 +439,35 @@ function Row({ label, value }: { label: string; value: string }) {
 		<div className="flex items-center justify-between gap-3">
 			<dt className="text-[var(--ret-text-muted)]">{label}</dt>
 			<dd className="truncate text-[var(--ret-text)]">{value}</dd>
+		</div>
+	);
+}
+
+function DashboardBento({
+	kicker,
+	title,
+	body,
+	variant,
+}: {
+	kicker: string;
+	title: string;
+	body: string;
+	variant: "cloud" | "nyx-lines" | "nyx-waves";
+}) {
+	return (
+		<div className="relative min-h-[160px] overflow-hidden bg-[var(--ret-bg)] p-4">
+			<WingBackground
+				variant={variant}
+				opacity={{ light: 0.2, dark: 0.34 }}
+				fadeEdges
+			/>
+			<div className="relative z-10">
+				<ReticleLabel>{kicker}</ReticleLabel>
+				<h3 className="ret-display mt-3 max-w-[14ch] text-xl">{title}</h3>
+				<p className="mt-3 max-w-[42ch] text-[12px] leading-relaxed text-[var(--ret-text-dim)]">
+					{body}
+				</p>
+			</div>
 		</div>
 	);
 }

@@ -21,6 +21,8 @@ import {
 	type CustomLoadoutEntry,
 	type EnvironmentProfile,
 	type GatewayProfile,
+	type LoadoutPreset,
+	type LoadoutSource,
 	type ProviderCredentials,
 } from "@/lib/user-config/schema";
 
@@ -35,6 +37,9 @@ type SettingsBody = Partial<{
 	environmentProfiles: Array<Partial<EnvironmentProfile>>;
 	bootstrapPresets: BootstrapPreset[];
 	customLoadout: CustomLoadoutEntry[];
+	loadoutSources: LoadoutSource[];
+	loadoutPresets: LoadoutPreset[];
+	activeLoadoutPresetId: string;
 	syncFromMachine: boolean;
 }>;
 
@@ -103,6 +108,11 @@ export async function POST(request: Request): Promise<Response> {
 	}
 	if (body.bootstrapPresets) patch.bootstrapPresets = body.bootstrapPresets;
 	if (body.customLoadout) patch.customLoadout = body.customLoadout;
+	if (body.loadoutSources) patch.loadoutSources = body.loadoutSources;
+	if (body.loadoutPresets) patch.loadoutPresets = body.loadoutPresets;
+	if (body.activeLoadoutPresetId) {
+		patch.activeLoadoutPresetId = body.activeLoadoutPresetId;
+	}
 
 	const next = await setUserConfig(patch);
 	return Response.json({ config: toPublicConfig(next) });

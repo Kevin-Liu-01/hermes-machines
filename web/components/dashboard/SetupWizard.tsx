@@ -59,8 +59,8 @@ const AGENTS_DESC: Record<
 	openclaw: {
 		name: "OpenClaw",
 		tagline:
-			"Dedalus's open computer-use baseline. Browser, shell, file system, vision. Pinned to anthropic/claude on the gateway.",
-		logo: "dedalus",
+			"Persistent computer-use agent. Browser, shell, filesystem, screenshots, and vision on the same durable machine.",
+		logo: "nous",
 	},
 };
 
@@ -78,15 +78,15 @@ const PROVIDERS_DESC: Record<
 	"vercel-sandbox": {
 		name: "Vercel Sandbox",
 		tagline:
-			"Ephemeral Firecracker microVMs from Vercel. Provider key accepted now; provisioning is not wired yet.",
-		ready: false,
+			"Ephemeral Firecracker sessions from Vercel. Best for short-lived OpenClaw/browser tasks with external storage.",
+		ready: true,
 		keyHint: "Vercel API token",
 	},
 	fly: {
 		name: "Fly Machines",
 		tagline:
-			"Fly.io persistent microVMs with autostart on connect. Provider key accepted now; provisioning is not wired yet.",
-		ready: false,
+			"Fly.io persistent microVMs with volumes. Alternative host for durable Hermes or OpenClaw machines.",
+		ready: true,
 		keyHint: "fly_pat_... or FlyV1 ...",
 	},
 };

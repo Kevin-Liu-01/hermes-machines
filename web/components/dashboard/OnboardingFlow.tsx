@@ -86,9 +86,9 @@ const AGENT_DESC: Record<
 		mark: "openclaw",
 		tagline: "Computer use. Browser + shell + vision.",
 		bullets: [
-			"Anthropic computer-use loop on a real X server",
-			"Browser + screenshot + click-by-coordinates",
-			"State + screenshots cached on the machine disk",
+			"Persistent computer-use state under /home/machine/.openclaw",
+			"Browser + screenshot + click-by-coordinates on the VM",
+			"Bootstrappable from the UI like Hermes, with the same fleet controls",
 		],
 		links: [
 			{ label: "github", href: "https://github.com/openclaw/openclaw" },
@@ -940,7 +940,7 @@ function BootStep({
 				<p className="mt-1 max-w-[60ch] text-[13px] text-[var(--ret-text-dim)]">
 					{done
 						? "Riding into the dashboard..."
-						: "This creates the provider machine and saves it to your fleet. Browser-driven agent bootstrap is not wired yet; use the matching CLI deploy path to install the agent after the VM is accepted."}
+						: "This creates the provider machine and saves it to your fleet. Then the dashboard can bootstrap Hermes or OpenClaw onto that persistent environment and wire the gateway back into your account."}
 				</p>
 			</div>
 

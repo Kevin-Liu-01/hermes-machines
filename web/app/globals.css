@@ -382,6 +382,48 @@ textarea::placeholder {
 	}
 }
 
+.ret-material-field {
+	position: relative;
+	overflow: hidden;
+	background:
+		radial-gradient(circle at 16% 12%, rgba(74, 222, 128, 0.36), transparent 30%),
+		radial-gradient(circle at 84% 18%, rgba(210, 190, 255, 0.42), transparent 32%),
+		linear-gradient(135deg, rgba(34, 211, 238, 0.62), rgba(74, 222, 128, 0.34) 48%, rgba(210, 190, 255, 0.42));
+}
+
+.ret-material-field::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.24) 0 1px, transparent 1px 26px),
+		repeating-linear-gradient(24deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 7px);
+	opacity: 0.45;
+	mix-blend-mode: overlay;
+}
+
+.ret-material-field::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-image:
+		radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.32) 1px, transparent 0);
+	background-size: 3px 3px;
+	opacity: 0.18;
+	mix-blend-mode: overlay;
+}
+
+@keyframes ret-panel-in {
+	from {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 /* ------------------------------------------------------------------ *
  * Clerk OAuth icon theming.
  *

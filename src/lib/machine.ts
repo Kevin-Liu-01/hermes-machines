@@ -157,10 +157,24 @@ export async function wakeMachine(
 ): Promise<Machine> {
 	if (machine.status.phase === "running") return machine;
 	if (machine.status.phase === "sleeping") {
-		await client.machines.wake({
-			machine_id: machine.machine_id,
-			"If-Match": machine.status.revision,
-		});
+		try {
+			await client.machines.wake({
+				machine_id: machine.machine_id,
+				"If-Match": machine.status.revision,
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			if (!message.includes("internal route signature")) throw err;
+			// Public API keys cannot call the HMAC-gated lifecycle
+			// route on some Dedalus fleets. Submitting any execution is
+			// the public wake path; the scheduler admits/wakes the VM
+			// internally before running the command.
+			await client.machines.executions.create({
+				machine_id: machine.machine_id,
+				command: ["/bin/true"],
+				timeout_ms: 5000,
+			});
+		}
 	}
 	return waitForRunning(client, machine.machine_id);
 }
@@ -170,10 +184,19 @@ export async function sleepMachine(
 	machine: Machine,
 ): Promise<Machine> {
 	if (machine.status.phase !== "running") return machine;
-	await client.machines.sleep({
-		machine_id: machine.machine_id,
-		"If-Match": machine.status.revision,
-	});
+	try {
+		await client.machines.sleep({
+			machine_id: machine.machine_id,
+			"If-Match": machine.status.revision,
+		});
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		if (!message.includes("internal route signature")) throw err;
+		// Sleep is HMAC-gated on the dev fleet. Machines still
+		// autosleep on idle, so the CLI should not fail a successful
+		// deploy just because immediate sleep is unavailable.
+		return machine;
+	}
 	return getMachine(client, machine.machine_id);
 }
 

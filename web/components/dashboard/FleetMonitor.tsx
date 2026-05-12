@@ -329,6 +329,9 @@ function MachineRow({
 }) {
 	const stateName = machine.live.ok ? machine.live.state : "unknown";
 	const tone = STATE_TONE[stateName] ?? "muted";
+	const providerMessage =
+		machine.live.ok && machine.live.lastError ? machine.live.lastError : null;
+	const isActualError = stateName === "error";
 	const memGib = (machine.spec.memoryMib / 1024).toFixed(1);
 	const providerMark = PROVIDER_MARK[machine.providerKind];
 	const ageHrs = Math.max(
@@ -392,12 +395,18 @@ function MachineRow({
 				<p className="bg-[var(--ret-amber)]/5 px-2 py-1 font-mono text-[10px] text-[var(--ret-amber)]">
 					probe failed: {machine.live.reason.slice(0, 80)}
 				</p>
-			) : machine.live.lastError ? (
+			) : providerMessage ? (
 				<p
-					className="bg-[var(--ret-amber)]/5 px-2 py-1 font-mono text-[10px] text-[var(--ret-amber)]"
-					title={machine.live.lastError}
+					className={cn(
+						"px-2 py-1 font-mono text-[10px]",
+						isActualError
+							? "bg-[var(--ret-red)]/5 text-[var(--ret-red)]"
+							: "bg-[var(--ret-amber)]/5 text-[var(--ret-amber)]",
+					)}
+					title={providerMessage}
 				>
-					last error: {machine.live.lastError.slice(0, 80)}
+					{isActualError ? "last error" : "status"}:{" "}
+					{providerMessage.slice(0, 80)}
 				</p>
 			) : null}
 			<div className="flex justify-end">

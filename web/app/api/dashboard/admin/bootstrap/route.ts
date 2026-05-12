@@ -42,7 +42,7 @@ export async function POST(request: Request): Promise<Response> {
 	});
 
 	try {
-		await runWebBootstrap({
+		const result = await runWebBootstrap({
 			machine,
 			provider,
 			config,
@@ -50,6 +50,15 @@ export async function POST(request: Request): Promise<Response> {
 				await setUserConfig({
 					patchMachine: { id: machine.id, patch: { bootstrapState } },
 				});
+			},
+		});
+		await setUserConfig({
+			patchMachine: {
+				id: machine.id,
+				patch: {
+					apiUrl: result.apiUrl,
+					apiKey: result.apiKey,
+				},
 			},
 		});
 		return Response.json({ ok: true, machineId: machine.id });

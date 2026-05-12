@@ -59,7 +59,7 @@ export function HeroBlock() {
 	}
 
 	return (
-		<div className="relative grid items-stretch gap-10 md:grid-cols-[1fr_1.05fr] md:gap-12">
+		<div className="relative grid items-stretch gap-px overflow-hidden border border-[var(--ret-border)] bg-[var(--ret-border)] md:grid-cols-[0.88fr_1.12fr]">
 			{/*
 			  Faint wing watermark anchored to the top-right of the hero.
 			  Sits behind everything via z-0 / pointer-events-none -- the
@@ -85,7 +85,7 @@ export function HeroBlock() {
 				/>
 			</div>
 
-			<div className="relative z-10 flex flex-col">
+			<div className="relative z-10 flex flex-col bg-[var(--ret-bg)] p-4 md:p-5">
 				<div className="flex flex-wrap items-center gap-2">
 					<ReticleLabel>AGENT MACHINES</ReticleLabel>
 					<ReticleBadge variant="accent">stateful microVM</ReticleBadge>
@@ -106,7 +106,7 @@ export function HeroBlock() {
 				  to text-[44px] makes the heading wrap to 4 lines and
 				  drags the portrait with it.
 				*/}
-				<div className="mt-5 flex items-stretch gap-5 md:gap-7">
+				<div className="mt-4 flex items-stretch gap-4 md:gap-5">
 					<HeroAgentPortrait agent={agent} onToggle={toggleAgent} />
 					<h1 className="ret-display text-3xl leading-[1.05] md:text-[36px]">
 						<span className="block whitespace-nowrap">
@@ -126,7 +126,7 @@ export function HeroBlock() {
 				  announce the change without interrupting other
 				  content.
 				*/}
-				<p className="mt-5 max-w-[60ch] text-[14px] leading-relaxed text-[var(--ret-text-dim)]">
+				<p className="mt-4 max-w-[60ch] text-[14px] leading-relaxed text-[var(--ret-text-dim)]">
 					One stateful microVM per account.{" "}
 					<strong className="text-[var(--ret-text)]">
 						Boot in 30 seconds, sleep on idle, wake on the first prompt.
@@ -139,7 +139,7 @@ export function HeroBlock() {
 					</span>
 				</p>
 
-				<ul className="mt-5 flex flex-col divide-y divide-[var(--ret-border)] border-y border-[var(--ret-border)]">
+				<ul className="mt-4 flex flex-col divide-y divide-[var(--ret-border)] border-y border-[var(--ret-border)]">
 					{PROOF_POINTS.map(({ Icon, title, body }) => (
 						<li key={title} className="flex items-start gap-3 py-3">
 							<span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border border-[var(--ret-border)] bg-[var(--ret-bg-soft)] text-[var(--ret-purple)]">
@@ -157,7 +157,7 @@ export function HeroBlock() {
 					))}
 				</ul>
 
-				<div className="mt-6 flex flex-wrap gap-2">
+				<div className="mt-5 flex flex-wrap gap-2">
 					<SignedIn>
 						<ReticleButton
 							as="a"
@@ -214,7 +214,7 @@ export function HeroBlock() {
 
 			</div>
 
-			<div className="relative z-10 flex min-h-[280px] flex-col">
+			<div className="relative z-10 flex min-h-[280px] flex-col bg-[var(--ret-bg)]">
 				<ContributionGrid />
 			</div>
 		</div>

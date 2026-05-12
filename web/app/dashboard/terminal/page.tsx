@@ -11,7 +11,7 @@ export const metadata = {
  * Terminal route.
  *
  * Each prompt issues one POST to `/api/dashboard/exec` which routes
- * through Dedalus's executions API. Not a real PTY -- exec is a
+ * through the active provider's execution API. Not a real PTY -- exec is a
  * single-shot RPC, so interactive TTY apps (vim, less, htop) won't
  * work. For everything else (`ls`, `cat`, `tail`, `python -c ...`,
  * `pip install`, `git status`) the experience matches an SSH session
@@ -24,7 +24,7 @@ export default function TerminalPage() {
 			<PageHeader
 				kicker="TERMINAL -- /api/dashboard/exec"
 				title="Run anything on the machine."
-				description="One-shot shell exec on the active machine via Dedalus. Use the starter chips for common diagnostics, or type your own. History walks with up/down; Ctrl/Cmd+L clears the scrollback. Interactive TTY apps (vim, less) won't work because exec is single-shot, not a PTY."
+				description="One-shot shell exec on the active machine. Use the command references for /home/machine/.agent-machines, Hermes, OpenClaw, logs, ports, repo checkout, and gateway health. History walks with up/down; Ctrl/Cmd+L clears the scrollback. Interactive TTY apps (vim, less) won't work because exec is single-shot, not a PTY."
 			/>
 			<div className="px-5 py-5">
 				<TerminalPanel />

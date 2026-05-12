@@ -46,6 +46,7 @@ type HealthInfo = {
 	model?: string;
 	apiHost?: string;
 	error?: string;
+	message?: string;
 };
 
 async function* readSseDeltas(
@@ -110,7 +111,7 @@ export function Chat({
 	messagesRef.current = messages;
 
 	useEffect(() => {
-		fetch("/api/health")
+		fetch("/api/dashboard/gateway")
 			.then((r) => r.json())
 			.then((info: HealthInfo) => setHealth(info))
 			.catch(() => setHealth({ ok: false, error: "unreachable" }));
@@ -224,6 +225,13 @@ export function Chat({
 	);
 
 	const showStarters = messages.length === 0 && !disabled;
+	const gatewayUnavailable = health?.ok === false;
+	const effectiveDisabled = disabled || gatewayUnavailable;
+	const effectiveDisabledReason =
+		disabledReason ??
+		(gatewayUnavailable
+			? health?.message ?? health?.error ?? "Agent gateway is offline."
+			: undefined);
 	const statusBadge = useMemo(() => {
 		if (!health) {
 			return (
@@ -249,9 +257,9 @@ export function Chat({
 				<div className="flex items-center gap-3">
 					<ReticleLabel>SESSION</ReticleLabel>
 					{statusBadge}
-					{health?.model ? (
+					{health?.apiHost ? (
 						<span className="font-mono text-[11px] text-[var(--ret-text-dim)]">
-							{health.model}
+							{health.apiHost}
 						</span>
 					) : null}
 				</div>
@@ -269,9 +277,9 @@ export function Chat({
 					ref={transcriptRef}
 					className="flex max-h-[60vh] min-h-[420px] flex-col gap-5 overflow-y-auto p-5 md:p-7"
 				>
-					{disabled && disabledReason ? (
+					{effectiveDisabled && effectiveDisabledReason ? (
 						<div className="border border-[var(--ret-amber)]/40 bg-[var(--ret-amber)]/5 p-4 font-mono text-[12px] text-[var(--ret-amber)]">
-							{disabledReason}
+							{effectiveDisabledReason}
 						</div>
 					) : null}
 					{showStarters ? <StarterGrid onPick={send} /> : null}
@@ -299,21 +307,21 @@ export function Chat({
 							"font-mono",
 						)}
 						placeholder={
-							disabled
-								? "Pick or provision a machine first."
+							effectiveDisabled
+								? "Bootstrap or wake the agent gateway first."
 								: "Ask the agent something. Shift+Enter for newline."
 						}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={onTextareaKey}
 						rows={1}
-						disabled={state === "streaming" || disabled}
+						disabled={state === "streaming" || effectiveDisabled}
 					/>
 					<ReticleButton
 						type="submit"
 						variant="primary"
 						size="md"
-						disabled={state === "streaming" || disabled || !input.trim()}
+						disabled={state === "streaming" || effectiveDisabled || !input.trim()}
 					>
 						Send
 					</ReticleButton>

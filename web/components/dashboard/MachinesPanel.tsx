@@ -254,6 +254,9 @@ function MachineCard({
 	const stateName = machine.live.ok ? machine.live.state : "unknown";
 	const stateTone = STATE_TONE[stateName] ?? "muted";
 	const stateLabel = STATE_LABEL[stateName] ?? stateName;
+	const providerMessage =
+		machine.live.ok && machine.live.lastError ? machine.live.lastError : null;
+	const isActualError = stateName === "error";
 	const memGib = (machine.spec.memoryMib / 1024).toFixed(1);
 	const providerLogo = PROVIDER_LOGO[machine.providerKind];
 	return (
@@ -295,9 +298,17 @@ function MachineCard({
 					value={new Date(machine.createdAt).toLocaleString()}
 				/>
 			</dl>
-			{machine.live.ok && machine.live.lastError ? (
-				<p className="border-t border-[var(--ret-border)] bg-[var(--ret-amber)]/5 px-4 py-2 font-mono text-[10px] text-[var(--ret-amber)]">
-					last error: {machine.live.lastError.slice(0, 240)}
+			{providerMessage ? (
+				<p
+					className={cn(
+						"border-t border-[var(--ret-border)] px-4 py-2 font-mono text-[10px]",
+						isActualError
+							? "bg-[var(--ret-red)]/5 text-[var(--ret-red)]"
+							: "bg-[var(--ret-amber)]/5 text-[var(--ret-amber)]",
+					)}
+				>
+					{isActualError ? "last error" : "status"}:{" "}
+					{providerMessage.slice(0, 240)}
 				</p>
 			) : null}
 			{!machine.live.ok ? (
