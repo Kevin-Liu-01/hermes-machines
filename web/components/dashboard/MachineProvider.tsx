@@ -7,6 +7,7 @@ import type { PublicMachineRef } from "@/lib/user-config/schema";
 type MachineContextValue = {
 	machineId: string;
 	machine: PublicMachineRef | null;
+	isActive: boolean;
 };
 
 const MachineContext = createContext<MachineContextValue | null>(null);
@@ -14,10 +15,11 @@ const MachineContext = createContext<MachineContextValue | null>(null);
 export function MachineProvider({
 	machineId,
 	machine,
+	isActive,
 	children,
 }: MachineContextValue & { children: ReactNode }) {
 	return (
-		<MachineContext.Provider value={{ machineId, machine }}>
+		<MachineContext.Provider value={{ machineId, machine, isActive }}>
 			{children}
 		</MachineContext.Provider>
 	);

@@ -33,7 +33,7 @@ type MachineRouteResponse =
 	| { ok?: false; error?: string };
 
 export default function MachineOverviewPage() {
-	const { machineId, machine } = useMachineContext();
+	const { machineId, machine, isActive } = useMachineContext();
 	const [status, setStatus] = useState<MachineStatus | null>(null);
 	const [loading, setLoading] = useState(true);
 
@@ -84,10 +84,10 @@ export default function MachineOverviewPage() {
 						machineId={machineId}
 						state={stateName as MachineActionState}
 						capabilities={null}
-						active
+						active={isActive}
 						archived={machine.archived ?? false}
 						allowDestroy
-						onChange={async () => {}}
+						onChange={async () => { window.location.reload(); }}
 					/>
 				}
 			/>

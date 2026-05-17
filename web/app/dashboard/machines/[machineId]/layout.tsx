@@ -23,8 +23,10 @@ export default async function MachineLayout({ children, params }: Props) {
 	const machine = config.machines.find((m) => m.id === machineId);
 	if (!machine) notFound();
 
+	const isActive = config.activeMachineId === machineId;
+
 	return (
-		<MachineProvider machineId={machineId} machine={machine}>
+		<MachineProvider machineId={machineId} machine={machine} isActive={isActive}>
 			{children}
 		</MachineProvider>
 	);
