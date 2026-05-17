@@ -1,0 +1,447 @@
+"use client";
+
+/**
+ * 3-panel agent console.
+ *
+ *   Left (260px)   : ConversationList -- history, pinned, automations
+ *   Middle (flex-1) : ActivityStream -- the live agent interaction feed
+ *   Right (380px)   : ArtifactPanel -- code diffs, terminal, files, browser
+ *
+ * The right panel is collapsible and only renders when there are artifacts
+ * to show. On mobile the layout stacks vertically.
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { cn } from "@/lib/cn";
+import {
+	type AgentEvent,
+	type Conversation,
+	type ConversationArtifact,
+	type ConversationSummary,
+	type ConversationTurn,
+	type StreamAccumulator,
+	createStreamAccumulator,
+	makeEventId,
+} from "@/lib/agents/protocol";
+import { processAgentEvent, readSseStream } from "@/lib/agents/parser";
+
+import { ActivityStream } from "./ActivityStream";
+import { ArtifactPanel } from "./ArtifactPanel";
+import { ConversationList } from "./ConversationList";
+
+type StreamState = "idle" | "streaming" | "error";
+
+type HealthInfo = {
+	ok: boolean;
+	model?: string;
+	apiHost?: string;
+	error?: string;
+	message?: string;
+};
+
+export type AgentConsoleProps = {
+	activeMachineId: string | null;
+	model: string | null;
+	agentKind: string | null;
+};
+
+export function AgentConsole({ activeMachineId, model, agentKind }: AgentConsoleProps) {
+	const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+	const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
+	const [turns, setTurns] = useState<ConversationTurn[]>([]);
+	const [artifacts, setArtifacts] = useState<ConversationArtifact[]>([]);
+	const [selectedArtifact, setSelectedArtifact] = useState<ConversationArtifact | null>(null);
+	const [streamState, setStreamState] = useState<StreamState>("idle");
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [health, setHealth] = useState<HealthInfo | null>(null);
+	const [rightPanelOpen, setRightPanelOpen] = useState(false);
+	const [machineOk, setMachineOk] = useState(false);
+
+	const abortRef = useRef<AbortController | null>(null);
+	const turnsRef = useRef(turns);
+	turnsRef.current = turns;
+
+	useEffect(() => {
+		fetch("/api/dashboard/gateway")
+			.then((r) => r.json())
+			.then((info: HealthInfo) => setHealth(info))
+			.catch(() => setHealth({ ok: false, error: "unreachable" }));
+	}, []);
+
+	const refreshList = useCallback(async () => {
+		try {
+			const response = await fetch("/api/dashboard/chats", { cache: "no-store" });
+			const body = await response.json();
+			if (body.ok) {
+				const summaries: ConversationSummary[] = (body.chats ?? []).map(
+					(c: Record<string, unknown>) => ({
+						id: c.id as string,
+						title: c.title as string,
+						turns: [],
+						machineId: (c.machineId as string) ?? null,
+						agentKind: null,
+						model: (c.model as string) ?? null,
+						createdAt: c.createdAt as string,
+						updatedAt: c.updatedAt as string,
+						turnCount: (c.messageCount as number) ?? 0,
+						lastTurnPreview: (c.title as string) ?? "",
+					}),
+				);
+				setConversations(summaries);
+				setMachineOk(true);
+			} else {
+				setMachineOk(false);
+			}
+		} catch {
+			setMachineOk(false);
+		}
+	}, []);
+
+	useEffect(() => { void refreshList(); }, [refreshList]);
+
+	const loadConversation = useCallback(async (convoId: string) => {
+		try {
+			const response = await fetch(`/api/dashboard/chats/${convoId}`, { cache: "no-store" });
+			const body = await response.json();
+			if (body.ok && body.chat) {
+				setActiveConvoId(body.chat.id);
+				const loadedTurns: ConversationTurn[] = (body.chat.messages ?? []).map(
+					(m: Record<string, unknown>) => ({
+						id: m.id as string,
+						role: m.role as "user" | "assistant",
+						content: m.content as string,
+						events: legacyEventsToAgentEvents(m.events as unknown[]),
+						startedAt: (m.createdAt as number) ?? Date.now(),
+						durationMs: m.durationMs as number | undefined,
+						model: m.model as string | undefined,
+					}),
+				);
+				setTurns(loadedTurns);
+				setArtifacts([]);
+				setSelectedArtifact(null);
+			}
+		} catch { /* load failed */ }
+	}, []);
+
+	const newConversation = useCallback(() => {
+		setActiveConvoId(makeEventId());
+		setTurns([]);
+		setArtifacts([]);
+		setSelectedArtifact(null);
+	}, []);
+
+	const deleteConversation = useCallback(async (convoId: string) => {
+		try {
+			await fetch(`/api/dashboard/chats/${convoId}`, { method: "DELETE" });
+			if (convoId === activeConvoId) {
+				setActiveConvoId(null);
+				setTurns([]);
+			}
+			await refreshList();
+		} catch { /* delete failed */ }
+	}, [activeConvoId, refreshList]);
+
+	useEffect(() => {
+		if (activeConvoId !== null) return;
+		if (conversations.length > 0) {
+			void loadConversation(conversations[0].id);
+		} else if (machineOk) {
+			newConversation();
+		}
+	}, [activeConvoId, conversations, loadConversation, newConversation, machineOk]);
+
+	const send = useCallback(async (text: string) => {
+		const trimmed = text.trim();
+		if (!trimmed || streamState === "streaming") return;
+
+		setErrorMessage(null);
+
+		const userTurn: ConversationTurn = {
+			id: makeEventId(),
+			role: "user",
+			content: trimmed,
+			events: [],
+			startedAt: Date.now(),
+		};
+
+		const assistantTurn: ConversationTurn = {
+			id: makeEventId(),
+			role: "assistant",
+			content: "",
+			events: [],
+			startedAt: Date.now(),
+			model: model ?? undefined,
+			agentKind: (agentKind as ConversationTurn["agentKind"]) ?? undefined,
+		};
+
+		const nextTurns = [...turnsRef.current, userTurn, assistantTurn];
+		setTurns(nextTurns);
+		turnsRef.current = nextTurns;
+		setStreamState("streaming");
+
+		const ctrl = new AbortController();
+		abortRef.current = ctrl;
+
+		try {
+			const upstream = nextTurns.slice(0, -1).map((t) => ({
+				role: t.role,
+				content: t.content,
+			}));
+
+			const response = await fetch("/api/chat", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ messages: upstream }),
+				signal: ctrl.signal,
+			});
+
+			if (!response.ok || !response.body) {
+				const detail = await response.json().catch(() => ({}));
+				throw new Error(detail?.message || detail?.error || `HTTP ${response.status}`);
+			}
+
+			let acc: StreamAccumulator = createStreamAccumulator();
+
+			for await (const sseEvent of readSseStream(response.body)) {
+				acc = processAgentEvent(sseEvent, acc);
+
+				const updated = turnsRef.current.map((t) =>
+					t.id === assistantTurn.id
+						? {
+								...t,
+								content: acc.content,
+								events: acc.events,
+								durationMs: Date.now() - assistantTurn.startedAt,
+							}
+						: t,
+				);
+				turnsRef.current = updated;
+				setTurns(updated);
+
+				if (acc.artifacts.length > 0) {
+					setArtifacts(acc.artifacts);
+					if (!rightPanelOpen) setRightPanelOpen(true);
+				}
+			}
+
+			// Finalize
+			const finalTurns = turnsRef.current.map((t) =>
+				t.id === assistantTurn.id
+					? {
+							...t,
+							content: acc.content,
+							events: acc.events,
+							completedAt: Date.now(),
+							durationMs: Date.now() - assistantTurn.startedAt,
+						}
+					: t,
+			);
+			turnsRef.current = finalTurns;
+			setTurns(finalTurns);
+			setStreamState("idle");
+
+			// Persist
+			void persistConversation(finalTurns);
+		} catch (err) {
+			if (ctrl.signal.aborted) {
+				setStreamState("idle");
+				return;
+			}
+			setErrorMessage(err instanceof Error ? err.message : "unknown_error");
+			setStreamState("error");
+		} finally {
+			abortRef.current = null;
+		}
+	}, [streamState, model, agentKind, rightPanelOpen]);
+
+	const persistConversation = useCallback(async (allTurns: ConversationTurn[]) => {
+		if (!activeConvoId || !machineOk) return;
+		const firstUser = allTurns.find((t) => t.role === "user");
+		const title = firstUser
+			? firstUser.content.trim().replace(/\s+/g, " ").slice(0, 80)
+			: "untitled";
+
+		const messages = allTurns.map((t) => ({
+			id: t.id,
+			role: t.role,
+			content: t.content,
+			createdAt: t.startedAt,
+			durationMs: t.durationMs,
+			model: t.model,
+			events: t.events.length > 0 ? agentEventsToLegacy(t.events) : undefined,
+		}));
+
+		const record = {
+			id: activeConvoId,
+			title,
+			machineId: activeMachineId,
+			model,
+			createdAt: allTurns[0]?.startedAt
+				? new Date(allTurns[0].startedAt).toISOString()
+				: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			messageCount: allTurns.length,
+			messages,
+		};
+
+		try {
+			const response = await fetch("/api/dashboard/chats", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(record),
+			});
+			if (response.ok) await refreshList();
+		} catch { /* persist failed */ }
+	}, [activeConvoId, activeMachineId, machineOk, model, refreshList]);
+
+	const stop = useCallback(() => {
+		abortRef.current?.abort();
+		setStreamState("idle");
+	}, []);
+
+	const disabled = !activeMachineId || !machineOk || health?.ok === false;
+
+	return (
+		<div className="flex h-[calc(100dvh-48px)] overflow-hidden">
+			{/* Left: Conversation list */}
+			<aside className="hidden w-[260px] shrink-0 flex-col border-r border-[var(--ret-border)] bg-[var(--ret-bg)] lg:flex">
+				<ConversationList
+					conversations={conversations}
+					activeId={activeConvoId}
+					onSelect={loadConversation}
+					onNew={newConversation}
+					onDelete={deleteConversation}
+					machineOk={machineOk}
+					streaming={streamState === "streaming"}
+					crons={DEFAULT_CRONS}
+					loadoutItems={DEFAULT_LOADOUT}
+				/>
+			</aside>
+
+			{/* Middle: Activity stream */}
+			<main className="flex min-w-0 flex-1 flex-col bg-[var(--ret-bg)]">
+				<ActivityStream
+					turns={turns}
+					streaming={streamState === "streaming"}
+					health={health}
+					error={errorMessage}
+					disabled={disabled}
+					model={model}
+					agentKind={agentKind}
+					activeMachineId={activeMachineId}
+					artifactCount={artifacts.length}
+					rightPanelOpen={rightPanelOpen}
+					onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
+					onSend={send}
+					onStop={stop}
+					onSelectArtifact={(a) => {
+						setSelectedArtifact(a);
+						setRightPanelOpen(true);
+					}}
+				/>
+			</main>
+
+			{/* Right: Artifact panel */}
+			{rightPanelOpen ? (
+				<aside className="hidden w-[380px] shrink-0 flex-col border-l border-[var(--ret-border)] bg-[var(--ret-bg)] xl:flex">
+					<ArtifactPanel
+						artifacts={artifacts}
+						selected={selectedArtifact}
+						onSelect={setSelectedArtifact}
+						onClose={() => setRightPanelOpen(false)}
+					/>
+				</aside>
+			) : null}
+		</div>
+	);
+}
+
+/**
+ * Convert legacy MessageEvent[] (from persisted chats) into AgentEvent[].
+ */
+function legacyEventsToAgentEvents(events: unknown[] | undefined): AgentEvent[] {
+	if (!events || !Array.isArray(events)) return [];
+	const result: AgentEvent[] = [];
+	for (const e of events) {
+		const ev = e as Record<string, unknown>;
+		if (ev.type === "thinking") {
+			const t = ev.thinking as Record<string, unknown>;
+			result.push({
+				kind: "thinking",
+				id: (t.id as string) ?? makeEventId(),
+				content: (t.content as string) ?? "",
+				startedAt: (t.startedAt as number) ?? Date.now(),
+				completedAt: t.completedAt as number | undefined,
+			});
+		} else if (ev.type === "tool_call") {
+			const tc = ev.toolCall as Record<string, unknown>;
+			result.push({
+				kind: "tool_call",
+				id: (tc.id as string) ?? makeEventId(),
+				name: (tc.name as string) ?? "unknown",
+				arguments: (tc.arguments as string) ?? "{}",
+				status: (tc.status as "running" | "completed" | "error") ?? "completed",
+				startedAt: (tc.startedAt as number) ?? Date.now(),
+				completedAt: tc.completedAt as number | undefined,
+			});
+		} else if (ev.type === "status") {
+			result.push({
+				kind: "status",
+				label: (ev.label as string) ?? "",
+				detail: ev.detail as string | undefined,
+				timestamp: (ev.timestamp as number) ?? Date.now(),
+			});
+		}
+	}
+	return result;
+}
+
+/**
+ * Convert AgentEvent[] back to legacy format for persistence compatibility.
+ */
+function agentEventsToLegacy(events: AgentEvent[]): unknown[] {
+	return events
+		.filter((e) => e.kind === "thinking" || e.kind === "tool_call" || e.kind === "status")
+		.map((e) => {
+			if (e.kind === "thinking") {
+				return {
+					type: "thinking",
+					thinking: { id: e.id, content: e.content, startedAt: e.startedAt, completedAt: e.completedAt },
+				};
+			}
+			if (e.kind === "tool_call") {
+				return {
+					type: "tool_call",
+					toolCall: { id: e.id, name: e.name, arguments: e.arguments, status: e.status, startedAt: e.startedAt, completedAt: e.completedAt },
+				};
+			}
+			if (e.kind === "status") {
+				return { type: "status", label: e.label, detail: e.detail, timestamp: e.timestamp };
+			}
+			return null;
+		})
+		.filter(Boolean);
+}
+
+const DEFAULT_CRONS = [
+	{ name: "hourly-health-check", schedule: "every 1h", prompt: "Run a runtime health check; summarize unhealthy items in 3 lines or fewer; reply OK if clean.", skills: ["dedalus-machines"] },
+	{ name: "daily-wiki-digest", schedule: "0 9 * * *", prompt: "Summarize the most important context to keep in active memory today in <=5 bullets.", skills: ["agent-ethos"] },
+	{ name: "weekly-skill-audit", schedule: "0 4 * * mon", prompt: "Audit ~/.agent-machines/skills for stale, drifted, or duplicated entries. Output JSON.", skills: ["plan-mode-review"] },
+	{ name: "nightly-memory-consolidation", schedule: "0 3 * * *", prompt: "Consolidate MEMORY.md and USER.md within size limits. Reorganize, do not invent.", skills: ["agent-ethos"] },
+];
+
+const DEFAULT_LOADOUT = [
+	{ name: "shell", kind: "tool" as const, description: "Execute bash commands in the VM" },
+	{ name: "browser", kind: "tool" as const, description: "Navigate, click, screenshot via agent-browser" },
+	{ name: "vision", kind: "tool" as const, description: "Analyze images and screenshots" },
+	{ name: "memory", kind: "tool" as const, description: "Read/write persistent agent memory" },
+	{ name: "web_search", kind: "tool" as const, description: "Search the web for information" },
+	{ name: "cursor_agent", kind: "mcp" as const, description: "Delegate code tasks to a Cursor agent" },
+	{ name: "cursor_models", kind: "mcp" as const, description: "List available Cursor models" },
+	{ name: "agent-ethos", kind: "skill" as const, description: "Core agent operating principles" },
+	{ name: "closed-loop-development", kind: "skill" as const, description: "Write, test, verify, iterate" },
+	{ name: "production-safety", kind: "skill" as const, description: "Guards against destructive operations" },
+	{ name: "code-review", kind: "skill" as const, description: "Staff-level code review patterns" },
+	{ name: "dedalus-machines", kind: "skill" as const, description: "Manage Dedalus microVM lifecycle" },
+];

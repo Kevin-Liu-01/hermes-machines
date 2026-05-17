@@ -20,6 +20,18 @@ type MachineStatus = {
 	lastError: string | null;
 };
 
+type MachineRouteResponse =
+	| {
+			ok: true;
+			live?: {
+				state?: string;
+				rawPhase?: string;
+				lastError?: string | null;
+				error?: string;
+			} | null;
+	  }
+	| { ok?: false; error?: string };
+
 export default function MachineOverviewPage() {
 	const { machineId, machine } = useMachineContext();
 	const [status, setStatus] = useState<MachineStatus | null>(null);
@@ -29,10 +41,20 @@ export default function MachineOverviewPage() {
 		let stopped = false;
 		async function poll() {
 			try {
-				const res = await fetch("/api/dashboard/machine", { cache: "no-store" });
+				const res = await fetch(`/api/dashboard/machines/${encodeURIComponent(machineId)}`, {
+					cache: "no-store",
+				});
 				if (!res.ok || stopped) return;
-				const data = await res.json();
-				if (!stopped) setStatus({ state: data.phase, rawPhase: data.phase, lastError: null });
+				const data = (await res.json()) as MachineRouteResponse;
+				const live =
+					data.ok && data.live && typeof data.live === "object" ? data.live : null;
+				if (!stopped) {
+					setStatus({
+						state: live?.state ?? live?.rawPhase ?? "unknown",
+						rawPhase: live?.rawPhase ?? live?.state ?? "unknown",
+						lastError: live?.lastError ?? live?.error ?? null,
+					});
+				}
 			} catch {
 				/* ignore */
 			} finally {

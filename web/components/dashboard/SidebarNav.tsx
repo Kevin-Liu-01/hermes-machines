@@ -68,8 +68,9 @@ const SETUP_ITEM: NavItem = {
 function machineWorkItems(base: string): ReadonlyArray<NavItem> {
 	return [
 		{ href: base, label: "Overview", icon: IconGrid },
+		{ href: `${base}/console`, label: "Console", icon: IconConsole, badge: "new" },
 		{ href: `${base}/chat`, label: "Chat", icon: IconChat },
-		{ href: `${base}/terminal`, label: "Terminal", icon: IconTerminal, badge: "new" },
+		{ href: `${base}/terminal`, label: "Terminal", icon: IconTerminal },
 		{ href: `${base}/loadout`, label: "Loadout", icon: IconLoadout },
 	];
 }
@@ -373,6 +374,17 @@ function IconBack(props: SVGProps<SVGSVGElement>) {
 	return (
 		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
 			<path d="M10 3 L5 8 L10 13" />
+		</svg>
+	);
+}
+
+function IconConsole(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<rect x="1" y="2" width="14" height="12" rx="1" />
+			<path d="M1 5 h14" />
+			<path d="M4 8 l2 2 -2 2" />
+			<path d="M9 12 h4" />
 		</svg>
 	);
 }

@@ -19,6 +19,7 @@ import { chat } from "./commands/chat.js";
 import { deploy } from "./commands/deploy.js";
 import { deployOpenclaw } from "./commands/deploy-openclaw.js";
 import { destroy } from "./commands/destroy.js";
+import { doctor } from "./commands/doctor.js";
 import { logs } from "./commands/logs.js";
 import { reloadKnowledge } from "./commands/reload-knowledge.js";
 import { reset } from "./commands/reset.js";
@@ -39,6 +40,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
 	shell: () => shell(),
 	"reload-knowledge": () => reloadKnowledge(),
 	reset: () => reset(),
+	doctor: (args) => doctor(args),
 };
 
 function help(): void {
@@ -56,6 +58,10 @@ function help(): void {
 	console.log("  shell              Print the dedalus ssh command");
 	console.log("  reload-knowledge   Re-upload local knowledge/ to the machine");
 	console.log("  reset              Wipe sessions/agent-state DB and restart the gateway");
+	console.log("  doctor [flags]     Run diagnostic checks across all layers");
+	console.log("                     --quick  skip slow checks (e2e chat, typecheck)");
+	console.log("                     --local  only check local environment");
+	console.log("                     --vm     only check VM state");
 }
 
 async function main(): Promise<void> {
