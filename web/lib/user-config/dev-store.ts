@@ -66,6 +66,7 @@ type ConfigPatch = {
 	patchMachine?: { id: string; patch: Partial<MachineRef> };
 	removeMachine?: string;
 	archiveMachine?: string;
+	unarchiveMachine?: string;
 };
 
 async function readDevStore(): Promise<UserConfig | null> {
@@ -169,6 +170,12 @@ export async function setDevUserConfig(
 		const id = patch.archiveMachine;
 		nextMachines = nextMachines.map((m) =>
 			m.id === id ? { ...m, archived: true } : m,
+		);
+	}
+	if (patch.unarchiveMachine) {
+		const id = patch.unarchiveMachine;
+		nextMachines = nextMachines.map((m) =>
+			m.id === id ? { ...m, archived: false } : m,
 		);
 	}
 

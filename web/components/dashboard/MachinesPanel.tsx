@@ -83,6 +83,7 @@ export function MachinesPanel() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [editing, setEditing] = useState<string | null>(null);
+	const [showProvision, setShowProvision] = useState(false);
 
 	const refresh = useCallback(async () => {
 		try {
@@ -152,15 +153,47 @@ export function MachinesPanel() {
 				</section>
 			) : null}
 
-			{!loading && machines.length === 0 ? (
+			{/* Quick provision controls */}
+			{!loading ? (
+				<div className="flex items-center justify-between">
+					<h2 className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ret-text-muted)]">
+						Fleet
+					</h2>
+					<div className="flex items-center gap-2">
+						<ReticleButton
+							variant="primary"
+							size="sm"
+							onClick={() => setShowProvision((v) => !v)}
+						>
+							{showProvision ? "Cancel" : "+ New machine"}
+						</ReticleButton>
+						<ReticleButton
+							as="a"
+							href="/dashboard/setup"
+							variant="ghost"
+							size="sm"
+						>
+							Setup wizard
+						</ReticleButton>
+					</div>
+				</div>
+			) : null}
+
+			{showProvision ? (
+				<QuickProvisionForm
+					onDone={() => {
+						setShowProvision(false);
+						void refresh();
+					}}
+					onCancel={() => setShowProvision(false)}
+				/>
+			) : null}
+
+			{!loading && machines.length === 0 && !showProvision ? (
 				<EmptyShell
 					title="No machines yet"
-					body="Run the setup wizard to provision your first one. You can keep multiple machines (one per agent + provider combo)."
-					cta={
-						<ReticleButton as="a" href="/dashboard/setup" variant="primary" size="sm">
-							Open setup wizard
-						</ReticleButton>
-					}
+					body="Click '+ New machine' above or use the setup wizard for guided provisioning."
+					cta={null}
 				/>
 			) : null}
 
@@ -552,6 +585,121 @@ function EditPanel({
 				</ReticleButton>
 			</div>
 		</div>
+	);
+}
+
+function QuickProvisionForm({
+	onDone,
+	onCancel,
+}: {
+	onDone: () => void;
+	onCancel: () => void;
+}) {
+	const [providerKind, setProviderKind] = useState<ProviderKind>("dedalus");
+	const [agentKind, setAgentKind] = useState<AgentKind>("hermes");
+	const [model, setModel] = useState("anthropic/claude-sonnet-4-6");
+	const [name, setName] = useState("");
+	const [vcpu, setVcpu] = useState("1");
+	const [memoryMib, setMemoryMib] = useState("2048");
+	const [storageGib, setStorageGib] = useState("10");
+	const [busy, setBusy] = useState(false);
+	const [err, setErr] = useState<string | null>(null);
+	const [result, setResult] = useState<string | null>(null);
+
+	async function provision() {
+		setBusy(true);
+		setErr(null);
+		setResult(null);
+		try {
+			const body = {
+				providerKind,
+				agentKind,
+				model: model.trim() || undefined,
+				name: name.trim() || undefined,
+				spec: {
+					vcpu: Number.parseInt(vcpu, 10) || 1,
+					memoryMib: Number.parseInt(memoryMib, 10) || 2048,
+					storageGib: Number.parseInt(storageGib, 10) || 10,
+				},
+			};
+			const response = await fetch("/api/dashboard/admin/provision-machine", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+			const data = (await response.json()) as Record<string, unknown>;
+			if (!response.ok) {
+				throw new Error((data.message as string) ?? (data.error as string) ?? `HTTP ${response.status}`);
+			}
+			setResult(`Provisioned: ${data.machineId as string} (${data.state as string})`);
+			setTimeout(onDone, 1500);
+		} catch (e) {
+			setErr(e instanceof Error ? e.message : "provision failed");
+		} finally {
+			setBusy(false);
+		}
+	}
+
+	return (
+		<ReticleFrame>
+			<ReticleHatch className="h-1 border-b border-[var(--ret-border)]" pitch={6} />
+			<div className="space-y-3 p-4">
+				<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+					Quick provision
+				</p>
+				{err ? (
+					<p className="font-mono text-[11px] text-[var(--ret-red)]">{err}</p>
+				) : null}
+				{result ? (
+					<p className="font-mono text-[11px] text-[var(--ret-green)]">{result}</p>
+				) : null}
+				<div className="grid gap-3 md:grid-cols-3">
+					<label className="flex flex-col gap-1.5">
+						<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+							Provider
+						</span>
+						<select
+							value={providerKind}
+							onChange={(e) => setProviderKind(e.target.value as ProviderKind)}
+							className="border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)] focus:border-[var(--ret-purple)] focus:outline-none"
+						>
+							{(["dedalus", "vercel-sandbox", "fly"] as const).map((p) => (
+								<option key={p} value={p}>{PROVIDER_LABEL[p]}</option>
+							))}
+						</select>
+					</label>
+					<label className="flex flex-col gap-1.5">
+						<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ret-text-muted)]">
+							Agent
+						</span>
+						<select
+							value={agentKind}
+							onChange={(e) => setAgentKind(e.target.value as AgentKind)}
+							className="border border-[var(--ret-border)] bg-[var(--ret-bg)] px-3 py-2 font-mono text-[12px] text-[var(--ret-text)] focus:border-[var(--ret-purple)] focus:outline-none"
+						>
+							{(["hermes", "openclaw", "claude-code", "codex"] as const).map((a) => (
+								<option key={a} value={a}>{AGENT_LABEL[a]}</option>
+							))}
+						</select>
+					</label>
+					<EditField label="name" value={name} onChange={setName} placeholder="my-agent" />
+				</div>
+				<div className="grid gap-3 md:grid-cols-4">
+					<EditField label="model" value={model} onChange={setModel} placeholder="anthropic/claude-sonnet-4-6" colSpan />
+					<EditField label="vCPU" value={vcpu} onChange={setVcpu} placeholder="1" />
+					<EditField label="RAM (MiB)" value={memoryMib} onChange={setMemoryMib} placeholder="2048" />
+					<EditField label="Disk (GiB)" value={storageGib} onChange={setStorageGib} placeholder="10" />
+				</div>
+				<div className="flex justify-end gap-2">
+					<ReticleButton variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
+						Cancel
+					</ReticleButton>
+					<ReticleButton variant="primary" size="sm" onClick={() => void provision()} disabled={busy}>
+						{busy ? "Provisioning..." : "Provision"}
+					</ReticleButton>
+				</div>
+			</div>
+		</ReticleFrame>
 	);
 }
 

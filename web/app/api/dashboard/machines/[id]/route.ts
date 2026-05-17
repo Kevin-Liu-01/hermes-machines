@@ -123,6 +123,14 @@ export async function PATCH(request: Request, ctx: Ctx): Promise<Response> {
 	});
 }
 
+/**
+ * DELETE modes via query params:
+ *   (none)       -- soft archive (sets archived: true, recoverable)
+ *   ?destroy=1   -- hard destroy on provider + remove from config
+ *   ?remove=1    -- force-remove from config without calling provider
+ *                   (for stuck/already-destroyed machines)
+ *   ?unarchive=1 -- restore an archived machine (un-sets archived flag)
+ */
 export async function DELETE(request: Request, ctx: Ctx): Promise<Response> {
 	const userId = await getEffectiveUserId();
 	if (!userId) return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -130,9 +138,20 @@ export async function DELETE(request: Request, ctx: Ctx): Promise<Response> {
 	const machine = await find(id);
 	if (!machine) return Response.json({ error: "not_found" }, { status: 404 });
 	const url = new URL(request.url);
+
+	if (url.searchParams.get("unarchive") === "1") {
+		await setUserConfig({ unarchiveMachine: id });
+		return Response.json({ ok: true, action: "unarchived" });
+	}
+
+	if (url.searchParams.get("remove") === "1") {
+		await setUserConfig({ removeMachine: id });
+		return Response.json({ ok: true, action: "removed" });
+	}
+
 	const hardDestroy = url.searchParams.get("destroy") === "1";
-	const config = await getUserConfig();
 	if (hardDestroy) {
+		const config = await getUserConfig();
 		try {
 			const provider = getProvider(machine.providerKind, config.providers);
 			await provider.destroy(machine.id);
@@ -144,8 +163,9 @@ export async function DELETE(request: Request, ctx: Ctx): Promise<Response> {
 			);
 		}
 		await setUserConfig({ removeMachine: id });
-	} else {
-		await setUserConfig({ archiveMachine: id });
+		return Response.json({ ok: true, action: "destroyed" });
 	}
-	return Response.json({ ok: true, hardDestroy });
+
+	await setUserConfig({ archiveMachine: id });
+	return Response.json({ ok: true, action: "archived" });
 }

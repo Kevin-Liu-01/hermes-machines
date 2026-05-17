@@ -557,6 +557,7 @@ type ConfigPatch = {
 	patchMachine?: { id: string; patch: Partial<MachineRef> };
 	removeMachine?: string;
 	archiveMachine?: string;
+	unarchiveMachine?: string;
 };
 
 function asGatewayProfile(
@@ -820,6 +821,12 @@ export async function setUserConfigById(
 		const id = patch.archiveMachine;
 		nextMachines = nextMachines.map((m) =>
 			m.id === id ? { ...m, archived: true } : m,
+		);
+	}
+	if (patch.unarchiveMachine) {
+		const id = patch.unarchiveMachine;
+		nextMachines = nextMachines.map((m) =>
+			m.id === id ? { ...m, archived: false } : m,
 		);
 	}
 

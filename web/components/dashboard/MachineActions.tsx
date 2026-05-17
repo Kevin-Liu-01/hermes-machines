@@ -47,7 +47,7 @@ export type MachineState =
 	| "error"
 	| "unknown";
 
-type Action = "wake" | "sleep" | "active" | "archive" | "destroy";
+type Action = "wake" | "sleep" | "active" | "archive" | "unarchive" | "destroy" | "forceRemove";
 
 type Props = {
 	machineId: string;
@@ -111,21 +111,22 @@ export function MachineActions({
 	);
 
 	const onDestroy = useCallback((): void => {
-		if (
-			!window.confirm(
-				"Hard-destroy this machine on the provider? This cannot be undone.",
-			)
-		) {
-			return;
-		}
+		if (!window.confirm("Hard-destroy this machine on the provider? This cannot be undone.")) return;
 		void run("destroy");
+	}, [run]);
+
+	const onForceRemove = useCallback((): void => {
+		if (!window.confirm("Remove this machine from the dashboard without calling the provider? Use this when the provider machine is already gone.")) return;
+		void run("forceRemove");
 	}, [run]);
 
 	const canWake = state === "sleeping" && (capabilities?.canWake ?? true);
 	const canSleep = state === "ready" && (capabilities?.canSleep ?? true);
 	const canSetActive = !active && !archived;
 	const canArchive = !archived;
+	const canUnarchive = archived;
 	const canDestroy = (archived || allowDestroy) && (capabilities?.canDestroy ?? true);
+	const canForceRemove = archived;
 
 	return (
 		<div
@@ -174,6 +175,16 @@ export function MachineActions({
 					onClick={() => void run("archive")}
 				/>
 			) : null}
+			{canUnarchive ? (
+				<ActionButton
+					label="restore"
+					tone="ok"
+					pending={pending === "unarchive"}
+					disabled={pending !== null}
+					compact={compact}
+					onClick={() => void run("unarchive")}
+				/>
+			) : null}
 			{canDestroy ? (
 				<ActionButton
 					label="destroy"
@@ -182,6 +193,16 @@ export function MachineActions({
 					disabled={pending !== null}
 					compact={compact}
 					onClick={onDestroy}
+				/>
+			) : null}
+			{canForceRemove ? (
+				<ActionButton
+					label="remove"
+					tone="warn"
+					pending={pending === "forceRemove"}
+					disabled={pending !== null}
+					compact={compact}
+					onClick={onForceRemove}
 				/>
 			) : null}
 			{error ? (
@@ -212,8 +233,12 @@ function call(action: Action, machineId: string): Promise<Response> {
 			});
 		case "archive":
 			return fetch(base, { method: "DELETE" });
+		case "unarchive":
+			return fetch(`${base}?unarchive=1`, { method: "DELETE" });
 		case "destroy":
 			return fetch(`${base}?destroy=1`, { method: "DELETE" });
+		case "forceRemove":
+			return fetch(`${base}?remove=1`, { method: "DELETE" });
 	}
 }
 
